@@ -1,4 +1,4 @@
-#include <CircleRB.h>
+#include <Particle.h>
 #include <SFML/Graphics.hpp>
 #include <Simulator.h>
 
