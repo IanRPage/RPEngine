@@ -1,8 +1,8 @@
-#include <Particle.h>
+#include <Circle.h>
 #include <SFML/Graphics.hpp>
 #include <Simulator.h>
 
-const float G = 980.0f;
+const sf::Vector2f G(0.0f, 980.0f);
 const float RESTITUTION = 0.95f; // the dampening effect of bounce
 const float SCALE = 0.86f;
 
@@ -34,9 +34,8 @@ int main() {
     window.clear();
 
     for (auto &par : sim.particles) {
-      par.setPosition(par.position);
-      par.velocity.y += G * dt;
-      par.position += par.velocity * dt;
+      par.applyForce(G * par.getMass());
+      par.update(dt);
 
       auto [maxX, maxY] = sim.windowDims;
       float radius = par.getRadius();
