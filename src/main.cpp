@@ -1,8 +1,6 @@
-#include <Circle.h>
 #include <SFML/Graphics.hpp>
 #include <Simulator.h>
 
-const sf::Vector2f G(0.0f, 980.0f);
 const float RESTITUTION = 0.95f; // the dampening effect of bounce
 const float SCALE = 0.86f;
 
@@ -15,8 +13,11 @@ int main() {
   sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(dim), "RPEngine");
   window.setFramerateLimit(60);
 
-  Simulator sim(dim);
+  float g = 9.8f;    // gravity
+  float C_r = 0.95f; // coefficient of restitution
   const float dt = 1.0f / 60.0f;
+
+  Simulator sim(dim, g, C_r, dt);
 
   while (window.isOpen()) {
     while (const std::optional event = window.pollEvent()) {
@@ -32,41 +33,10 @@ int main() {
       }
     }
     window.clear();
-
+    sim.update();
     for (auto &par : sim.particles) {
-      par.applyForce(G * par.getMass());
-      par.update(dt);
-
-      auto [maxX, maxY] = sim.windowDims;
-      float radius = par.getRadius();
-
-      // top edge
-      if (par.position.y < 0) {
-        par.position.y = 0;
-        par.velocity.y = -par.velocity.y * RESTITUTION;
-      }
-
-      // bottom edge
-      if (par.position.y + 2 * radius > maxY) {
-        par.position.y = maxY - 2 * radius;
-        par.velocity.y = -par.velocity.y * RESTITUTION;
-      }
-
-      // left edge
-      if (par.position.x < 0) {
-        par.position.x = 0;
-        par.velocity.x = -par.velocity.x * RESTITUTION;
-      }
-
-      // right edge
-      if (par.position.x + 2 * radius > maxX) {
-        par.position.x = maxX - 2 * radius;
-        par.velocity.x = -par.velocity.x * RESTITUTION;
-      }
-
-      window.draw(par);
+      window.draw(par.shape);
     }
-
     window.display();
   }
 }
