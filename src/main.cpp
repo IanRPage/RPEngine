@@ -1,7 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <Simulator.h>
 
-const float RESTITUTION = 0.95f; // the dampening effect of bounce
 const float SCALE = 0.86f;
 
 int main() {
@@ -13,9 +12,9 @@ int main() {
   sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(dim), "RPEngine");
   window.setFramerateLimit(60);
 
-  float g = 9.8f;    // gravity
-  float C_r = 0.95f; // coefficient of restitution
-  const float dt = 1.0f / 60.0f;
+  float g = 9.8f;                // gravity
+  float C_r = 0.95f;             // coefficient of restitution
+  const float dt = 1.0f / 60.0f; // time delta
 
   Simulator sim(dim, g, C_r, dt);
 
@@ -34,7 +33,7 @@ int main() {
     }
     window.clear();
     sim.update();
-    for (auto &par : sim.particles) {
+    for (auto &par : sim.getParticles()) {
       window.draw(par.shape);
     }
     window.display();
