@@ -13,14 +13,21 @@ int main() {
   sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(dim), "RPEngine");
   window.setFramerateLimit(60);
 
+  sf::Clock clock;
+  sf::Font font;
+  if (!font.openFromFile("assets/roboto.ttf")) {
+    return -1;
+  }
+  sf::Text fpsText(font, "FPS: ", 50);
+
   const float dt = 1.0f / 60.0f; // time delta
 
   Simulator sim(dim, 0.0f, 1.0f, dt);
   HorizSlider gSlider({40.0f, windowDims.y - 100.0f}, {200.0f, 10.0f},
-                  {-100.0f, 100.0f}, sim.gravity);
-  HorizSlider c_rSlider({40.0f, windowDims.y - 50.0f}, {200.0f, 10.0f},
-                    {0.0f, 1.0f}, sim.restitution, sf::Color::White,
-                    sf::Color::Yellow);
+                      {-100.0f, 100.0f}, sim.gravity);
+  HorizSlider eSlider({40.0f, windowDims.y - 50.0f}, {200.0f, 10.0f},
+                      {0.0f, 1.0f}, sim.restitution, sf::Color::White,
+                      sf::Color::Yellow);
 
   while (window.isOpen()) {
     while (const std::optional event = window.pollEvent()) {
@@ -32,19 +39,19 @@ int main() {
         if (mousePressed->button == sf::Mouse::Button::Left) {
           if (gSlider.contains(mousePressed->position)) {
             gSlider.isDragging = true;
-          } else if (c_rSlider.contains(mousePressed->position)) {
-            c_rSlider.isDragging = true;
+          } else if (eSlider.contains(mousePressed->position)) {
+            eSlider.isDragging = true;
           } else {
             sim.spawnParticle(mousePressed->position);
           }
         }
       }
 
-      if (event->getIf<sf::Event::MouseButtonReleased>()) {
+      if (event->is<sf::Event::MouseButtonReleased>()) {
         if (gSlider.isDragging == true) {
           gSlider.isDragging = false;
-        } else if (c_rSlider.isDragging == true) {
-          c_rSlider.isDragging = false;
+        } else if (eSlider.isDragging == true) {
+          eSlider.isDragging = false;
         }
       }
 
@@ -53,9 +60,9 @@ int main() {
           gSlider.move(mouseMoved->position);
         }
       }
-      if (c_rSlider.isDragging) {
+      if (eSlider.isDragging) {
         if (const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
-          c_rSlider.move(mouseMoved->position);
+          eSlider.move(mouseMoved->position);
         }
       }
     }
@@ -65,7 +72,13 @@ int main() {
       window.draw(par.shape);
     }
     gSlider.draw(window);
-    c_rSlider.draw(window);
+    eSlider.draw(window);
+
+    sf::Time elapsed = clock.restart();
+    float fps = 1.0f / elapsed.asSeconds();
+    fpsText.setString("FPS: " + std::to_string(static_cast<int>(fps)));
+    window.draw(fpsText);
+
     window.display();
   }
 }
