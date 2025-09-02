@@ -18,7 +18,12 @@ int main() {
   if (!font.openFromFile("assets/roboto.ttf")) {
     return -1;
   }
-  sf::Text fpsText(font, "FPS: ", 50);
+  sf::Text particleCount(font, "Particles: 0", 30);
+  sf::Text fpsText(font, "FPS: ", 30);
+  particleCount.setPosition({10, 0});
+  fpsText.setPosition({10, 30});
+
+  sf::Texture particleTexture("assets/particle1.png");
 
   const float dt = 1.0f / 60.0f; // time delta
 
@@ -42,7 +47,7 @@ int main() {
           } else if (eSlider.contains(mousePressed->position)) {
             eSlider.isDragging = true;
           } else {
-            sim.spawnParticle(mousePressed->position);
+            sim.spawnParticle(mousePressed->position, &particleTexture);
           }
         }
       }
@@ -77,6 +82,9 @@ int main() {
     sf::Time elapsed = clock.restart();
     float fps = 1.0f / elapsed.asSeconds();
     fpsText.setString("FPS: " + std::to_string(static_cast<int>(fps)));
+    particleCount.setString("Particles: " +
+                            std::to_string(sim.getParticles().size()));
+    window.draw(particleCount);
     window.draw(fpsText);
 
     window.display();

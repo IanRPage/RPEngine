@@ -11,17 +11,19 @@ struct Particle {
   float radius;
   sf::CircleShape shape;
 
-  Particle(sf::Vector2f pos, sf::Vector2f vel, float m = 1.0f, float r = 10.0f)
+  Particle(sf::Vector2f pos, sf::Vector2f vel, sf::Texture *texture,
+           float m = 1.0f, float r = 10.0f)
       : position(pos), velocity(vel), mass(m), radius(r), shape(r) {
     shape.setPosition({pos.x + r, pos.y + r});
-    shape.setFillColor(sf::Color::White); // TODO change this for varying colors
+    if (texture != nullptr)
+      shape.setTexture(texture);
   };
 
   void update(float dt);
   void accelerate(sf::Vector2f accel) { acceleration += accel; };
 
-	// for debugging
-	void drawPos(sf::RenderWindow &window) const;
+  // for debugging
+  void drawPos(sf::RenderWindow &window) const;
 };
 
 #endif

@@ -15,9 +15,9 @@ private:
 public:
   bool isDragging;
 
-  HorizSlider(sf::Vector2f pos, sf::Vector2f size, sf::Vector2f range, float &val,
-          sf::Color barColor = sf::Color::White,
-          sf::Color handleColor = sf::Color::Cyan)
+  HorizSlider(sf::Vector2f pos, sf::Vector2f size, sf::Vector2f range,
+              float &val, sf::Color barColor = sf::Color::White,
+              sf::Color handleColor = sf::Color::Cyan)
       : position(pos), width(size.x), range(range), val(val), bar(size),
         handle(size.y * 1.5) {
     bar.setFillColor(barColor);

@@ -77,10 +77,11 @@ void Simulator::handleCollisions() {
   particleCollisions();
 }
 
-void Simulator::spawnParticle(sf::Vector2i pos) {
+void Simulator::spawnParticle(sf::Vector2i pos, sf::Texture *texture) {
   std::uniform_real_distribution<float> dist(0.0f, 10.0f);
 
-  Particle circle(static_cast<sf::Vector2f>(pos), {dist(gen), dist(gen)});
+  Particle circle(static_cast<sf::Vector2f>(pos), {dist(gen), dist(gen)},
+                  texture);
   particles.push_back(circle);
 }
 

@@ -13,8 +13,8 @@ private:
   std::vector<Particle>
       particles; // TODO maybe change data structure holding these
   float dt;
-	void wallCollisions();
-	void particleCollisions();
+  void wallCollisions();
+  void particleCollisions();
   void handleCollisions();
 
 public:
@@ -22,7 +22,7 @@ public:
   float restitution;
 
   Simulator(sf::Vector2u dims, float g, float C_r, float dt);
-  void spawnParticle(sf::Vector2i pos);
+  void spawnParticle(sf::Vector2i pos, sf::Texture *texture = nullptr);
   void update();
   const std::vector<Particle> &getParticles() const { return particles; };
 };
