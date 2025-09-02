@@ -45,16 +45,18 @@ void Simulator::particleCollisions() {
       Particle &p1 = particles[i], &p2 = particles[j];
       sf::Vector2f c1 = p1.position + sf::Vector2f(p1.radius, p1.radius);
       sf::Vector2f c2 = p2.position + sf::Vector2f(p2.radius, p2.radius);
-			float dist = (c2 - c1).length();
-			if (dist < p1.radius + p2.radius) {
-				sf::Vector2f norm = (c2 - c1) / dist;
-				float relVel = (p2.velocity - p1.velocity).dot(norm);
-				if (relVel < 0) {
-					sf::Vector2f impulse = norm * (relVel * (1 + restitution));
-					p1.velocity += impulse;
-					p2.velocity -= impulse;
-				}
-			}
+      float dist = (c2 - c1).length();
+      if (dist < p1.radius + p2.radius) {
+        sf::Vector2f norm = (c2 - c1) / dist;
+        float relVel = (p2.velocity - p1.velocity).dot(norm);
+        if (relVel < 0) {
+          float massInverse = (1.0f / p1.mass) + (1.0 / p2.mass);
+          float magJ = (1.0f + restitution) * relVel / massInverse;
+          sf::Vector2f J = magJ * norm;
+          p1.velocity += J / p1.mass;
+          p2.velocity -= J / p2.mass;
+        }
+      }
     }
   }
 }
