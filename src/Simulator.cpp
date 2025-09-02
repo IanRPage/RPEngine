@@ -46,16 +46,27 @@ void Simulator::particleCollisions() {
       sf::Vector2f c1 = p1.position + sf::Vector2f(p1.radius, p1.radius);
       sf::Vector2f c2 = p2.position + sf::Vector2f(p2.radius, p2.radius);
       float dist = (c2 - c1).length();
-      if (dist < p1.radius + p2.radius) {
-        sf::Vector2f norm = (c2 - c1) / dist;
-        float relVel = (p2.velocity - p1.velocity).dot(norm);
-        if (relVel < 0) {
-          float massInverse = (1.0f / p1.mass) + (1.0 / p2.mass);
-          float magJ = (1.0f + restitution) * relVel / massInverse;
-          sf::Vector2f J = magJ * norm;
-          p1.velocity += J / p1.mass;
-          p2.velocity -= J / p2.mass;
-        }
+      float sum_r = p1.radius + p2.radius;
+      if (dist > sum_r)
+        continue;
+
+      float massInverse = 1.0f / p1.mass + 1.0 / p2.mass;
+      sf::Vector2f norm = (c2 - c1) / dist;
+
+      // overlap correction using each particle's inertia
+      float penetration = sum_r - dist;
+      if (penetration > 0) {
+        sf::Vector2f correction = norm * (penetration / massInverse);
+        p1.position -= correction * (1.0f / p1.mass);
+        p2.position += correction * (1.0f / p2.mass);
+      }
+
+      float relVel = (p2.velocity - p1.velocity).dot(norm);
+      if (relVel < 0) {
+        float magJ = (1.0f + restitution) * relVel / massInverse;
+        sf::Vector2f J = magJ * norm;
+        p1.velocity += J / p1.mass;
+        p2.velocity -= J / p2.mass;
       }
     }
   }
