@@ -13,6 +13,8 @@ private:
   std::vector<Particle>
       particles; // TODO maybe change data structure holding these
   float dt;
+	void wallCollisions();
+	void particleCollisions();
   void handleCollisions();
 
 public:
