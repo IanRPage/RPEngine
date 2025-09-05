@@ -22,6 +22,9 @@ struct Particle {
   void update(float dt);
   void accelerate(sf::Vector2f accel) { acceleration += accel; };
 
+  sf::Vector2f getCenter() const {
+    return position + sf::Vector2f(radius, radius);
+  };
   // for debugging
   void drawPos(sf::RenderWindow &window) const;
 };

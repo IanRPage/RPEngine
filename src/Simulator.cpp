@@ -41,7 +41,7 @@ void Simulator::wallCollisions() {
 
 void Simulator::particleCollisions() {
   for (size_t i = 0; i < particles.size(); i++) {
-    for (size_t j = 0; j < particles.size() && j != i; j++) {
+    for (size_t j = i + 1; j < particles.size() && j != i; j++) {
       Particle &p1 = particles[i], &p2 = particles[j];
       sf::Vector2f c1 = p1.position + sf::Vector2f(p1.radius, p1.radius);
       sf::Vector2f c2 = p2.position + sf::Vector2f(p2.radius, p2.radius);

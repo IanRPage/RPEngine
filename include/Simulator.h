@@ -10,8 +10,7 @@ class Simulator {
 private:
   std::mt19937 gen;
   sf::Vector2f windowDims;
-  std::vector<Particle>
-      particles; // TODO maybe change data structure holding these
+  std::vector<Particle> particles;
   float dt;
   void wallCollisions();
   void particleCollisions();
