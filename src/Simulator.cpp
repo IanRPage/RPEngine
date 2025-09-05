@@ -39,7 +39,7 @@ void Simulator::wallCollisions() {
   }
 }
 
-void Simulator::resolveCollision(Particle &p1, Particle &p2) {
+void Simulator::particleCollision(Particle &p1, Particle &p2) {
   sf::Vector2f c1 = p1.position + sf::Vector2f(p1.radius, p1.radius);
   sf::Vector2f c2 = p2.position + sf::Vector2f(p2.radius, p2.radius);
   float dist = (c2 - c1).length();
@@ -67,10 +67,18 @@ void Simulator::resolveCollision(Particle &p1, Particle &p2) {
   }
 }
 
-void Simulator::handleCollisions() {
-  wallCollisions();
+// O(n^2)
+void Simulator::naiveCollisions() {
+  for (size_t i = 0; i < particles.size(); i++) {
+    for (size_t j = i + 1; j < particles.size(); j++) {
+      particleCollision(particles[i], particles[j]);
+    }
+  }
+}
 
-  // // quadtree particle collision
+// O(nlog(n))
+void Simulator::qtreeCollisions() {
+	float radialDist = 2.0f * 15.0f;
   QuadTree qtree(sf::FloatRect({0.0f, 0.0f}, {windowDims.x, windowDims.y}), 4);
   for (Particle &p : particles) {
     qtree.insert(&p);
@@ -80,7 +88,7 @@ void Simulator::handleCollisions() {
     Particle &p1 = particles[i];
     sf::Vector2f c1 = p1.getCenter();
     float r1 = p1.radius;
-    sf::FloatRect queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
+    sf::FloatRect queryRange({c1.x - radialDist, c1.y - radialDist},
                              {4.0f * r1, 4.0f * r1});
 
 		std::vector<Particle *> neighbors = qtree.query(queryRange);
@@ -90,16 +98,15 @@ void Simulator::handleCollisions() {
 			if (&p1 <= &p2) {
 				continue;
 			}
-			resolveCollision(p1, p2);
+			particleCollision(p1, p2);
 		}
   }
+}
 
-  // // naive particle collision
-  // for (size_t i = 0; i < particles.size(); i++) {
-  //   for (size_t j = i + 1; j < particles.size(); j++) {
-  //     resolveCollision(particles[i], particles[j]);
-  //   }
-  // }
+void Simulator::resolveCollisions() {
+  wallCollisions();
+	naiveCollisions();
+	// qtreeCollisions();
 }
 
 void Simulator::spawnParticle(sf::Vector2i pos, sf::Texture *texture) {
@@ -116,5 +123,5 @@ void Simulator::update() {
     par.accelerate({0.0f, gravity}); // apply gravity
     par.update(dt);
   }
-  handleCollisions();
+  resolveCollisions();
 }

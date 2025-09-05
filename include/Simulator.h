@@ -14,8 +14,10 @@ private:
   std::vector<Particle> particles;
   float dt;
   void wallCollisions();
-  void resolveCollision(Particle &p1, Particle &p2);
-  void handleCollisions();
+  void particleCollision(Particle &p1, Particle &p2);
+	void naiveCollisions();
+	void qtreeCollisions();
+  void resolveCollisions();
 
 public:
   float gravity;
