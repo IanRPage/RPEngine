@@ -39,42 +39,67 @@ void Simulator::wallCollisions() {
   }
 }
 
-void Simulator::particleCollisions() {
-  for (size_t i = 0; i < particles.size(); i++) {
-    for (size_t j = i + 1; j < particles.size() && j != i; j++) {
-      Particle &p1 = particles[i], &p2 = particles[j];
-      sf::Vector2f c1 = p1.position + sf::Vector2f(p1.radius, p1.radius);
-      sf::Vector2f c2 = p2.position + sf::Vector2f(p2.radius, p2.radius);
-      float dist = (c2 - c1).length();
-      float sum_r = p1.radius + p2.radius;
-      if (dist > sum_r)
-        continue;
+void Simulator::resolveCollision(Particle &p1, Particle &p2) {
+  sf::Vector2f c1 = p1.position + sf::Vector2f(p1.radius, p1.radius);
+  sf::Vector2f c2 = p2.position + sf::Vector2f(p2.radius, p2.radius);
+  float dist = (c2 - c1).length();
+  float sum_r = p1.radius + p2.radius;
+  if (dist > sum_r)
+    return;
 
-      float massInverse = 1.0f / p1.mass + 1.0 / p2.mass;
-      sf::Vector2f norm = (c2 - c1) / dist;
+  float massInverse = 1.0f / p1.mass + 1.0 / p2.mass;
+  sf::Vector2f norm = (c2 - c1) / dist;
 
-      // overlap correction using each particle's inertia
-      float penetration = sum_r - dist;
-      if (penetration > 0) {
-        sf::Vector2f correction = norm * (penetration / massInverse);
-        p1.position -= correction * (1.0f / p1.mass);
-        p2.position += correction * (1.0f / p2.mass);
-      }
+  // overlap correction using each particle's inertia
+  float penetration = sum_r - dist;
+  if (penetration > 0) {
+    sf::Vector2f correction = norm * (penetration / massInverse);
+    p1.position -= correction * (1.0f / p1.mass);
+    p2.position += correction * (1.0f / p2.mass);
+  }
 
-      float relVel = (p2.velocity - p1.velocity).dot(norm);
-      if (relVel < 0) {
-        float magJ = (1.0f + restitution) * relVel / massInverse;
-        sf::Vector2f J = magJ * norm;
-        p1.velocity += J / p1.mass;
-        p2.velocity -= J / p2.mass;
-      }
-    }
+  float relVel = (p2.velocity - p1.velocity).dot(norm);
+  if (relVel < 0) {
+    float magJ = (1.0f + restitution) * relVel / massInverse;
+    sf::Vector2f J = magJ * norm;
+    p1.velocity += J / p1.mass;
+    p2.velocity -= J / p2.mass;
   }
 }
 
 void Simulator::handleCollisions() {
   wallCollisions();
-  particleCollisions();
+
+  // // quadtree particle collision
+  QuadTree qtree(sf::FloatRect({0.0f, 0.0f}, {windowDims.x, windowDims.y}), 4);
+  for (Particle &p : particles) {
+    qtree.insert(&p);
+  }
+
+  for (size_t i = 0; i < particles.size(); i++) {
+    Particle &p1 = particles[i];
+    sf::Vector2f c1 = p1.getCenter();
+    float r1 = p1.radius;
+    sf::FloatRect queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
+                             {4.0f * r1, 4.0f * r1});
+
+		std::vector<Particle *> neighbors = qtree.query(queryRange);
+
+		for (Particle *nei : neighbors) {
+			Particle &p2 = *nei;
+			if (&p1 <= &p2) {
+				continue;
+			}
+			resolveCollision(p1, p2);
+		}
+  }
+
+  // // naive particle collision
+  // for (size_t i = 0; i < particles.size(); i++) {
+  //   for (size_t j = i + 1; j < particles.size(); j++) {
+  //     resolveCollision(particles[i], particles[j]);
+  //   }
+  // }
 }
 
 void Simulator::spawnParticle(sf::Vector2i pos, sf::Texture *texture) {

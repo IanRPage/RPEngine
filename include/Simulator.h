@@ -2,6 +2,7 @@
 #define SIMULATOR_H
 
 #include <Particle.h>
+#include <QuadTree.h>
 #include <SFML/Graphics.hpp>
 #include <random>
 #include <vector>
@@ -13,7 +14,7 @@ private:
   std::vector<Particle> particles;
   float dt;
   void wallCollisions();
-  void particleCollisions();
+  void resolveCollision(Particle &p1, Particle &p2);
   void handleCollisions();
 
 public:
