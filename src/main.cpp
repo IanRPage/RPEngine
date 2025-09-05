@@ -34,6 +34,14 @@ int main() {
                       {0.0f, 1.0f}, sim.restitution, sf::Color::White,
                       sf::Color::Yellow);
 
+  bool autoSpawn = false;
+  const int maxParticles = 4000;
+  sf::Clock spawnTimer;
+  const float spawnInterval = 0.05f;
+  std::mt19937 gen(std::random_device{}());
+  std::uniform_real_distribution<float> distX(0.0f, windowDims.x - 20.0f);
+  std::uniform_real_distribution<float> distY(0.0f, windowDims.y - 20.0f);
+
   while (window.isOpen()) {
     while (const std::optional event = window.pollEvent()) {
       if (event->is<sf::Event::Closed>()) {
@@ -60,6 +68,12 @@ int main() {
         }
       }
 
+      if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+        if (keyPressed->scancode == sf::Keyboard::Scan::Space) {
+          autoSpawn = !autoSpawn;
+        }
+      }
+
       if (gSlider.isDragging) {
         if (const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
           gSlider.move(mouseMoved->position);
@@ -71,6 +85,15 @@ int main() {
         }
       }
     }
+
+    if (autoSpawn &&
+        static_cast<int>(sim.getParticles().size()) < maxParticles &&
+        spawnTimer.getElapsedTime().asSeconds() >= spawnInterval) {
+      sf::Vector2f randPos(distX(gen), distY(gen));
+      sim.spawnParticle(static_cast<sf::Vector2i>(randPos), &particleTexture);
+      spawnTimer.restart();
+    }
+
     window.clear();
     sim.update();
     for (auto &par : sim.getParticles()) {
