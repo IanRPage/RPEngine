@@ -107,6 +107,7 @@ int main() {
     fpsText.setString("FPS: " + std::to_string(static_cast<int>(fps)));
     particleCount.setString("Particles: " +
                             std::to_string(sim.getParticles().size()));
+
     window.draw(particleCount);
     window.draw(fpsText);
 

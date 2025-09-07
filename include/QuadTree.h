@@ -39,7 +39,7 @@ public:
       : capacity(cap), boundary(bound), divided(false) {};
 
   bool insert(Particle *p) {
-		if (!boundary.contains(p->getCenter())) {
+		if (!boundary.contains(p->position)) {
 			return false;
 		}
 
@@ -65,7 +65,7 @@ public:
 		}
 
 		for (Particle *p : data) {
-			if (qRange.contains(p->getCenter())) {
+			if (qRange.contains(p->position)) {
 				res.push_back(p);
 			}
 		}

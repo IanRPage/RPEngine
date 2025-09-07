@@ -16,7 +16,6 @@ FetchContent_MakeAvailable(SFML)
 
 set(SOURCES
     src/main.cpp
-    src/Particle.cpp
     src/Simulator.cpp
 )
 
