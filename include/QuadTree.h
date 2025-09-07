@@ -77,12 +77,6 @@ public:
 			br->query(res, qRange);
 		}
   };
-
-  std::vector<Particle *> query(const sf::FloatRect &qRange) const {
-		std::vector<Particle *> result;
-		query(result, qRange);
-		return result;
-	};
 };
 
 #endif

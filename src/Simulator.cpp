@@ -9,7 +9,7 @@ Simulator::Simulator(sf::Vector2u dims, float g, float C_r, float dt)
 void Simulator::wallCollisions() {
   auto [w, h] = windowDims;
   for (Particle &par : particles) {
-    float r = par.radius;
+    const float r = par.radius;
 
     // top/bot
     if (par.position.y < r) {
@@ -52,10 +52,10 @@ void Simulator::particleCollision(Particle &p1, Particle &p2) {
     p2.position += correction * (1.0f / p2.mass);
   }
 
-  float relVel = (p2.velocity - p1.velocity).dot(norm);
+  const float relVel = (p2.velocity - p1.velocity).dot(norm);
   if (relVel < 0) {
-    float magJ = (1.0f + restitution) * relVel / invMassSum;
-    sf::Vector2f J = magJ * norm;
+    const float magJ = (1.0f + restitution) * relVel / invMassSum;
+    const sf::Vector2f J = magJ * norm;
     p1.velocity += J / p1.mass;
     p2.velocity -= J / p2.mass;
   }
