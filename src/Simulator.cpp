@@ -44,7 +44,7 @@ void Simulator::particleCollision(Particle &p1, Particle &p2) {
   sf::Vector2f c2 = p2.position + sf::Vector2f(p2.radius, p2.radius);
   float dist = (c2 - c1).length();
   float sum_r = p1.radius + p2.radius;
-  if (dist > sum_r)
+  if (dist > sum_r || dist == 0)
     return;
 
   float massInverse = 1.0f / p1.mass + 1.0 / p2.mass;
@@ -90,7 +90,8 @@ void Simulator::qtreeCollisions() {
     sf::FloatRect queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
                              {4.0f * r1, 4.0f * r1});
 
-		std::vector<Particle *> neighbors = qtree.query(queryRange);
+		std::vector<Particle *> neighbors;
+		qtree.query(neighbors, queryRange);
 
 		for (Particle *nei : neighbors) {
 			Particle &p2 = *nei;

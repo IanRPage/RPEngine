@@ -34,25 +34,6 @@ private:
 		data.clear();
 	};
 
-  void query(std::vector<Particle *> &res, const sf::FloatRect &qRange) const {
-		if (!boundary.findIntersection(qRange)) {
-			return;
-		}
-
-		for (Particle *p : data) {
-			if (qRange.contains(p->getCenter())) {
-				res.push_back(p);
-			}
-		}
-
-		if (divided) {
-			ul->query(res, qRange);
-			ur->query(res, qRange);
-			bl->query(res, qRange);
-			br->query(res, qRange);
-		}
-  };
-
 public:
   QuadTree(sf::FloatRect bound, size_t cap)
       : capacity(cap), boundary(bound), divided(false) {};
@@ -77,6 +58,25 @@ public:
 		if (br->insert(p)) return true;
 		return false;
 	};
+
+  void query(std::vector<Particle *> &res, const sf::FloatRect &qRange) const {
+		if (!boundary.findIntersection(qRange)) {
+			return;
+		}
+
+		for (Particle *p : data) {
+			if (qRange.contains(p->getCenter())) {
+				res.push_back(p);
+			}
+		}
+
+		if (divided) {
+			ul->query(res, qRange);
+			ur->query(res, qRange);
+			bl->query(res, qRange);
+			br->query(res, qRange);
+		}
+  };
 
   std::vector<Particle *> query(const sf::FloatRect &qRange) const {
 		std::vector<Particle *> result;
