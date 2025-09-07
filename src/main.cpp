@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <Simulator.h>
+#include <stdexcept>
 #include <ui/Slider.h>
 
 const float SCALE = 0.86f;
@@ -23,7 +24,10 @@ int main() {
   particleCount.setPosition({10, 0});
   fpsText.setPosition({10, 30});
 
-  sf::Texture particleTexture("assets/particle1.png");
+  sf::Texture particleTexture;
+  if (!particleTexture.loadFromFile("assets/particle1.png")) {
+		throw std::invalid_argument("Texture: invalid texture name");
+	}
 
   const float dt = 1.0f / 60.0f; // time delta
 
@@ -93,9 +97,9 @@ int main() {
       sim.spawnParticle(static_cast<sf::Vector2i>(randPos), &particleTexture);
       spawnTimer.restart();
     }
+    sim.update();
 
     window.clear();
-    sim.update();
     for (auto &par : sim.getParticles()) {
       window.draw(par.shape);
     }

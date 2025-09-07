@@ -105,11 +105,9 @@ void Simulator::resolveCollisions() {
 
 void Simulator::spawnParticle(sf::Vector2i pos, sf::Texture *texture) {
   std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
-
-  Particle circle(static_cast<sf::Vector2f>(pos), {dist(gen), dist(gen)},
-                  texture);
-  particles.push_back(circle);
-}
+  particles.emplace_back(static_cast<sf::Vector2f>(pos),
+                         sf::Vector2f{dist(gen), dist(gen)}, texture);
+};
 
 void Simulator::update() {
   for (Particle &par : particles) {

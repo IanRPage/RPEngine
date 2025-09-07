@@ -2,7 +2,6 @@
 #define PARTICLE_H
 
 #include <SFML/Graphics.hpp>
-#include <stdexcept>
 
 struct Particle {
   sf::Vector2f position;
@@ -15,13 +14,9 @@ struct Particle {
   Particle(sf::Vector2f pos, sf::Vector2f vel, sf::Texture *texture,
            float m = 1.0f, float r = 10.0f)
       : position(pos), velocity(vel), mass(m), radius(r), shape(r) {
-    shape.setOrigin({radius, radius});
+    shape.setOrigin({r, r});
     shape.setPosition(position);
-    if (!texture) {
-			throw std::invalid_argument("Particle: texture pointer is invalid");
-		}
-
-		shape.setTexture(texture);
+    if (texture) shape.setTexture(texture);
   };
 
   void update(float dt) {
