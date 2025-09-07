@@ -1,9 +1,11 @@
 #include <Simulator.h>
 
-Simulator::Simulator(sf::Vector2u dims, float g, float C_r, float dt)
+Simulator::Simulator(sf::Vector2u dims, float g, float C_r, float dt,
+                     int resParticles)
     : windowDims(dims), dt(dt), gravity(g), restitution(C_r) {
   std::random_device rd;
   gen.seed(rd());
+  particles.reserve(resParticles);
 };
 
 void Simulator::wallCollisions() {

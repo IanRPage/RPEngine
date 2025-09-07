@@ -23,7 +23,7 @@ public:
   float gravity;
   float restitution;
 
-  Simulator(sf::Vector2u dims, float g, float C_r, float dt);
+  Simulator(sf::Vector2u dims, float g, float C_r, float dt, int resParticles = 1000);
   void spawnParticle(sf::Vector2i pos, sf::Texture *texture = nullptr);
   void update();
   const std::vector<Particle> &getParticles() const { return particles; };

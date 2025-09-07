@@ -26,17 +26,10 @@ int main() {
 
   sf::Texture particleTexture;
   if (!particleTexture.loadFromFile("assets/particle1.png")) {
-		throw std::invalid_argument("Texture: invalid texture name");
-	}
+    throw std::invalid_argument("Texture: invalid texture name");
+  }
 
   const float dt = 1.0f / 60.0f; // time delta
-
-  Simulator sim(dim, 0.0f, 1.0f, dt);
-  HorizSlider gSlider({40.0f, windowDims.y - 100.0f}, {200.0f, 10.0f},
-                      {-100.0f, 100.0f}, sim.gravity);
-  HorizSlider eSlider({40.0f, windowDims.y - 50.0f}, {200.0f, 10.0f},
-                      {0.0f, 1.0f}, sim.restitution, sf::Color::White,
-                      sf::Color::Yellow);
 
   bool autoSpawn = false;
   const int maxParticles = 4000;
@@ -45,6 +38,14 @@ int main() {
   std::mt19937 gen(std::random_device{}());
   std::uniform_real_distribution<float> distX(0.0f, windowDims.x - 20.0f);
   std::uniform_real_distribution<float> distY(0.0f, windowDims.y - 20.0f);
+
+  Simulator sim(dim, 0.0f, 1.0f, dt, maxParticles);
+
+  HorizSlider gSlider({40.0f, windowDims.y - 100.0f}, {200.0f, 10.0f},
+                      {-100.0f, 100.0f}, sim.gravity);
+  HorizSlider eSlider({40.0f, windowDims.y - 50.0f}, {200.0f, 10.0f},
+                      {0.0f, 1.0f}, sim.restitution, sf::Color::White,
+                      sf::Color::Yellow);
 
   while (window.isOpen()) {
     while (const std::optional event = window.pollEvent()) {
