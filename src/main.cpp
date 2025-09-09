@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <Simulator.h>
+#include <stdexcept>
 #include <ui/Slider.h>
 
 const float SCALE = 0.86f;
@@ -23,11 +24,23 @@ int main() {
   particleCount.setPosition({10, 0});
   fpsText.setPosition({10, 30});
 
-  sf::Texture particleTexture("assets/particle1.png");
+  sf::Texture particleTexture;
+  if (!particleTexture.loadFromFile("assets/particle1.png")) {
+    throw std::invalid_argument("Texture: invalid texture name");
+  }
 
   const float dt = 1.0f / 60.0f; // time delta
 
-  Simulator sim(dim, 0.0f, 1.0f, dt);
+  bool autoSpawn = false;
+  const int maxParticles = 4000;
+  sf::Clock spawnTimer;
+  const float spawnInterval = 0.05f;
+  std::mt19937 gen(std::random_device{}());
+  std::uniform_real_distribution<float> distX(0.0f, windowDims.x - 20.0f);
+  std::uniform_real_distribution<float> distY(0.0f, windowDims.y - 20.0f);
+
+  Simulator sim(dim, 0.0f, 1.0f, dt, maxParticles);
+
   HorizSlider gSlider({40.0f, windowDims.y - 100.0f}, {200.0f, 10.0f},
                       {-100.0f, 100.0f}, sim.gravity);
   HorizSlider eSlider({40.0f, windowDims.y - 50.0f}, {200.0f, 10.0f},
@@ -60,6 +73,12 @@ int main() {
         }
       }
 
+      if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+        if (keyPressed->scancode == sf::Keyboard::Scan::Space) {
+          autoSpawn = !autoSpawn;
+        }
+      }
+
       if (gSlider.isDragging) {
         if (const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
           gSlider.move(mouseMoved->position);
@@ -71,8 +90,17 @@ int main() {
         }
       }
     }
-    window.clear();
+
+    if (autoSpawn &&
+        static_cast<int>(sim.getParticles().size()) < maxParticles &&
+        spawnTimer.getElapsedTime().asSeconds() >= spawnInterval) {
+      sf::Vector2f randPos(distX(gen), distY(gen));
+      sim.spawnParticle(static_cast<sf::Vector2i>(randPos), &particleTexture);
+      spawnTimer.restart();
+    }
     sim.update();
+
+    window.clear();
     for (auto &par : sim.getParticles()) {
       window.draw(par.shape);
     }
@@ -84,6 +112,7 @@ int main() {
     fpsText.setString("FPS: " + std::to_string(static_cast<int>(fps)));
     particleCount.setString("Particles: " +
                             std::to_string(sim.getParticles().size()));
+
     window.draw(particleCount);
     window.draw(fpsText);
 

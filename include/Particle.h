@@ -14,16 +14,18 @@ struct Particle {
   Particle(sf::Vector2f pos, sf::Vector2f vel, sf::Texture *texture,
            float m = 1.0f, float r = 10.0f)
       : position(pos), velocity(vel), mass(m), radius(r), shape(r) {
-    shape.setPosition({pos.x + r, pos.y + r});
-    if (texture != nullptr)
-      shape.setTexture(texture);
+    shape.setOrigin({r, r});
+    shape.setPosition(position);
+    if (texture) shape.setTexture(texture);
   };
 
-  void update(float dt);
-  void accelerate(sf::Vector2f accel) { acceleration += accel; };
+  void update(float dt) {
+		velocity += acceleration * dt;
+		position += velocity * dt;
+		shape.setPosition(position);
+	};
 
-  // for debugging
-  void drawPos(sf::RenderWindow &window) const;
+  void accelerate(sf::Vector2f accel) { acceleration += accel; };
 };
 
 #endif

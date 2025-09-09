@@ -14,17 +14,14 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
-include_directories(include)
-
 set(SOURCES
     src/main.cpp
-    src/Particle.cpp
     src/Simulator.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE inlcude)
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -O2 -O0 -g)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SFML::Graphics)
 
