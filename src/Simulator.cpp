@@ -74,7 +74,7 @@ void Simulator::naiveCollisions() {
 
 // O(nlog(n))
 void Simulator::qtreeCollisions() {
-  QuadTree qtree(sf::FloatRect({0.0f, 0.0f}, {windowDims.x, windowDims.y}), 4);
+  QuadTree qtree(AABBf({0.0f, 0.0f}, {windowDims.x, windowDims.y}), 4);
   for (Particle &p : particles) {
     qtree.insert(&p);
   }
@@ -83,7 +83,7 @@ void Simulator::qtreeCollisions() {
     Particle &p1 = particles[i];
     const sf::Vector2f c1 = p1.position;
     const float r1 = p1.radius;
-    const sf::FloatRect queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
+    const AABBf queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
                                    {4.0f * r1, 4.0f * r1});
 
     std::vector<Particle *> neighbors;
