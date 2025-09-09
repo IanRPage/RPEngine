@@ -22,7 +22,7 @@ template <typename T> struct AABB {
   constexpr T width() const noexcept { return max.x - min.x; };
   constexpr T height() const noexcept { return max.y - min.y; };
 
-  constexpr bool contains(Vec2<T> &pt) const noexcept {
+  constexpr bool contains(const Vec2<T> &pt) const noexcept {
     return min.x <= pt.x && max.x >= pt.x && min.y <= pt.y && max.y >= pt.y;
   };
 
