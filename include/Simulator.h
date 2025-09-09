@@ -2,7 +2,7 @@
 #define SIMULATOR_H
 
 #include <Particle.h>
-#include <QuadTree.h>
+#include <dsa/QuadTree.h>
 #include <SFML/Graphics.hpp>
 #include <random>
 #include <vector>

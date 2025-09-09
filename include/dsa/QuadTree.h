@@ -1,15 +1,14 @@
 #ifndef QUADTREE_H
 #define QUADTREE_H
 
-#include <AABB.h>
-#include <Particle.h>
+#include <dsa/AABB.h>
 #include <memory>
 #include <vector>
 
-class QuadTree {
+template <typename T> class QuadTree {
 private:
   size_t capacity;
-  std::vector<Particle *> data;
+  std::vector<T *> data;
   AABBf boundary;
   bool divided = false;
 
@@ -26,8 +25,8 @@ private:
 
     divided = true;
 
-    std::vector<Particle *> old = std::move(data);
-    for (Particle *p : old) {
+    std::vector<T *> old = std::move(data);
+    for (T *p : old) {
       insert(p);
     }
   };
@@ -37,7 +36,7 @@ public:
     data.reserve(capacity);
   };
 
-  bool insert(Particle *p) {
+  bool insert(T *p) {
     const Vec2f pos(p->position.x, p->position.y);
     if (!boundary.contains(pos)) {
       return false;
@@ -59,10 +58,10 @@ public:
     return false;
   };
 
-  void query(std::vector<Particle *> &res, const AABBf &qRange) const {
+  void query(std::vector<T *> &res, const AABBf &qRange) const {
     if (!boundary.intersects(qRange)) return;
 
-    for (Particle *p : data) {
+    for (T *p : data) {
       const Vec2f pos(p->position.x, p->position.y);
       if (qRange.contains(pos))
 				res.push_back(p);

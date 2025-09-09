@@ -74,7 +74,7 @@ void Simulator::naiveCollisions() {
 
 // O(nlog(n))
 void Simulator::qtreeCollisions() {
-  QuadTree qtree(AABBf({0.0f, 0.0f}, {windowDims.x, windowDims.y}), 4);
+  QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {windowDims.x, windowDims.y}), 4);
   for (Particle &p : particles) {
     qtree.insert(&p);
   }
