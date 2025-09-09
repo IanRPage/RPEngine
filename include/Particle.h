@@ -2,30 +2,34 @@
 #define PARTICLE_H
 
 #include <SFML/Graphics.hpp>
+#include <dsa/Vec2.h>
+
+// TODO remove SFML from Particle
 
 struct Particle {
-  sf::Vector2f position;
-  sf::Vector2f velocity;
-  sf::Vector2f acceleration;
-  float mass;
+  Vec2f position;
+  Vec2f velocity;
+  Vec2f acceleration;
   float radius;
+  float mass;
   sf::CircleShape shape;
 
-  Particle(sf::Vector2f pos, sf::Vector2f vel, sf::Texture *texture,
-           float m = 1.0f, float r = 10.0f)
-      : position(pos), velocity(vel), mass(m), radius(r), shape(r) {
+  Particle(Vec2f pos, Vec2f vel, float r = 10.0f, float m = 1.0f,
+           sf::Texture *texture = nullptr)
+      : position(pos), velocity(vel), radius(r), mass(m), shape(r) {
     shape.setOrigin({r, r});
-    shape.setPosition(position);
-    if (texture) shape.setTexture(texture);
+    shape.setPosition({pos.x, pos.y});
+    if (texture)
+      shape.setTexture(texture);
   };
 
   void update(float dt) {
-		velocity += acceleration * dt;
-		position += velocity * dt;
-		shape.setPosition(position);
-	};
+    velocity += acceleration * dt;
+    position += velocity * dt;
+    shape.setPosition({position.x, position.y});
+  };
 
-  void accelerate(sf::Vector2f accel) { acceleration += accel; };
+  void accelerate(Vec2f accel) { acceleration += accel; };
 };
 
 #endif
