@@ -7,7 +7,7 @@
 const float PARTICLESIZE = 5.0f;
 
 int main() {
-	sf::Vector2u dim = sf::VideoMode::getDesktopMode().size;
+  sf::Vector2u dim = sf::VideoMode::getDesktopMode().size;
   sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(dim), "RPEngine");
   window.setFramerateLimit(60);
   sf::Vector2u actualWindowSize = window.getSize();
@@ -96,8 +96,6 @@ int main() {
         static_cast<int>(sim.getParticles().size()) < maxParticles &&
         spawnTimer.getElapsedTime().asSeconds() >= spawnInterval) {
       sf::Vector2f randPos(distX(gen), distY(gen));
-      // sim.spawnParticle(static_cast<sf::Vector2i>(randPos),
-      // &particleTexture);
       sim.spawnParticle({randPos.x, randPos.y}, PARTICLESIZE, 1.0f,
                         &particleTexture);
       spawnTimer.restart();
