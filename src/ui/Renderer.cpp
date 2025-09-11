@@ -81,8 +81,7 @@ void Renderer::handleMousePressed(const sf::Event::MouseButtonPressed &e) {
     draggingAny_ = true;
   } else {
     sf::Vector2i pos = e.position;
-    sim_.spawnParticle(Vec2f(pos.x, pos.y), particleSize_, 1.0f,
-                       &particleTexture_);
+    sim_.spawnParticle(Vec2f(pos.x, pos.y), particleSize_, 1.0f);
   }
 }
 
@@ -104,8 +103,16 @@ void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) {
 }
 
 void Renderer::drawParticles() {
-  for (auto &par : sim_.getParticles())
-    window_.draw(par.shape);
+  for (auto &par : sim_.getParticles()) {
+    Vec2f pos = par.position;
+    const float r = par.radius;
+
+    sf::CircleShape obj(r);
+    obj.setOrigin({r, r});
+    obj.setPosition({pos.x, pos.y});
+    obj.setTexture(&particleTexture_);
+    window_.draw(obj);
+  }
 }
 
 void Renderer::drawComponents() {
