@@ -2,7 +2,7 @@
 #define PARTICLE_H
 
 #include <SFML/Graphics.hpp>
-#include <dsa/Vec2.h>
+#include <dsa/Vec2.hpp>
 
 // TODO remove SFML from Particle
 

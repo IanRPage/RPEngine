@@ -1,7 +1,7 @@
 #ifndef AABB_H
 #define AABB_H
 
-#include <dsa/Vec2.h>
+#include <dsa/Vec2.hpp>
 #include <type_traits>
 
 template <typename T> struct AABB {

@@ -1,7 +1,7 @@
 #ifndef QUADTREE_H
 #define QUADTREE_H
 
-#include <dsa/AABB.h>
+#include <dsa/AABB.hpp>
 #include <memory>
 #include <vector>
 

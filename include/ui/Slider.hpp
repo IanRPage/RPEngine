@@ -19,13 +19,29 @@ public:
               float &val, sf::Color barColor = sf::Color::White,
               sf::Color handleColor = sf::Color::Cyan)
       : position(pos), width(size.x), range(range), val(val), bar(size),
-        handle(size.y * 1.5) {
+        handle(size.y * 1.5), isDragging(false) {
     bar.setFillColor(barColor);
     handle.setFillColor(handleColor);
     bar.setPosition(position);
     handle.setPosition({position.x - handle.getRadius(), position.y - 10.0f});
     val = range.x;
   };
+
+  void setPosition(sf::Vector2f pos) {
+    position = pos;
+    bar.setPosition(position);
+
+    const float rad = handle.getRadius();
+    const float t = (val - range.x) / (val - range.y);
+    float mx = position.x - rad + t * width;
+    handle.setPosition({mx, position.y - 10.0f});
+  }
+
+  void setSize(sf::Vector2f size) {
+    width = size.x;
+    bar.setSize(size);
+    setPosition(position);
+  }
 
   void draw(sf::RenderWindow &window) {
     window.draw(bar);
