@@ -107,9 +107,13 @@ void Simulator::resolveCollisions() {
   qtreeCollisions(16);
 }
 
-void Simulator::spawnParticle(Vec2f pos, float r, float m) {
-  std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
-  particles_.emplace_back(pos, Vec2f(dist(gen_), dist(gen_)), r, m);
+void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) {
+  const float vMag = vel.x * vel.x + vel.y + vel.y;
+  if (!vMag) {
+    std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
+    vel = {dist(gen_), dist(gen_)};
+  }
+  particles_.emplace_back(pos, vel, r, m);
 };
 
 void Simulator::update() {

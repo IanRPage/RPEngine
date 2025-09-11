@@ -9,11 +9,16 @@ Renderer::Renderer(Simulator &sim, const Options &opts)
       eSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {0.0f, 1.0f}, sim_.restitution,
                sf::Color::White, sf::Color::Yellow),
       particleCountText_(font_, "Particles: ", 30),
-      fpsText_(font_, "FPS: 60", 30) {
+      fpsText_(font_, "FPS: 60", 30), particleSprite_(particleTexture_) {
+
   window_.setFramerateLimit(opts.fps_limit);
   lastSize_ = window_.getSize();
   sim_.setWorldSize(
       Vec2f(static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)));
+
+  gen_ = std::mt19937(std::random_device{}());
+  distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);
+  distY = std::uniform_real_distribution<float>(0.0f, lastSize_.y - 20.0f);
 
   // load font
   if (!font_.openFromFile("assets/pixelated.ttf")) {
@@ -24,6 +29,15 @@ Renderer::Renderer(Simulator &sim, const Options &opts)
   if (!particleTexture_.loadFromFile("assets/particle1.png")) {
     throw std::runtime_error("Failed to load texture: assets/particle1.png");
   };
+
+  particleSprite_ = sf::Sprite(particleTexture_); // have to do this outside
+                                                  // constructor initializer b/c
+                                                  // texture hasn't loaded yet
+  const auto texSize = particleTexture_.getSize();
+  particleSprite_.setTexture(particleTexture_);
+  particleSprite_.setOrigin({texSize.x * 0.5f, texSize.y * 0.5f});
+  const float s = (particleSize_ * 2.0f) / texSize.x;
+  particleSprite_.setScale({s, s});
 
   layoutUI();
 }
@@ -66,6 +80,10 @@ void Renderer::pollAndHandleEvents() {
       handleMouseReleased();
     } else if (const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
       handleMouseMoved(*mouseMoved);
+    } else if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+      if (keyPressed->scancode == sf::Keyboard::Scan::Space) {
+        autoSpawn_ = !autoSpawn_;
+      }
     }
   }
 }
@@ -81,7 +99,8 @@ void Renderer::handleMousePressed(const sf::Event::MouseButtonPressed &e) {
     draggingAny_ = true;
   } else {
     sf::Vector2i pos = e.position;
-    sim_.spawnParticle(Vec2f(pos.x, pos.y), particleSize_, 1.0f);
+    sim_.spawnParticle({static_cast<float>(pos.x), static_cast<float>(pos.y)},
+                       {0.0f, 0.0f}, particleSize_, 1.0f);
   }
 }
 
@@ -105,13 +124,8 @@ void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) {
 void Renderer::drawParticles() {
   for (auto &par : sim_.getParticles()) {
     Vec2f pos = par.position;
-    const float r = par.radius;
-
-    sf::CircleShape obj(r);
-    obj.setOrigin({r, r});
-    obj.setPosition({pos.x, pos.y});
-    obj.setTexture(&particleTexture_);
-    window_.draw(obj);
+    particleSprite_.setPosition({pos.x, pos.y});
+    window_.draw(particleSprite_);
   }
 }
 
@@ -130,8 +144,21 @@ void Renderer::updateText() {
                                std::to_string(sim_.getParticles().size()));
 }
 
+void Renderer::autoSpawn() {
+  if (!autoSpawn_)
+    return;
+
+  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
+    sf::Vector2f randPos(distX(gen_), distY(gen_));
+    sim_.spawnParticle({randPos.x, randPos.y}, {0.0f, 0.0f}, particleSize_,
+                       1.0f);
+    spawnClock_.restart();
+  }
+}
+
 void Renderer::drawFrame() {
   updateText();
+  autoSpawn();
   window_.clear();
   drawParticles();
   drawComponents();

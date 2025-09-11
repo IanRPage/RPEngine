@@ -3,6 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
+#include <random>
 #include <string>
 #include <ui/Slider.hpp>
 
@@ -25,8 +26,9 @@ public:
 private:
   Simulator &sim_;
   sf::RenderWindow window_;
-  sf::Clock frameClock_;
   sf::Vector2u lastSize_;
+  sf::Clock frameClock_;
+  sf::Clock spawnClock_;
 
   // assets
   sf::Font font_;
@@ -37,10 +39,17 @@ private:
   HorizSlider eSlider_;
   sf::Text particleCountText_;
   sf::Text fpsText_;
+	sf::Sprite particleSprite_;
 
-  // other
-  const float particleSize_ = 10.0f;
+  // variables
+  const float particleSize_ = 5.0f;
   bool draggingAny_ = false;
+
+	const float spawnInterval_ = 0.001f;
+  bool autoSpawn_ = false;
+	std::mt19937 gen_;
+	std::uniform_real_distribution<float> distX;
+	std::uniform_real_distribution<float> distY;
 
   void layoutUI();
   void handleMousePressed(const sf::Event::MouseButtonPressed &e);
@@ -50,6 +59,7 @@ private:
   void drawParticles();
   void drawComponents();
   void updateText();
+	void autoSpawn();
 };
 
 #endif

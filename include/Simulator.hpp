@@ -29,7 +29,7 @@ public:
   void setWorldSize(Vec2f size) { worldSize_ = size; };
   Vec2f worldSize() const { return worldSize_; };
 
-  void spawnParticle(Vec2f pos, float r = 10.0f, float m = 1.0f);
+  void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f, float m = 1.0f);
   void update();
   const std::vector<Particle> &getParticles() const { return particles_; };
 };
