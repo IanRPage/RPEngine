@@ -1,3 +1,4 @@
+#include <cmath>
 #include <stdexcept>
 #include <ui/Renderer.hpp>
 
@@ -38,6 +39,8 @@ Renderer::Renderer(Simulator &sim, const Options &opts)
   particleSprite_.setOrigin({texSize.x * 0.5f, texSize.y * 0.5f});
   const float s = (particleSize_ * 2.0f) / texSize.x;
   particleSprite_.setScale({s, s});
+
+  runtimeClock_.start();
 
   layoutUI();
 }
@@ -81,9 +84,7 @@ void Renderer::pollAndHandleEvents() {
     } else if (const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
       handleMouseMoved(*mouseMoved);
     } else if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-      if (keyPressed->scancode == sf::Keyboard::Scan::Space) {
-        autoSpawn_ = !autoSpawn_;
-      }
+      handleKeyPressed(*keyPressed);
     }
   }
 }
@@ -121,6 +122,14 @@ void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) {
     eSlider_.move(e.position);
 }
 
+void Renderer::handleKeyPressed(const sf::Event::KeyPressed &e) {
+  if (e.scancode == sf::Keyboard::Scan::R) {
+    randomSpawn_ = !randomSpawn_;
+  } else if (e.scancode == sf::Keyboard::Scan::Space) {
+    streamSpawn_ = !streamSpawn_;
+  }
+}
+
 void Renderer::drawParticles() {
   for (auto &par : sim_.getParticles()) {
     Vec2f pos = par.position;
@@ -144,8 +153,8 @@ void Renderer::updateText() {
                                std::to_string(sim_.getParticles().size()));
 }
 
-void Renderer::autoSpawn() {
-  if (!autoSpawn_)
+void Renderer::randomSpawn() {
+  if (!randomSpawn_)
     return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
@@ -156,9 +165,26 @@ void Renderer::autoSpawn() {
   }
 }
 
+void Renderer::streamSpawn() {
+  if (!streamSpawn_)
+    return;
+
+  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
+    const float speed = 1200.0f; // tune these
+    const float omega = 0.5f;    // parameters
+    const float t = runtimeClock_.getElapsedTime().asSeconds();
+    const float angle = 0.5f * 3.14159265f * (cos(t * omega) + 1.0f);
+    sim_.spawnParticle({lastSize_.x * 0.5f, 5.0f},
+                       Vec2f(cos(angle), sin(angle)) * speed, particleSize_,
+                       1.0f);
+    spawnClock_.restart();
+  }
+}
+
 void Renderer::drawFrame() {
   updateText();
-  autoSpawn();
+  randomSpawn();
+  streamSpawn();
   window_.clear();
   drawParticles();
   drawComponents();

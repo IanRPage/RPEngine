@@ -29,6 +29,7 @@ private:
   sf::Vector2u lastSize_;
   sf::Clock frameClock_;
   sf::Clock spawnClock_;
+  sf::Clock runtimeClock_;
 
   // assets
   sf::Font font_;
@@ -39,27 +40,31 @@ private:
   HorizSlider eSlider_;
   sf::Text particleCountText_;
   sf::Text fpsText_;
-	sf::Sprite particleSprite_;
+  sf::Sprite particleSprite_;
 
-  // variables
+  // other variables
   const float particleSize_ = 5.0f;
   bool draggingAny_ = false;
 
-	const float spawnInterval_ = 0.001f;
-  bool autoSpawn_ = false;
-	std::mt19937 gen_;
-	std::uniform_real_distribution<float> distX;
-	std::uniform_real_distribution<float> distY;
+  const float spawnInterval_ = 0.001f;
+  bool streamSpawn_ = false;
+  bool randomSpawn_ = false;
+  std::mt19937 gen_;
+  std::uniform_real_distribution<float> distX;
+  std::uniform_real_distribution<float> distY;
 
   void layoutUI();
   void handleMousePressed(const sf::Event::MouseButtonPressed &e);
   void handleMouseReleased();
   void handleMouseMoved(const sf::Event::MouseMoved &e);
+  void handleKeyPressed(const sf::Event::KeyPressed &e);
 
   void drawParticles();
   void drawComponents();
   void updateText();
-	void autoSpawn();
+
+  void randomSpawn();
+  void streamSpawn();
 };
 
 #endif
