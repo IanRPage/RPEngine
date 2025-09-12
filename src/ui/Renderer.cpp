@@ -97,14 +97,17 @@ void Renderer::pollAndHandleEvents() noexcept {
   }
 }
 
-void Renderer::handleMousePressed(const sf::Event::MouseButtonPressed &e) noexcept {
+void Renderer::handleMousePressed(
+    const sf::Event::MouseButtonPressed &e) noexcept {
   if (e.button != sf::Mouse::Button::Left)
     return;
   if (gSlider_.contains(e.position)) {
     gSlider_.isDragging = true;
+		gSlider_.setActive(true);
     draggingAny_ = true;
   } else if (eSlider_.contains(e.position)) {
     eSlider_.isDragging = true;
+		eSlider_.setActive(true);
     draggingAny_ = true;
   } else {
     sf::Vector2i pos = e.position;
@@ -116,8 +119,10 @@ void Renderer::handleMousePressed(const sf::Event::MouseButtonPressed &e) noexce
 void Renderer::handleMouseReleased() noexcept {
   if (gSlider_.isDragging)
     gSlider_.isDragging = false;
+		gSlider_.setActive(false);
   if (eSlider_.isDragging)
     eSlider_.isDragging = false;
+		eSlider_.setActive(false);
   draggingAny_ = false;
 }
 
