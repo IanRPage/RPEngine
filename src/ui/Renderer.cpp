@@ -10,7 +10,7 @@ Renderer::Renderer(Simulator &sim, const Options &opts)
       eSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {0.0f, 1.0f}, sim_.restitution,
                sf::Color::White, sf::Color::Yellow),
       particleCountText_(font_, "Particles: ", 30),
-      fpsText_(font_, "FPS: 60", 30), particleSprite_(particleTexture_) {
+      fpsText_(font_, "FPS: 60", 30) {
 
   window_.setFramerateLimit(opts.fps_limit);
   lastSize_ = window_.getSize();
@@ -26,26 +26,15 @@ Renderer::Renderer(Simulator &sim, const Options &opts)
     throw std::runtime_error("Failed to load font: assets/pixelated.ttf");
   };
 
-  // load texture
-  if (!particleTexture_.loadFromFile("assets/particle1.png")) {
-    throw std::runtime_error("Failed to load texture: assets/particle1.png");
-  };
-
-  particleSprite_ = sf::Sprite(particleTexture_); // have to do this outside
-                                                  // constructor initializer b/c
-                                                  // texture hasn't loaded yet
-  const auto texSize = particleTexture_.getSize();
-  particleSprite_.setTexture(particleTexture_);
-  particleSprite_.setOrigin({texSize.x * 0.5f, texSize.y * 0.5f});
-  const float s = (particleSize_ * 2.0f) / texSize.x;
-  particleSprite_.setScale({s, s});
+  particleShape_.setRadius(particleSize_);
+  particleShape_.setOrigin({particleSize_, particleSize_});
 
   runtimeClock_.start();
 
   layoutUI();
 }
 
-void Renderer::layoutUI() {
+void Renderer::layoutUI() noexcept {
   const auto size = window_.getSize();
   lastSize_ = size;
   sim_.setWorldSize(
@@ -72,7 +61,26 @@ void Renderer::layoutUI() {
       {static_cast<float>(size.x) - fpsTextWidth - 5.0f, 0.0f});
 }
 
-void Renderer::pollAndHandleEvents() {
+const sf::Color Renderer::getRainbow(float t) noexcept {
+  const float r = sin(t);
+  const float g = sin(t + 0.33f * 2.0f * PI);
+  const float b = sin(t + 0.66f * 2.0f * PI);
+  return {static_cast<uint8_t>(255.0f * r * r),
+          static_cast<uint8_t>(255.0f * g * g),
+          static_cast<uint8_t>(255.0f * b * b)};
+}
+
+const sf::Color &Renderer::colorFor(const Particle &p) noexcept {
+  auto it = colorLUT_.find(p.id);
+
+  if (it != colorLUT_.end()) // if color is found
+    return it->second;
+  const float t = runtimeClock_.getElapsedTime().asSeconds();
+  auto [inserted, _] = colorLUT_.emplace(p.id, getRainbow(t));
+  return inserted->second;
+}
+
+void Renderer::pollAndHandleEvents() noexcept {
   while (const std::optional event = window_.pollEvent()) {
     if (event->is<sf::Event::Closed>()) {
       window_.close();
@@ -89,7 +97,7 @@ void Renderer::pollAndHandleEvents() {
   }
 }
 
-void Renderer::handleMousePressed(const sf::Event::MouseButtonPressed &e) {
+void Renderer::handleMousePressed(const sf::Event::MouseButtonPressed &e) noexcept {
   if (e.button != sf::Mouse::Button::Left)
     return;
   if (gSlider_.contains(e.position)) {
@@ -105,7 +113,7 @@ void Renderer::handleMousePressed(const sf::Event::MouseButtonPressed &e) {
   }
 }
 
-void Renderer::handleMouseReleased() {
+void Renderer::handleMouseReleased() noexcept {
   if (gSlider_.isDragging)
     gSlider_.isDragging = false;
   if (eSlider_.isDragging)
@@ -113,7 +121,7 @@ void Renderer::handleMouseReleased() {
   draggingAny_ = false;
 }
 
-void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) {
+void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) noexcept {
   if (!draggingAny_)
     return;
   if (gSlider_.isDragging)
@@ -122,19 +130,22 @@ void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) {
     eSlider_.move(e.position);
 }
 
-void Renderer::handleKeyPressed(const sf::Event::KeyPressed &e) {
+void Renderer::handleKeyPressed(const sf::Event::KeyPressed &e) noexcept {
   if (e.scancode == sf::Keyboard::Scan::R) {
     randomSpawn_ = !randomSpawn_;
+    streamSpawn_ = false;
   } else if (e.scancode == sf::Keyboard::Scan::Space) {
     streamSpawn_ = !streamSpawn_;
+    randomSpawn_ = false;
   }
 }
 
 void Renderer::drawParticles() {
   for (auto &par : sim_.getParticles()) {
     Vec2f pos = par.position;
-    particleSprite_.setPosition({pos.x, pos.y});
-    window_.draw(particleSprite_);
+    particleShape_.setPosition({pos.x, pos.y});
+    particleShape_.setFillColor(colorFor(par));
+    window_.draw(particleShape_);
   }
 }
 
@@ -145,7 +156,7 @@ void Renderer::drawComponents() {
   window_.draw(particleCountText_);
 }
 
-void Renderer::updateText() {
+void Renderer::updateText() noexcept {
   sf::Time elapsed = frameClock_.restart();
   float fps = 1.0f / elapsed.asSeconds();
   fpsText_.setString("FPS: " + std::to_string(static_cast<int>(fps)));
@@ -153,7 +164,7 @@ void Renderer::updateText() {
                                std::to_string(sim_.getParticles().size()));
 }
 
-void Renderer::randomSpawn() {
+void Renderer::randomSpawn() noexcept {
   if (!randomSpawn_)
     return;
 
@@ -165,7 +176,7 @@ void Renderer::randomSpawn() {
   }
 }
 
-void Renderer::streamSpawn() {
+void Renderer::streamSpawn() noexcept {
   if (!streamSpawn_)
     return;
 
@@ -173,7 +184,7 @@ void Renderer::streamSpawn() {
     const float speed = 1200.0f; // tune these
     const float omega = 0.5f;    // parameters
     const float t = runtimeClock_.getElapsedTime().asSeconds();
-    const float angle = 0.5f * 3.14159265f * (cos(t * omega) + 1.0f);
+    const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
     sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
                        Vec2f(cos(angle), sin(angle)) * speed, particleSize_,
                        1.0f);

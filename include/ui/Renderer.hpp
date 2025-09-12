@@ -1,11 +1,14 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#define PI 3.14159265
+
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
 #include <random>
 #include <string>
 #include <ui/Slider.hpp>
+#include <unordered_map>
 
 class Renderer {
 public:
@@ -17,11 +20,11 @@ public:
   Renderer(Simulator &sim, const Options &opts = {60, "RPEngine"});
   ~Renderer() = default;
 
-  bool isOpen() const { return window_.isOpen(); };
-  void pollAndHandleEvents();
+  bool isOpen() const noexcept { return window_.isOpen(); };
+  void pollAndHandleEvents() noexcept;
   void drawFrame();
 
-  sf::Vector2u windowSize() const { return window_.getSize(); };
+  sf::Vector2u windowSize() const noexcept { return window_.getSize(); };
 
 private:
   Simulator &sim_;
@@ -30,6 +33,7 @@ private:
   sf::Clock frameClock_;
   sf::Clock spawnClock_;
   sf::Clock runtimeClock_;
+  std::unordered_map<uint32_t, sf::Color> colorLUT_;
 
   // assets
   sf::Font font_;
@@ -40,7 +44,7 @@ private:
   HorizSlider eSlider_;
   sf::Text particleCountText_;
   sf::Text fpsText_;
-  sf::Sprite particleSprite_;
+  sf::CircleShape particleShape_;
 
   // other variables
   const float particleSize_ = 5.0f;
@@ -53,18 +57,22 @@ private:
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;
 
-  void layoutUI();
-  void handleMousePressed(const sf::Event::MouseButtonPressed &e);
-  void handleMouseReleased();
-  void handleMouseMoved(const sf::Event::MouseMoved &e);
-  void handleKeyPressed(const sf::Event::KeyPressed &e);
+  // helper functions
+  void layoutUI() noexcept ;
+  const sf::Color getRainbow(float t) noexcept;
+  const sf::Color &colorFor(const Particle &p) noexcept;
+
+  void handleMousePressed(const sf::Event::MouseButtonPressed &e) noexcept;
+  void handleMouseReleased() noexcept;
+  void handleMouseMoved(const sf::Event::MouseMoved &e) noexcept;
+  void handleKeyPressed(const sf::Event::KeyPressed &e) noexcept;
 
   void drawParticles();
   void drawComponents();
-  void updateText();
+  void updateText() noexcept;
 
-  void randomSpawn();
-  void streamSpawn();
+  void randomSpawn() noexcept;
+  void streamSpawn() noexcept;
 };
 
 #endif
