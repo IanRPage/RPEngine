@@ -174,7 +174,7 @@ void Renderer::streamSpawn() {
     const float omega = 0.5f;    // parameters
     const float t = runtimeClock_.getElapsedTime().asSeconds();
     const float angle = 0.5f * 3.14159265f * (cos(t * omega) + 1.0f);
-    sim_.spawnParticle({lastSize_.x * 0.5f, 5.0f},
+    sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
                        Vec2f(cos(angle), sin(angle)) * speed, particleSize_,
                        1.0f);
     spawnClock_.restart();
