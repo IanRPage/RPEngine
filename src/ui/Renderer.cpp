@@ -98,38 +98,41 @@ void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed &e) noexcept {
   if (e.button != sf::Mouse::Button::Left)
     return;
-  if (gSlider_.contains(e.position)) {
+
+  const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
+  if (gSlider_.contains(m)) {
     gSlider_.isDragging = true;
     gSlider_.setActive(true);
     draggingAny_ = true;
-  } else if (eSlider_.contains(e.position)) {
+  } else if (eSlider_.contains(m)) {
     eSlider_.isDragging = true;
     eSlider_.setActive(true);
     draggingAny_ = true;
   } else {
-    sf::Vector2i pos = e.position;
-    sim_.spawnParticle({static_cast<float>(pos.x), static_cast<float>(pos.y)},
-                       {0.0f, 0.0f}, particleSize_, 1.0f);
+    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
   }
 }
 
 void Renderer::handleMouseReleased() noexcept {
-  if (gSlider_.isDragging)
+  if (gSlider_.isDragging) {
     gSlider_.isDragging = false;
-  gSlider_.setActive(false);
-  if (eSlider_.isDragging)
+    gSlider_.setActive(false);
+  } else if (eSlider_.isDragging) {
     eSlider_.isDragging = false;
-  eSlider_.setActive(false);
+    eSlider_.setActive(false);
+  }
   draggingAny_ = false;
 }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) noexcept {
   if (!draggingAny_)
     return;
+
+  const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
   if (gSlider_.isDragging)
-    gSlider_.move(e.position);
+    gSlider_.move(m);
   if (eSlider_.isDragging)
-    eSlider_.move(e.position);
+    eSlider_.move(m);
 }
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed &e) noexcept {

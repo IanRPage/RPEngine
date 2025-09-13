@@ -146,11 +146,11 @@ public:
 
   sf::Vector2f getSize() const noexcept { return {width_, height_}; };
 
-  bool contains(sf::Vector2i pos) {
+  bool contains(sf::Vector2f pos) {
     return handle_.getGlobalBounds().contains(static_cast<sf::Vector2f>(pos));
   }
 
-  void move(sf::Vector2i pos) {
+  void move(sf::Vector2f pos) {
     float x = static_cast<float>(pos.x);
     x = std::clamp(x, position_.x, position_.x + width_);
 
