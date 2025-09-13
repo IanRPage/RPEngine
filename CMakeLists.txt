@@ -17,6 +17,7 @@ FetchContent_MakeAvailable(SFML)
 set(SOURCES
     src/main.cpp
     src/Simulator.cpp
+    src/ui/Renderer.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})

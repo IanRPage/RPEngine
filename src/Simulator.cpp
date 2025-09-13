@@ -1,16 +1,16 @@
-#include <Simulator.h>
+#include <Simulator.hpp>
 
-Simulator::Simulator(sf::Vector2u dims, float g, float C_r, float dt,
-                     int resParticles)
-    : windowDims(dims), dt(dt), gravity(g), restitution(C_r) {
+Simulator::Simulator(Vec2f dims, float g, float C_r, float dt,
+                     int reserveParticles)
+    : worldSize_(dims), dt_(dt), gravity(g), restitution(C_r) {
   std::random_device rd;
-  gen.seed(rd());
-  particles.reserve(resParticles);
+  gen_.seed(rd());
+  particles_.reserve(reserveParticles);
 };
 
 void Simulator::wallCollisions() {
-  auto [w, h] = windowDims;
-  for (Particle &par : particles) {
+  auto [w, h] = worldSize_;
+  for (Particle &par : particles_) {
     const float r = par.radius;
 
     // top/bot
@@ -34,8 +34,8 @@ void Simulator::wallCollisions() {
 }
 
 void Simulator::particleCollision(Particle &p1, Particle &p2) {
-  const sf::Vector2f d = p2.position - p1.position;
-  const float d2 = d.dot(d);
+  const Vec2f d = p2.position - p1.position;
+  const float d2 = d.x * d.x + d.y * d.y;
   const float sum_r = p1.radius + p2.radius;
   const float sum_r2 = sum_r * sum_r;
 
@@ -44,20 +44,21 @@ void Simulator::particleCollision(Particle &p1, Particle &p2) {
 
   const float invDist = 1.0f / std::sqrt(d2);
   const float dist = 1.0f / invDist;
-  const sf::Vector2f norm = d * invDist;
+  const Vec2f norm = d * invDist;
   const float penetration = sum_r - dist;
   const float invMassSum = 1.0f / p1.mass + 1.0 / p2.mass;
 
   if (penetration > 0.0f && invMassSum > 0.0f) {
-    const sf::Vector2f correction = norm * (penetration / invMassSum);
+    const Vec2f correction = norm * (penetration / invMassSum);
     p1.position -= correction * (1.0f / p1.mass);
     p2.position += correction * (1.0f / p2.mass);
   }
 
-  const float relVel = (p2.velocity - p1.velocity).dot(norm);
+  const Vec2f relV = (p2.velocity - p1.velocity);
+  const float relVel = relV.x * norm.x + relV.y * norm.y;
   if (relVel < 0) {
     const float magJ = (1.0f + restitution) * relVel / invMassSum;
-    const sf::Vector2f J = magJ * norm;
+    const Vec2f J = norm * magJ;
     p1.velocity += J / p1.mass;
     p2.velocity -= J / p2.mass;
   }
@@ -65,26 +66,27 @@ void Simulator::particleCollision(Particle &p1, Particle &p2) {
 
 // O(n^2)
 void Simulator::naiveCollisions() {
-  for (size_t i = 0; i < particles.size(); i++) {
-    for (size_t j = i + 1; j < particles.size(); j++) {
-      particleCollision(particles[i], particles[j]);
+  for (size_t i = 0; i < particles_.size(); i++) {
+    for (size_t j = i + 1; j < particles_.size(); j++) {
+      particleCollision(particles_[i], particles_[j]);
     }
   }
 }
 
 // O(nlog(n))
-void Simulator::qtreeCollisions() {
-  QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {windowDims.x, windowDims.y}), 4);
-  for (Particle &p : particles) {
+void Simulator::qtreeCollisions(size_t bucketSize) {
+  QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {worldSize_.x, worldSize_.y}),
+                           bucketSize);
+  for (Particle &p : particles_) {
     qtree.insert(&p);
   }
 
-  for (size_t i = 0; i < particles.size(); i++) {
-    Particle &p1 = particles[i];
-    const sf::Vector2f c1 = p1.position;
+  for (size_t i = 0; i < particles_.size(); i++) {
+    Particle &p1 = particles_[i];
+    const Vec2f c1 = p1.position;
     const float r1 = p1.radius;
     const AABBf queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
-                                   {4.0f * r1, 4.0f * r1});
+                           {4.0f * r1, 4.0f * r1});
 
     std::vector<Particle *> neighbors;
     qtree.query(neighbors, queryRange);
@@ -102,20 +104,23 @@ void Simulator::qtreeCollisions() {
 void Simulator::resolveCollisions() {
   wallCollisions();
   // naiveCollisions();
-  qtreeCollisions();
+  qtreeCollisions(16);
 }
 
-void Simulator::spawnParticle(sf::Vector2i pos, sf::Texture *texture) {
-  std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
-  particles.emplace_back(static_cast<sf::Vector2f>(pos),
-                         sf::Vector2f{dist(gen), dist(gen)}, texture);
+void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) {
+  const float vMag = vel.x * vel.x + vel.y + vel.y;
+  if (!vMag) {
+    std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
+    vel = {dist(gen_), dist(gen_)};
+  }
+  particles_.emplace_back(pos, vel, r, m);
 };
 
 void Simulator::update() {
-  for (Particle &par : particles) {
+  for (Particle &par : particles_) {
     par.acceleration = {0.0f, 0.0f};
     par.accelerate({0.0f, gravity});
-    par.update(dt);
+    par.update(dt_);
   }
   resolveCollisions();
 }

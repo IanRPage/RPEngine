@@ -1,14 +1,14 @@
 #ifndef AABB_H
 #define AABB_H
 
-#include <dsa/Vec2.h>
+#include <dsa/Vec2.hpp>
 #include <type_traits>
 
 template <typename T> struct AABB {
   static_assert(std::is_arithmetic<T>::value, "AABB scalar must be numeric");
   Vec2<T> min{}, max{};
 
-  constexpr AABB(const Vec2<T> &mn, const Vec2<T> &size)
+  constexpr AABB(const Vec2<T> &mn, const Vec2<T> &size) noexcept
       : min(mn), max(mn.x + size.x, mn.y + size.y) {};
 
   constexpr T width() const noexcept { return max.x - min.x; };
