@@ -5,10 +5,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
-#include <random>
-#include <string>
 #include <ui/Slider.hpp>
-#include <unordered_map>
 
 class Renderer {
 public:

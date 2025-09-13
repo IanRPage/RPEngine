@@ -29,6 +29,12 @@ private:
     sf::Color handleActive = sf::Color(255, 210, 90); // dragging
   } theme_;
 
+  // text
+  const sf::Font &font_;
+  std::string name_;
+  sf::Text text_;
+  std::ostringstream oss;
+
   // helpers
   float clampToRange(float v) const {
     return std::clamp(v, range_.x, range_.y);
@@ -80,14 +86,21 @@ private:
     handle_.setOrigin({handleRadius, handleRadius});
   }
 
+  void updateText() {
+    oss.str("");
+    oss << name_ + ": " << val_;
+    text_.setString(oss.str());
+  }
+
 public:
   bool isDragging = false;
 
   HorizSlider(sf::Vector2f pos, sf::Vector2f size, sf::Vector2f range,
-              float &valRef, sf::Color trackBg = sf::Color::White,
+              float &valRef, const sf::Font &font, std::string name,
+              sf::Color trackBg = sf::Color::White,
               sf::Color handleColor = sf::Color::Cyan)
       : position_(pos), width_(size.x), height_(size.y), range_(range),
-        val_(valRef) {
+        val_(valRef), font_(font), name_(name), text_(font_, name) {
 
     // apply theme (respect legacy ctor colors where provided)
     theme_.trackBg = (trackBg == sf::Color::White ? theme_.trackBg : trackBg);
@@ -106,10 +119,19 @@ public:
 
     val_ = (range_.x + range_.y) * 0.5f;
     syncHandleFromValue();
+
+    // text
+    text_.setFont(font_);
+    text_.setCharacterSize(height_ * 1.6f);
+
+    oss << std::fixed << std::setprecision(2);
+    oss << name_ + ": " << val_;
+    text_.setString(oss.str());
   }
 
   void setPosition(sf::Vector2f pos) {
     position_ = pos;
+    text_.setPosition({pos.x, pos.y + height_ * 1.5f});
     syncTrack();
     syncHandleFromValue();
   }
@@ -122,6 +144,8 @@ public:
     syncHandleFromValue();
   }
 
+  sf::Vector2f getSize() const noexcept { return {width_, height_}; };
+
   bool contains(sf::Vector2i pos) {
     return handle_.getGlobalBounds().contains(static_cast<sf::Vector2f>(pos));
   }
@@ -132,6 +156,7 @@ public:
 
     val_ = clampToRange(xToValue(x));
     syncHandleFromValue();
+    updateText();
   }
 
   void setActive(bool active) {
@@ -152,7 +177,7 @@ public:
     rt.draw(trackBg_);
     rt.draw(trackFill_);
     rt.draw(handle_);
-    rt.draw(bar_);
+    rt.draw(text_);
   }
 };
 

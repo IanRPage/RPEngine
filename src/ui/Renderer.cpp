@@ -1,17 +1,15 @@
-#include <cmath>
-#include <stdexcept>
 #include <ui/Renderer.hpp>
 
 Renderer::Renderer(Simulator &sim, const Options &opts)
     : sim_(sim), window_(sf::RenderWindow(
                      sf::VideoMode(sf::VideoMode::getDesktopMode().size),
                      opts.window_title)),
-      gSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {-100.0f, 100.0f}, sim_.gravity),
+      gSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {-100.0f, 100.0f}, sim_.gravity,
+               font_, "Gravity"),
       eSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {0.0f, 1.0f}, sim_.restitution,
-               sf::Color::White, sf::Color::Yellow),
+               font_, "Restitution", sf::Color::White, sf::Color::Yellow),
       particleCountText_(font_, "Particles: ", 30),
       fpsText_(font_, "FPS: 60", 30) {
-
   window_.setFramerateLimit(opts.fps_limit);
   lastSize_ = window_.getSize();
   sim_.setWorldSize(
@@ -40,25 +38,24 @@ void Renderer::layoutUI() noexcept {
   sim_.setWorldSize(
       Vec2f(static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)));
 
-  const float btnMargin = 40.0f;
-  const float sliderWidth = 200.0f;
-  const float sliderHeight = 10.0f;
+  const float margin = 10.0f;
+  const auto [sliderWidth, sliderHeight] = gSlider_.getSize();
 
   // button heights
   const float y1 = static_cast<float>(size.y) - 100.0f;
   const float y2 = static_cast<float>(size.y) - 50.0f;
 
-  gSlider_.setPosition({btnMargin, y1});
+  gSlider_.setPosition({margin, y1});
   gSlider_.setSize({sliderWidth, sliderHeight});
 
-  eSlider_.setPosition({btnMargin, y2});
+  eSlider_.setPosition({margin, y2});
   eSlider_.setSize({sliderWidth, sliderHeight});
 
   // top corner text
-  particleCountText_.setPosition({5.0f, 0.0f});
+  particleCountText_.setPosition({margin, margin});
   float fpsTextWidth = fpsText_.getLocalBounds().size.x;
   fpsText_.setPosition(
-      {static_cast<float>(size.x) - fpsTextWidth - 5.0f, 0.0f});
+      {static_cast<float>(size.x) - fpsTextWidth - margin, margin});
 }
 
 const sf::Color Renderer::getRainbow(float t) noexcept {
@@ -103,11 +100,11 @@ void Renderer::handleMousePressed(
     return;
   if (gSlider_.contains(e.position)) {
     gSlider_.isDragging = true;
-		gSlider_.setActive(true);
+    gSlider_.setActive(true);
     draggingAny_ = true;
   } else if (eSlider_.contains(e.position)) {
     eSlider_.isDragging = true;
-		eSlider_.setActive(true);
+    eSlider_.setActive(true);
     draggingAny_ = true;
   } else {
     sf::Vector2i pos = e.position;
@@ -119,10 +116,10 @@ void Renderer::handleMousePressed(
 void Renderer::handleMouseReleased() noexcept {
   if (gSlider_.isDragging)
     gSlider_.isDragging = false;
-		gSlider_.setActive(false);
+  gSlider_.setActive(false);
   if (eSlider_.isDragging)
     eSlider_.isDragging = false;
-		eSlider_.setActive(false);
+  eSlider_.setActive(false);
   draggingAny_ = false;
 }
 
