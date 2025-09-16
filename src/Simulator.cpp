@@ -20,14 +20,14 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) {
     std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
     vel = {dist(gen_), dist(gen_)};
   }
-  particles_.emplace_back(pos, vel, r, m);
+  particles_.emplace_back(pos, vel, dt_, r, m);
 };
 
 void Simulator::update() {
   for (Particle& par : particles_) {
     par.acceleration = {0.0f, 0.0f};
     par.accelerate({0.0f, gravity});
-    par.update(dt_);
+    par.integrateEuler(dt_);
   }
   resolveCollisions();
 }
