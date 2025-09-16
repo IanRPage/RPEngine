@@ -1,12 +1,36 @@
 #include <Simulator.hpp>
 
 Simulator::Simulator(Vec2f dims, float g, float C_r, float dt,
+                     IntegrationType integrationType, ResolverType resolverType,
                      int reserveParticles)
-    : worldSize_(dims), dt_(dt), gravity(g), restitution(C_r) {
+    : gravity(g),
+      restitution(C_r),
+      worldSize_(dims),
+      dt_(dt),
+      integrationType_(integrationType),
+      resolverType_(resolverType) {
   std::random_device rd;
   gen_.seed(rd());
   particles_.reserve(reserveParticles);
 };
+
+void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) {
+  const float vMag = vel.x * vel.x + vel.y + vel.y;
+  if (!vMag) {
+    std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
+    vel = {dist(gen_), dist(gen_)};
+  }
+  particles_.emplace_back(pos, vel, r, m);
+};
+
+void Simulator::update() {
+  for (Particle& par : particles_) {
+    par.acceleration = {0.0f, 0.0f};
+    par.accelerate({0.0f, gravity});
+    par.update(dt_);
+  }
+  resolveCollisions();
+}
 
 void Simulator::wallCollisions() {
   auto [w, h] = worldSize_;
@@ -105,22 +129,4 @@ void Simulator::resolveCollisions() {
   wallCollisions();
   // naiveCollisions();
   qtreeCollisions(16);
-}
-
-void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) {
-  const float vMag = vel.x * vel.x + vel.y + vel.y;
-  if (!vMag) {
-    std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
-    vel = {dist(gen_), dist(gen_)};
-  }
-  particles_.emplace_back(pos, vel, r, m);
-};
-
-void Simulator::update() {
-  for (Particle& par : particles_) {
-    par.acceleration = {0.0f, 0.0f};
-    par.accelerate({0.0f, gravity});
-    par.update(dt_);
-  }
-  resolveCollisions();
 }

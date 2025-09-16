@@ -10,5 +10,6 @@
 - [x] decouple simulation code from UI code
 - [x] implement proper resizing
 - [ ] add a Verlet integration based resolver to `Simulator`
+- [ ] add a "switch" for switching between Euler-Impulse and Verlet-Position based collisions
 - [ ] implement spatial hashing
 - [ ] change all graphics code to use OpenGL instead of SFML
