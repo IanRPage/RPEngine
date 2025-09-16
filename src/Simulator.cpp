@@ -10,7 +10,7 @@ Simulator::Simulator(Vec2f dims, float g, float C_r, float dt,
 
 void Simulator::wallCollisions() {
   auto [w, h] = worldSize_;
-  for (Particle &par : particles_) {
+  for (Particle& par : particles_) {
     const float r = par.radius;
 
     // top/bot
@@ -33,7 +33,7 @@ void Simulator::wallCollisions() {
   }
 }
 
-void Simulator::particleCollision(Particle &p1, Particle &p2) {
+void Simulator::particleCollision(Particle& p1, Particle& p2) {
   const Vec2f d = p2.position - p1.position;
   const float d2 = d.x * d.x + d.y * d.y;
   const float sum_r = p1.radius + p2.radius;
@@ -77,22 +77,22 @@ void Simulator::naiveCollisions() {
 void Simulator::qtreeCollisions(size_t bucketSize) {
   QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {worldSize_.x, worldSize_.y}),
                            bucketSize);
-  for (Particle &p : particles_) {
+  for (Particle& p : particles_) {
     qtree.insert(&p);
   }
 
   for (size_t i = 0; i < particles_.size(); i++) {
-    Particle &p1 = particles_[i];
+    Particle& p1 = particles_[i];
     const Vec2f c1 = p1.position;
     const float r1 = p1.radius;
     const AABBf queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
                            {4.0f * r1, 4.0f * r1});
 
-    std::vector<Particle *> neighbors;
+    std::vector<Particle*> neighbors;
     qtree.query(neighbors, queryRange);
 
-    for (Particle *nei : neighbors) {
-      Particle &p2 = *nei;
+    for (Particle* nei : neighbors) {
+      Particle& p2 = *nei;
       if (&p1 <= &p2) {
         continue;
       }
@@ -117,7 +117,7 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) {
 };
 
 void Simulator::update() {
-  for (Particle &par : particles_) {
+  for (Particle& par : particles_) {
     par.acceleration = {0.0f, 0.0f};
     par.accelerate({0.0f, gravity});
     par.update(dt_);

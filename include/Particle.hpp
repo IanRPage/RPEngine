@@ -23,7 +23,7 @@ struct Particle {
 
   void accelerate(Vec2f accel) { acceleration += accel; };
 
-private:
+ private:
   static uint32_t nextId() {
     static uint32_t counter = 0;
     return counter++;

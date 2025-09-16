@@ -8,13 +8,13 @@
 #include <ui/Slider.hpp>
 
 class Renderer {
-public:
+ public:
   struct Options {
     unsigned fps_limit;
     std::string window_title;
   };
 
-  Renderer(Simulator &sim, const Options &opts = {60, "RPEngine"});
+  Renderer(Simulator& sim, const Options& opts = {60, "RPEngine"});
   ~Renderer() = default;
 
   bool isOpen() const noexcept { return window_.isOpen(); };
@@ -23,8 +23,8 @@ public:
 
   sf::Vector2u windowSize() const noexcept { return window_.getSize(); };
 
-private:
-  Simulator &sim_;
+ private:
+  Simulator& sim_;
   sf::RenderWindow window_;
   sf::Vector2u lastSize_;
   sf::Clock frameClock_;
@@ -55,14 +55,14 @@ private:
   std::uniform_real_distribution<float> distY;
 
   // helper functions
-  void layoutUI() noexcept ;
+  void layoutUI() noexcept;
   const sf::Color getRainbow(float t) noexcept;
-  const sf::Color &colorFor(const Particle &p) noexcept;
+  const sf::Color& colorFor(const Particle& p) noexcept;
 
-  void handleMousePressed(const sf::Event::MouseButtonPressed &e) noexcept;
+  void handleMousePressed(const sf::Event::MouseButtonPressed& e) noexcept;
   void handleMouseReleased() noexcept;
-  void handleMouseMoved(const sf::Event::MouseMoved &e) noexcept;
-  void handleKeyPressed(const sf::Event::KeyPressed &e) noexcept;
+  void handleMouseMoved(const sf::Event::MouseMoved& e) noexcept;
+  void handleKeyPressed(const sf::Event::KeyPressed& e) noexcept;
 
   void drawParticles();
   void drawComponents();

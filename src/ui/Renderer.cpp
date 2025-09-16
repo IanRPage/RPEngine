@@ -1,9 +1,10 @@
 #include <ui/Renderer.hpp>
 
-Renderer::Renderer(Simulator &sim, const Options &opts)
-    : sim_(sim), window_(sf::RenderWindow(
-                     sf::VideoMode(sf::VideoMode::getDesktopMode().size),
-                     opts.window_title)),
+Renderer::Renderer(Simulator& sim, const Options& opts)
+    : sim_(sim),
+      window_(
+          sf::RenderWindow(sf::VideoMode(sf::VideoMode::getDesktopMode().size),
+                           opts.window_title)),
       gSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {-100.0f, 100.0f}, sim_.gravity,
                font_, "Gravity"),
       eSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {0.0f, 1.0f}, sim_.restitution,
@@ -67,10 +68,10 @@ const sf::Color Renderer::getRainbow(float t) noexcept {
           static_cast<uint8_t>(255.0f * b * b)};
 }
 
-const sf::Color &Renderer::colorFor(const Particle &p) noexcept {
+const sf::Color& Renderer::colorFor(const Particle& p) noexcept {
   auto it = colorLUT_.find(p.id);
 
-  if (it != colorLUT_.end()) // if color is found
+  if (it != colorLUT_.end())  // if color is found
     return it->second;
   const float t = runtimeClock_.getElapsedTime().asSeconds();
   auto [inserted, _] = colorLUT_.emplace(p.id, getRainbow(t));
@@ -81,21 +82,21 @@ void Renderer::pollAndHandleEvents() noexcept {
   while (const std::optional event = window_.pollEvent()) {
     if (event->is<sf::Event::Closed>()) {
       window_.close();
-    } else if (const auto *mousePressed =
+    } else if (const auto* mousePressed =
                    event->getIf<sf::Event::MouseButtonPressed>()) {
       handleMousePressed(*mousePressed);
     } else if (event->is<sf::Event::MouseButtonReleased>()) {
       handleMouseReleased();
-    } else if (const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
+    } else if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
       handleMouseMoved(*mouseMoved);
-    } else if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+    } else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
       handleKeyPressed(*keyPressed);
     }
   }
 }
 
 void Renderer::handleMousePressed(
-    const sf::Event::MouseButtonPressed &e) noexcept {
+    const sf::Event::MouseButtonPressed& e) noexcept {
   if (e.button != sf::Mouse::Button::Left)
     return;
 
@@ -124,7 +125,7 @@ void Renderer::handleMouseReleased() noexcept {
   draggingAny_ = false;
 }
 
-void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) noexcept {
+void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
   if (!draggingAny_)
     return;
 
@@ -135,7 +136,7 @@ void Renderer::handleMouseMoved(const sf::Event::MouseMoved &e) noexcept {
     eSlider_.move(m);
 }
 
-void Renderer::handleKeyPressed(const sf::Event::KeyPressed &e) noexcept {
+void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
   if (e.scancode == sf::Keyboard::Scan::R) {
     randomSpawn_ = !randomSpawn_;
     streamSpawn_ = false;
@@ -146,7 +147,7 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed &e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  for (auto &par : sim_.getParticles()) {
+  for (auto& par : sim_.getParticles()) {
     Vec2f pos = par.position;
     particleShape_.setPosition({pos.x, pos.y});
     particleShape_.setFillColor(colorFor(par));
@@ -186,8 +187,8 @@ void Renderer::streamSpawn() noexcept {
     return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    const float speed = 1200.0f; // tune these
-    const float omega = 0.5f;    // parameters
+    const float speed = 1200.0f;  // tune these
+    const float omega = 0.5f;     // parameters
     const float t = runtimeClock_.getElapsedTime().asSeconds();
     const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
     sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},

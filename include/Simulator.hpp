@@ -8,18 +8,18 @@
 #include <vector>
 
 class Simulator {
-private:
+ private:
   std::mt19937 gen_;
   Vec2f worldSize_;
   std::vector<Particle> particles_;
   float dt_;
   void wallCollisions();
-  void particleCollision(Particle &p1, Particle &p2);
+  void particleCollision(Particle& p1, Particle& p2);
   void naiveCollisions();
   void qtreeCollisions(size_t bucketSize = 4);
   void resolveCollisions();
 
-public:
+ public:
   float gravity;
   float restitution;
 
@@ -31,7 +31,7 @@ public:
 
   void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f, float m = 1.0f);
   void update();
-  const std::vector<Particle> &getParticles() const { return particles_; };
+  const std::vector<Particle>& getParticles() const { return particles_; };
 };
 
 #endif
