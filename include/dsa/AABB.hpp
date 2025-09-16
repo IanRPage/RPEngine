@@ -6,6 +6,7 @@
 
 template <typename T>
 struct AABB {
+ public:
   static_assert(std::is_arithmetic<T>::value, "AABB scalar must be numeric");
   Vec2<T> min{}, max{};
 

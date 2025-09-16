@@ -8,81 +8,70 @@
 template <typename T>
 class QuadTree {
  private:
-  size_t capacity;
-  std::vector<T*> data;
-  AABBf boundary;
-  bool divided = false;
+  size_t capacity_;
+  std::vector<T*> data_;
+  AABBf boundary_;
+  bool divided_ = false;
 
-  std::unique_ptr<QuadTree> ul, ur, bl, br;
+  std::unique_ptr<QuadTree> ul_, ur_, bl_, br_;
 
   void subdivide() {
-    const float x = boundary.min.x, y = boundary.min.y;
-    const float hw = 0.5f * boundary.width(), hh = 0.5f * boundary.height();
+    const float x = boundary_.min.x, y = boundary_.min.y;
+    const float w = 0.5f * boundary_.width(), h = 0.5f * boundary_.height();
 
-    ul = std::make_unique<QuadTree>(AABBf({x, y}, {hw, hh}), capacity);
-    ur = std::make_unique<QuadTree>(AABBf({x + hw, y}, {hw, hh}), capacity);
-    bl = std::make_unique<QuadTree>(AABBf({x, y + hh}, {hw, hh}), capacity);
-    br =
-        std::make_unique<QuadTree>(AABBf({x + hw, y + hh}, {hw, hh}), capacity);
+    ul_ = std::make_unique<QuadTree>(AABBf({x, y}, {w, h}), capacity_);
+    ur_ = std::make_unique<QuadTree>(AABBf({x + w, y}, {w, h}), capacity_);
+    bl_ = std::make_unique<QuadTree>(AABBf({x, y + h}, {w, h}), capacity_);
+    br_ = std::make_unique<QuadTree>(AABBf({x + w, y + h}, {w, h}), capacity_);
 
-    divided = true;
+    divided_ = true;
 
-    std::vector<T*> old = std::move(data);
+    std::vector<T*> old = std::move(data_);
     for (T* p : old) {
       insert(p);
     }
   };
 
  public:
-  QuadTree(AABBf bound, size_t cap) : capacity(cap), boundary(bound) {
-    data.reserve(capacity);
+  QuadTree(AABBf bound, size_t cap) : capacity_(cap), boundary_(bound) {
+    data_.reserve(capacity_);
   };
 
   bool insert(T* p) {
     const Vec2f pos(p->position.x, p->position.y);
-    if (!boundary.contains(pos)) {
+    if (!boundary_.contains(pos)) {
       return false;
     }
 
-    if (!divided && data.size() < capacity) {
-      data.push_back(p);
+    if (!divided_ && data_.size() < capacity_) {
+      data_.push_back(p);
       return true;
     }
 
-    if (!divided) {
+    if (!divided_) {
       subdivide();
     }
 
-    if (ul->insert(p))
-      return true;
-    if (ur->insert(p))
-      return true;
-    if (bl->insert(p))
-      return true;
-    if (br->insert(p))
-      return true;
+    if (ul_->insert(p)) return true;
+    if (ur_->insert(p)) return true;
+    if (bl_->insert(p)) return true;
+    if (br_->insert(p)) return true;
     return false;
   };
 
   void query(std::vector<T*>& res, const AABBf& qRange) const {
-    if (!boundary.intersects(qRange))
-      return;
+    if (!boundary_.intersects(qRange)) return;
 
-    for (T* p : data) {
+    for (T* p : data_) {
       const Vec2f pos(p->position.x, p->position.y);
-      if (qRange.contains(pos))
-        res.push_back(p);
+      if (qRange.contains(pos)) res.push_back(p);
     }
 
-    if (divided) {
-      if (ul)
-        ul->query(res, qRange);
-      if (ur)
-        ur->query(res, qRange);
-      if (bl)
-        bl->query(res, qRange);
-      if (br)
-        br->query(res, qRange);
+    if (divided_) {
+      if (ul_) ul_->query(res, qRange);
+      if (ur_) ur_->query(res, qRange);
+      if (bl_) bl_->query(res, qRange);
+      if (br_) br_->query(res, qRange);
     }
   };
 };

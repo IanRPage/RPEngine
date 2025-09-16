@@ -5,6 +5,7 @@
 #include <dsa/Vec2.hpp>
 
 struct Particle {
+ public:
   Vec2f position;
   Vec2f velocity;
   Vec2f acceleration;

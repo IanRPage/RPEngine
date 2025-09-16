@@ -3,6 +3,7 @@
 
 template <typename T>
 struct Vec2 {
+ public:
   T x{}, y{};
 
   constexpr Vec2() = default;

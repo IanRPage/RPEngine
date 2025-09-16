@@ -55,9 +55,9 @@ class Renderer {
   std::uniform_real_distribution<float> distY;
 
   // helper functions
-  void layoutUI() noexcept;
   const sf::Color getRainbow(float t) noexcept;
   const sf::Color& colorFor(const Particle& p) noexcept;
+  void layoutUI() noexcept;
 
   void handleMousePressed(const sf::Event::MouseButtonPressed& e) noexcept;
   void handleMouseReleased() noexcept;

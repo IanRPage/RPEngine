@@ -33,6 +33,52 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   layoutUI();
 }
 
+void Renderer::pollAndHandleEvents() noexcept {
+  while (const std::optional event = window_.pollEvent()) {
+    if (event->is<sf::Event::Closed>()) {
+      window_.close();
+    } else if (const auto* mousePressed =
+                   event->getIf<sf::Event::MouseButtonPressed>()) {
+      handleMousePressed(*mousePressed);
+    } else if (event->is<sf::Event::MouseButtonReleased>()) {
+      handleMouseReleased();
+    } else if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
+      handleMouseMoved(*mouseMoved);
+    } else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+      handleKeyPressed(*keyPressed);
+    }
+  }
+}
+
+void Renderer::drawFrame() {
+  updateText();
+  randomSpawn();
+  streamSpawn();
+  window_.clear();
+  drawParticles();
+  drawComponents();
+  window_.display();
+}
+
+const sf::Color Renderer::getRainbow(float t) noexcept {
+  const float r = sin(t);
+  const float g = sin(t + 0.33f * 2.0f * PI);
+  const float b = sin(t + 0.66f * 2.0f * PI);
+  return {static_cast<uint8_t>(255.0f * r * r),
+          static_cast<uint8_t>(255.0f * g * g),
+          static_cast<uint8_t>(255.0f * b * b)};
+}
+
+const sf::Color& Renderer::colorFor(const Particle& p) noexcept {
+  auto it = colorLUT_.find(p.id);
+
+  if (it != colorLUT_.end())  // if color is found
+    return it->second;
+  const float t = runtimeClock_.getElapsedTime().asSeconds();
+  auto [inserted, _] = colorLUT_.emplace(p.id, getRainbow(t));
+  return inserted->second;
+}
+
 void Renderer::layoutUI() noexcept {
   const auto size = window_.getSize();
   lastSize_ = size;
@@ -57,42 +103,6 @@ void Renderer::layoutUI() noexcept {
   float fpsTextWidth = fpsText_.getLocalBounds().size.x;
   fpsText_.setPosition(
       {static_cast<float>(size.x) - fpsTextWidth - margin, margin});
-}
-
-const sf::Color Renderer::getRainbow(float t) noexcept {
-  const float r = sin(t);
-  const float g = sin(t + 0.33f * 2.0f * PI);
-  const float b = sin(t + 0.66f * 2.0f * PI);
-  return {static_cast<uint8_t>(255.0f * r * r),
-          static_cast<uint8_t>(255.0f * g * g),
-          static_cast<uint8_t>(255.0f * b * b)};
-}
-
-const sf::Color& Renderer::colorFor(const Particle& p) noexcept {
-  auto it = colorLUT_.find(p.id);
-
-  if (it != colorLUT_.end())  // if color is found
-    return it->second;
-  const float t = runtimeClock_.getElapsedTime().asSeconds();
-  auto [inserted, _] = colorLUT_.emplace(p.id, getRainbow(t));
-  return inserted->second;
-}
-
-void Renderer::pollAndHandleEvents() noexcept {
-  while (const std::optional event = window_.pollEvent()) {
-    if (event->is<sf::Event::Closed>()) {
-      window_.close();
-    } else if (const auto* mousePressed =
-                   event->getIf<sf::Event::MouseButtonPressed>()) {
-      handleMousePressed(*mousePressed);
-    } else if (event->is<sf::Event::MouseButtonReleased>()) {
-      handleMouseReleased();
-    } else if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
-      handleMouseMoved(*mouseMoved);
-    } else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-      handleKeyPressed(*keyPressed);
-    }
-  }
 }
 
 void Renderer::handleMousePressed(
@@ -196,14 +206,4 @@ void Renderer::streamSpawn() noexcept {
                        1.0f);
     spawnClock_.restart();
   }
-}
-
-void Renderer::drawFrame() {
-  updateText();
-  randomSpawn();
-  streamSpawn();
-  window_.clear();
-  drawParticles();
-  drawComponents();
-  window_.display();
 }
