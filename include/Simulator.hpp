@@ -8,25 +8,25 @@
 #include <vector>
 
 enum class IntegrationType { Euler, Verlet };
-enum class ResolverType { Impulse, Position };
 
 class Simulator {
  public:
   float gravity;
   float restitution;
 
-  Simulator(Vec2f dims = {100.0f, 100.0f}, float g = 100.0f, float C_r = 0.95f,
-            float dt = 1.0f / 60.0f,
-            IntegrationType integrationType = IntegrationType::Euler,
-            ResolverType resolverType = ResolverType::Impulse,
-            int reserveParticles = 100000);
+  Simulator(Vec2f dims, float g, float C_r, float dt,
+            IntegrationType integrationType, int reserveParticles = 100000);
 
-  void setWorldSize(Vec2f size) { worldSize_ = size; };
-  Vec2f worldSize() const { return worldSize_; };
+  void setWorldSize(Vec2f size) noexcept { worldSize_ = size; };
+  Vec2f worldSize() const noexcept { return worldSize_; };
+  void setDeltaTime(float dt) noexcept { dt_ = dt; };
 
-  void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f, float m = 1.0f);
-  void update();
-  const std::vector<Particle>& getParticles() const { return particles_; };
+  void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f,
+                     float m = 1.0f) noexcept;
+  void update() noexcept;
+  const std::vector<Particle>& getParticles() const noexcept {
+    return particles_;
+  };
 
  private:
   std::mt19937 gen_;
@@ -34,12 +34,14 @@ class Simulator {
   std::vector<Particle> particles_;
   float dt_;
   IntegrationType integrationType_;
-  ResolverType resolverType_;
 
-  void wallCollisions();
-  void particleCollision(Particle& p1, Particle& p2);
+  // collision detection
   void naiveCollisions();
   void qtreeCollisions(size_t bucketSize = 4);
+
+  // collision helpers
+  void applyWall(Particle& p, float w, float h);
+  void particleCollision(Particle& p1, Particle& p2);
   void resolveCollisions();
 };
 

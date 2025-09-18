@@ -15,6 +15,7 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   lastSize_ = window_.getSize();
   sim_.setWorldSize(
       Vec2f(static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)));
+  sim_.setDeltaTime(1.0f / static_cast<float>(opts.fps_limit));
 
   gen_ = std::mt19937(std::random_device{}());
   distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);
@@ -107,8 +108,7 @@ void Renderer::layoutUI() noexcept {
 
 void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed& e) noexcept {
-  if (e.button != sf::Mouse::Button::Left)
-    return;
+  if (e.button != sf::Mouse::Button::Left) return;
 
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
   if (gSlider_.contains(m)) {
@@ -136,14 +136,11 @@ void Renderer::handleMouseReleased() noexcept {
 }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
-  if (!draggingAny_)
-    return;
+  if (!draggingAny_) return;
 
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (gSlider_.isDragging)
-    gSlider_.move(m);
-  if (eSlider_.isDragging)
-    eSlider_.move(m);
+  if (gSlider_.isDragging) gSlider_.move(m);
+  if (eSlider_.isDragging) eSlider_.move(m);
 }
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
@@ -181,8 +178,7 @@ void Renderer::updateText() noexcept {
 }
 
 void Renderer::randomSpawn() noexcept {
-  if (!randomSpawn_)
-    return;
+  if (!randomSpawn_) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
     sf::Vector2f randPos(distX(gen_), distY(gen_));
@@ -193,8 +189,7 @@ void Renderer::randomSpawn() noexcept {
 }
 
 void Renderer::streamSpawn() noexcept {
-  if (!streamSpawn_)
-    return;
+  if (!streamSpawn_) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
     const float speed = 1200.0f;  // tune these
