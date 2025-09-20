@@ -1,3 +1,4 @@
+#include <Profiler.hpp>
 #include <Simulator.hpp>
 
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
@@ -24,22 +25,32 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
 };
 
 void Simulator::update() noexcept {
-  if (integrationType_ == IntegrationType::Euler) {
-    for (Particle& par : particles_) {
-      par.accelerate({0.0f, gravity});
-      par.integrateEuler(dt_);
-    }
-  } else {
-    for (Particle& par : particles_) {
-      par.accelerate({0.0f, gravity});
-      par.integrateVerlet(dt_);
+  PROFILE_SCOPE("Simulator::update");
+
+  {
+    PROFILE_SCOPE("Simulator::integration");
+    if (integrationType_ == IntegrationType::Euler) {
+      for (Particle& par : particles_) {
+        par.accelerate({0.0f, gravity});
+        par.integrateEuler(dt_);
+      }
+    } else {
+      for (Particle& par : particles_) {
+        par.accelerate({0.0f, gravity});
+        par.integrateVerlet(dt_);
+      }
     }
   }
-  resolveCollisions();
+
+  {
+    PROFILE_SCOPE("Simulator::collision_resolution");
+    resolveCollisions();
+  }
 }
 
 // O(n^2)
 void Simulator::naiveCollisions() {
+  PROFILE_SCOPE("Simulator::naiveCollisions");
   for (size_t i = 0; i < particles_.size(); i++) {
     for (size_t j = i + 1; j < particles_.size(); j++) {
       particleCollision(particles_[i], particles_[j]);
@@ -49,28 +60,37 @@ void Simulator::naiveCollisions() {
 
 // O(nlog(n))
 void Simulator::qtreeCollisions(size_t bucketSize) {
+  PROFILE_SCOPE("Simulator::qtreeCollisions");
+
   QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {worldSize_.x, worldSize_.y}),
                            bucketSize);
-  for (Particle& p : particles_) {
-    qtree.insert(&p);
+
+  {
+    PROFILE_SCOPE("Simulator::qtree_build");
+    for (Particle& p : particles_) {
+      qtree.insert(&p);
+    }
   }
 
-  for (size_t i = 0; i < particles_.size(); i++) {
-    Particle& p1 = particles_[i];
-    const Vec2f c1 = p1.position;
-    const float r1 = p1.radius;
-    const AABBf queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
-                           {4.0f * r1, 4.0f * r1});
+  {
+    PROFILE_SCOPE("Simulator::qtree_query_and_collide");
+    for (size_t i = 0; i < particles_.size(); i++) {
+      Particle& p1 = particles_[i];
+      const Vec2f c1 = p1.position;
+      const float r1 = p1.radius;
+      const AABBf queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
+                             {4.0f * r1, 4.0f * r1});
 
-    std::vector<Particle*> neighbors;
-    qtree.query(neighbors, queryRange);
+      std::vector<Particle*> neighbors;
+      qtree.query(neighbors, queryRange);
 
-    for (Particle* nei : neighbors) {
-      Particle& p2 = *nei;
-      if (&p1 <= &p2) {
-        continue;
+      for (Particle* nei : neighbors) {
+        Particle& p2 = *nei;
+        if (&p1 <= &p2) {
+          continue;
+        }
+        particleCollision(p1, p2);
       }
-      particleCollision(p1, p2);
     }
   }
 }
@@ -177,9 +197,14 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
 }
 
 void Simulator::resolveCollisions() {
-  auto [w, h] = worldSize_;
-  for (Particle& par : particles_) {
-    applyWall(par, w, h);
+  PROFILE_SCOPE("Simulator::resolveCollisions");
+
+  {
+    PROFILE_SCOPE("Simulator::wall_collisions");
+    auto [w, h] = worldSize_;
+    for (Particle& par : particles_) {
+      applyWall(par, w, h);
+    }
   }
   qtreeCollisions(16);
 }
