@@ -30,6 +30,9 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   particleShape_.setRadius(particleSize_);
   particleShape_.setOrigin({particleSize_, particleSize_});
 
+  // initialize fps measurement arrays
+  frameTimes_.fill(1.0f / static_cast<float>(opts.fps_limit));
+
   runtimeClock_.start();
 
   layoutUI();
@@ -172,8 +175,24 @@ void Renderer::drawComponents() {
 
 void Renderer::updateText() noexcept {
   sf::Time elapsed = frameClock_.restart();
-  float fps = 1.0f / elapsed.asSeconds();
-  fpsText_.setString("FPS: " + std::to_string(static_cast<int>(fps)));
+  float frameTime = elapsed.asSeconds();
+
+  // store frame time in circular buffer
+  frameTimes_[frameIndex_] = frameTime;
+  frameIndex_ = (frameIndex_ + 1) % FPS_SAMPLE_COUNT;
+
+  // mark as collected after first full cycle
+  if (frameIndex_ == 0) samplesCollected_ = true;
+
+  // Calculate average FPS only after we have enough samples
+  if (samplesCollected_) {
+    float avgFrameTime =
+        std::accumulate(frameTimes_.begin(), frameTimes_.end(), 0.0f) /
+        FPS_SAMPLE_COUNT;
+    float fps = 1.0f / avgFrameTime;
+    fpsText_.setString("FPS: " + std::to_string(static_cast<int>(fps)));
+  }
+
   particleCountText_.setString("Particles: " +
                                std::to_string(sim_.getParticles().size()));
 }

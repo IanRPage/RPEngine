@@ -5,6 +5,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
+#include <array>
 #include <ui/Slider.hpp>
 
 class Renderer {
@@ -53,6 +54,12 @@ class Renderer {
   std::mt19937 gen_;
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;
+
+  // fps measurement
+  static constexpr size_t FPS_SAMPLE_COUNT = 60;
+  std::array<float, FPS_SAMPLE_COUNT> frameTimes_;
+  size_t frameIndex_ = 0;
+  bool samplesCollected_ = false;
 
   // helper functions
   const sf::Color getRainbow(float t) noexcept;
