@@ -11,5 +11,7 @@
 - [x] implement proper resizing
 - [x] add a Verlet integration based resolver to `Simulator`
 - [ ] implement spatial hashing
+- [ ] MAYBE improve wall collision code by only checking particles along the walls or something
 - [ ] add a UI option for toggling between Euler-Impulse and Verlet-Position based collisions
+- [ ] add some kind of profiler that runs a simulation without UI
 - [ ] change all graphics code to use OpenGL instead of SFML

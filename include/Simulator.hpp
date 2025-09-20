@@ -14,12 +14,13 @@ class Simulator {
   float gravity;
   float restitution;
 
-  Simulator(Vec2f dims, float g, float C_r, float dt,
+  Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r, float dt,
             IntegrationType integrationType, int reserveParticles = 100000);
 
   void setWorldSize(Vec2f size) noexcept { worldSize_ = size; };
   Vec2f worldSize() const noexcept { return worldSize_; };
   void setDeltaTime(float dt) noexcept { dt_ = dt; };
+  float maxParticleRadius() const noexcept { return maxParticleRadius_; };
 
   void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f,
                      float m = 1.0f) noexcept;
@@ -31,6 +32,7 @@ class Simulator {
  private:
   std::mt19937 gen_;
   Vec2f worldSize_;
+  float maxParticleRadius_;
   std::vector<Particle> particles_;
   float dt_;
   IntegrationType integrationType_;
@@ -38,6 +40,7 @@ class Simulator {
   // collision detection
   void naiveCollisions();
   void qtreeCollisions(size_t bucketSize = 4);
+  void spatialCollisions();  // TODO
 
   // collision helpers
   void applyWall(Particle& p, float w, float h);

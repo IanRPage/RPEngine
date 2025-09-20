@@ -44,7 +44,7 @@ class Renderer {
   sf::CircleShape particleShape_;
 
   // other variables
-  const float particleSize_ = 5.0f;
+  float particleSize_ = 5.0f;
   bool draggingAny_ = false;
 
   const float spawnInterval_ = 0.001f;

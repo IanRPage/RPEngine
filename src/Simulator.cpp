@@ -1,10 +1,12 @@
 #include <Simulator.hpp>
 
-Simulator::Simulator(Vec2f dims, float g, float C_r, float dt,
-                     IntegrationType integrationType, int reserveParticles)
+Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
+                     float dt, IntegrationType integrationType,
+                     int reserveParticles)
     : gravity(g),
       restitution(C_r),
       worldSize_(dims),
+      maxParticleRadius_(maxParticleRadius),
       dt_(dt),
       integrationType_(integrationType) {
   std::random_device rd;
@@ -72,6 +74,9 @@ void Simulator::qtreeCollisions(size_t bucketSize) {
     }
   }
 }
+
+// TODO
+void Simulator::spatialCollisions() {}
 
 void Simulator::applyWall(Particle& p, float w, float h) {
   const float r = p.radius;

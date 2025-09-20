@@ -26,6 +26,7 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
     throw std::runtime_error("Failed to load font: assets/pixelated.ttf");
   };
 
+  particleSize_ = sim.maxParticleRadius();
   particleShape_.setRadius(particleSize_);
   particleShape_.setOrigin({particleSize_, particleSize_});
 
