@@ -3,6 +3,7 @@
 
 #include <Particle.hpp>
 #include <dsa/QuadTree.hpp>
+#include <dsa/SpatialHashMap.hpp>
 #include <dsa/Vec2.hpp>
 #include <random>
 #include <vector>
@@ -36,6 +37,7 @@ class Simulator {
   std::vector<Particle> particles_;
   float dt_;
   IntegrationType integrationType_;
+  SpatialHashMap<Particle> spatialMap_;
 
   // collision detection
   void naiveCollisions();
