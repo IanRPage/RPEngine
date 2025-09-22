@@ -3,7 +3,7 @@
 
 #include <Particle.hpp>
 #include <dsa/QuadTree.hpp>
-#include <dsa/SpatialHashMap.hpp>
+#include <dsa/SpatialGrid.hpp>
 #include <dsa/Vec2.hpp>
 #include <random>
 #include <vector>
@@ -37,14 +37,13 @@ class Simulator {
   std::vector<Particle> particles_;
   float dt_;
   IntegrationType integrationType_;
-  SpatialHashMap<Particle> spatialMap_;
 
-  // collision detection
+  // broad-phase
   void naiveCollisions();
   void qtreeCollisions(size_t bucketSize = 4);
   void spatialCollisions();  // TODO
 
-  // collision helpers
+  // collisions
   void applyWall(Particle& p, float w, float h);
   void particleCollision(Particle& p1, Particle& p2);
   void resolveCollisions();

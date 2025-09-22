@@ -8,8 +8,7 @@ Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
       worldSize_(dims),
       maxParticleRadius_(maxParticleRadius),
       dt_(dt),
-      integrationType_(integrationType),
-      spatialMap_(maxParticleRadius * 2.0f, reserveParticles) {
+      integrationType_(integrationType) {
   std::random_device rd;
   gen_.seed(rd());
   particles_.reserve(reserveParticles);
@@ -76,34 +75,7 @@ void Simulator::qtreeCollisions(size_t bucketSize) {
   }
 }
 
-// O(n) on average
-void Simulator::spatialCollisions() {
-  spatialMap_.clear();
-
-  // insert particles into spatial map
-  for (Particle& p : particles_) {
-    spatialMap_.insert(&p, p.position);
-  }
-
-  static std::vector<Particle*> neighbors;
-  neighbors.reserve(64); // 2^6
-
-  // check collisions
-  for (size_t i = 0; i < particles_.size(); i++) {
-    Particle& p1 = particles_[i];
-    spatialMap_.queryNeighbors(neighbors, p1.position);
-
-    // compare p1 for collisions against all neighbors p2
-    for (Particle* nei : neighbors) {
-      Particle& p2 = *nei;
-
-      if (&p1 <= &p2) {
-        continue;
-      }
-      particleCollision(p1, p2);
-    }
-  }
-}
+void Simulator::spatialCollisions() {}
 
 void Simulator::applyWall(Particle& p, float w, float h) {
   const float r = p.radius;
@@ -208,6 +180,6 @@ void Simulator::resolveCollisions() {
   for (Particle& par : particles_) {
     applyWall(par, w, h);
   }
-  // qtreeCollisions(16);
-  spatialCollisions();
+  qtreeCollisions(16);
+  // spatialCollisions();
 }
