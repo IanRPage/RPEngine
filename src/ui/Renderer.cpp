@@ -158,7 +158,7 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  for (auto& par : sim_.getParticles()) {
+  for (auto& par : sim_.particles()) {
     Vec2f pos = par.position;
     particleShape_.setPosition({pos.x, pos.y});
     particleShape_.setFillColor(colorFor(par));
@@ -194,11 +194,11 @@ void Renderer::updateText() noexcept {
   }
 
   particleCountText_.setString("Particles: " +
-                               std::to_string(sim_.getParticles().size()));
+                               std::to_string(sim_.particles().size()));
 }
 
 void Renderer::randomSpawn() noexcept {
-  if (!randomSpawn_) return;
+  if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
     sf::Vector2f randPos(distX(gen_), distY(gen_));
@@ -209,7 +209,7 @@ void Renderer::randomSpawn() noexcept {
 }
 
 void Renderer::streamSpawn() noexcept {
-  if (!streamSpawn_) return;
+  if (!streamSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
     const float speed = 1200.0f;  // tune these

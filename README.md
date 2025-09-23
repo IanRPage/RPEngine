@@ -10,7 +10,8 @@
 - [x] decouple simulation code from UI code
 - [x] implement proper resizing
 - [x] add a Verlet integration based resolver to `Simulator`
-- [ ] implement spatial grid broad-phase
+- [x] implement spatial grid broad-phase
+- [ ] optimize spatial grid broad-phase
 - [ ] remove use of vectors and replace with arrays and measure performance difference
 - [ ] look into changing neighbors container in queries to a linked list instead of a vector
 - [ ] MAYBE improve wall collision code by only checking particles along the walls or something

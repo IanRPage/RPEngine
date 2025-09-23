@@ -1,23 +1,27 @@
 #include <Simulator.hpp>
+#include <algorithm>
+#include <cstring>
 
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, IntegrationType integrationType,
-                     int reserveParticles)
+                     size_t maxParticles)
     : gravity(g),
       restitution(C_r),
       worldSize_(dims),
       maxParticleRadius_(maxParticleRadius),
       dt_(dt),
-      integrationType_(integrationType) {
+      integrationType_(integrationType),
+      capacity_(maxParticles) {
   std::random_device rd;
   gen_.seed(rd());
-  particles_.reserve(reserveParticles);
+  particles_.reserve(maxParticles);
 };
 
 void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
+  if (particles_.size() >= capacity_) return;
   const float vn = vel.x * vel.x + vel.y + vel.y;
   if (!vn) {
-    std::uniform_real_distribution<float> dist(-100.0f, 100.0f);
+    std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
     vel = {dist(gen_), dist(gen_)};
   }
   particles_.emplace_back(pos, vel, dt_, r, m);
@@ -39,7 +43,7 @@ void Simulator::update() noexcept {
 }
 
 // O(n^2)
-void Simulator::naiveCollisions() {
+void Simulator::naiveBroadphase() {
   for (size_t i = 0; i < particles_.size(); i++) {
     for (size_t j = i + 1; j < particles_.size(); j++) {
       particleCollision(particles_[i], particles_[j]);
@@ -48,7 +52,7 @@ void Simulator::naiveCollisions() {
 }
 
 // O(nlog(n))
-void Simulator::qtreeCollisions(size_t bucketSize) {
+void Simulator::qtreeBroadphase(size_t bucketSize) {
   QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {worldSize_.x, worldSize_.y}),
                            bucketSize);
   for (Particle& p : particles_) {
@@ -75,7 +79,74 @@ void Simulator::qtreeCollisions(size_t bucketSize) {
   }
 }
 
-void Simulator::spatialCollisions() {}
+void Simulator::spatialGridBroadphase() {
+  float cellSize = 2.0f * maxParticleRadius_;
+  float invCellSize = 1.0f / cellSize;  // no divisions w/ cellSize reciprocal
+
+  // LOOK HERE FOR ANY ISSUES
+  // maybe add 1 in case particles lie on world boundary max
+  int cols = static_cast<int>(worldSize_.x * invCellSize);
+  int rows = static_cast<int>(worldSize_.y * invCellSize);
+  size_t nCells = static_cast<size_t>(cols * rows);
+
+  static std::vector<int> head_;  // size should be number of cells
+  static std::vector<int> next_;  // size should be number of particles
+  static size_t headSize = 0;
+  static size_t nextSize = 0;
+
+  // reset head_ each frame. resize if needed
+  if (headSize != nCells) {
+    head_.assign(nCells, -1);
+    headSize = nCells;
+  } else {
+    std::fill(head_.begin(), head_.end(), -1);
+  }
+
+  // resize next_ if size isn't same as number of particles
+  if (nextSize != particles_.size()) {
+    nextSize = particles_.size();
+    next_.resize(nextSize);
+  }
+
+  // build linked-list representation
+  for (size_t i = 0; i < particles_.size(); i++) {
+    const Vec2f& pos = particles_[i].position;
+    int cx = static_cast<int>(pos.x * invCellSize);
+    int cy = static_cast<int>(pos.y * invCellSize);
+    cx = std::clamp(cx, 0, cols - 1);
+    cy = std::clamp(cy, 0, rows - 1);
+
+    // c maps grid coords to flat index in head
+    const int c = cy * cols + cx;
+    next_[i] = head_[c];
+    head_[c] = i;
+  }
+
+  // broad-phase
+  for (size_t i = 0; i < particles_.size(); i++) {
+    Particle& p1 = particles_[i];
+    int cx = static_cast<int>(p1.position.x * invCellSize);
+    int cy = static_cast<int>(p1.position.y * invCellSize);
+    cx = std::clamp(cx, 0, cols - 1);
+    cy = std::clamp(cy, 0, rows - 1);
+
+    for (int dx = -1; dx <= 1; dx++) {
+      for (int dy = -1; dy <= 1; dy++) {
+        int nx = cx + dx;
+        int ny = cy + dy;
+        if (nx < 0 || nx > cols || ny < 0 || ny > rows) continue;
+        nx = std::clamp(cx, 0, cols - 1);
+        ny = std::clamp(cy, 0, rows - 1);
+        const int cn = ny * cols + nx;
+
+        for (int idx = head_[cn]; idx != -1; idx = next_[idx]) {
+          Particle& p2 = particles_[idx];
+          particleCollision(p1, p2);
+        }
+      }
+    }
+  }
+}
 
 void Simulator::applyWall(Particle& p, float w, float h) {
   const float r = p.radius;
@@ -180,6 +251,6 @@ void Simulator::resolveCollisions() {
   for (Particle& par : particles_) {
     applyWall(par, w, h);
   }
-  qtreeCollisions(16);
-  // spatialCollisions();
+  // qtreeBroadphase(16);
+  spatialGridBroadphase();
 }
