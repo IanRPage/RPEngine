@@ -1,6 +1,6 @@
 #include <Simulator.hpp>
 #include <algorithm>
-#include <cstring>
+#include <cmath>
 
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, IntegrationType integrationType,
@@ -83,11 +83,9 @@ void Simulator::spatialGridBroadphase() {
   float cellSize = 2.0f * maxParticleRadius_;
   float invCellSize = 1.0f / cellSize;  // no divisions w/ cellSize reciprocal
 
-  // LOOK HERE FOR ANY ISSUES
-  // maybe add 1 in case particles lie on world boundary max
   int cols = static_cast<int>(worldSize_.x * invCellSize);
   int rows = static_cast<int>(worldSize_.y * invCellSize);
-  size_t nCells = static_cast<size_t>(cols * rows);
+  int nCells = cols * rows;
 
   static std::vector<int> head_;  // size should be number of cells
   static std::vector<int> next_;  // size should be number of particles
@@ -95,7 +93,7 @@ void Simulator::spatialGridBroadphase() {
   static size_t nextSize = 0;
 
   // reset head_ each frame. resize if needed
-  if (headSize != nCells) {
+  if (headSize != static_cast<size_t>(nCells)) {
     head_.assign(nCells, -1);
     headSize = nCells;
   } else {
@@ -118,6 +116,8 @@ void Simulator::spatialGridBroadphase() {
 
     // c maps grid coords to flat index in head
     const int c = cy * cols + cx;
+
+    // push_front operation
     next_[i] = head_[c];
     head_[c] = i;
   }
@@ -132,14 +132,16 @@ void Simulator::spatialGridBroadphase() {
 
     for (int dx = -1; dx <= 1; dx++) {
       for (int dy = -1; dy <= 1; dy++) {
-        int nx = cx + dx;
-        int ny = cy + dy;
-        if (nx < 0 || nx > cols || ny < 0 || ny > rows) continue;
-        nx = std::clamp(cx, 0, cols - 1);
-        ny = std::clamp(cy, 0, rows - 1);
+        const int nx = cx + dx;
+        const int ny = cy + dy;
+        if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
         const int cn = ny * cols + nx;
 
+        // get the second particle
         for (int idx = head_[cn]; idx != -1; idx = next_[idx]) {
+          // prune redundant checks
+          if (idx <= static_cast<int>(i)) continue;
+
           Particle& p2 = particles_[idx];
           particleCollision(p1, p2);
         }
@@ -199,7 +201,8 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
   const float sum_r = p1.radius + p2.radius;
   const float sum_r2 = sum_r * sum_r;
 
-  if (d2 >= sum_r2 || d2 == 0.0f) return;
+  // square dist prune
+  if (d2 >= sum_r2) return;
 
   const float invDist = 1.0f / std::sqrt(d2);
   const float dist = 1.0f / invDist;
