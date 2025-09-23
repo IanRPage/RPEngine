@@ -3,35 +3,53 @@
 
 #include <Particle.hpp>
 #include <dsa/QuadTree.hpp>
+#include <dsa/SpatialGrid.hpp>
 #include <dsa/Vec2.hpp>
 #include <random>
 #include <vector>
 
-class Simulator {
-private:
-  std::mt19937 gen_;
-  Vec2f worldSize_;
-  std::vector<Particle> particles_;
-  float dt_;
-  void wallCollisions();
-  void particleCollision(Particle &p1, Particle &p2);
-  void naiveCollisions();
-  void qtreeCollisions(size_t bucketSize = 4);
-  void resolveCollisions();
+enum class IntegrationType { Euler, Verlet };
 
-public:
+class Simulator {
+ public:
   float gravity;
   float restitution;
 
-  Simulator(Vec2f dims = {100.0f, 100.0f}, float g = 100.0f, float C_r = 0.95f,
-            float dt = 1.0f / 60.0f, int reserveParticles = 100000);
+  Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r, float dt,
+            IntegrationType integrationType, size_t maxParticles = 100000);
 
-  void setWorldSize(Vec2f size) { worldSize_ = size; };
-  Vec2f worldSize() const { return worldSize_; };
+  void setWorldSize(Vec2f size) noexcept { worldSize_ = size; };
+  Vec2f worldSize() const noexcept { return worldSize_; };
+  void setDeltaTime(float dt) noexcept { dt_ = dt; };
+  float maxParticleRadius() const noexcept { return maxParticleRadius_; };
 
-  void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f, float m = 1.0f);
-  void update();
-  const std::vector<Particle> &getParticles() const { return particles_; };
+  void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f,
+                     float m = 1.0f) noexcept;
+  void update() noexcept;
+  const std::vector<Particle>& particles() const noexcept {
+    return particles_;
+  };
+  size_t capacity() const noexcept { return capacity_; };
+
+ private:
+  std::mt19937 gen_;
+  Vec2f worldSize_;
+  float maxParticleRadius_;
+  std::vector<Particle> particles_;
+  float dt_;
+  IntegrationType integrationType_;
+
+  size_t capacity_;
+
+  // broad-phase
+  void naiveBroadphase();
+  void qtreeBroadphase(size_t bucketSize = 4);
+  void spatialGridBroadphase();
+
+  // collisions
+  void applyWall(Particle& p, float w, float h);
+  void particleCollision(Particle& p1, Particle& p2);
+  void resolveCollisions();
 };
 
 #endif

@@ -9,6 +9,14 @@
 - [x] move UI stuff into its own rendering engine class
 - [x] decouple simulation code from UI code
 - [x] implement proper resizing
-- [ ] add a Verlet integration based resolver to `Simulator`
-- [ ] implement spatial hashing
-- [ ] change all graphics code to use OpenGL instead of SFML
+- [x] add a Verlet integration based resolver to `Simulator`
+- [x] implement spatial grid broad-phase
+- [x] add debug and release builds
+- [ ] add multithreading
+- [ ] add cool things that can be done with clicks
+- [ ] add rigidbody mechanics
+- [ ] optimize spatial grid broad-phase
+- [ ] MAYBE improve wall collision code by only checking particles along the walls or something
+- [ ] add a UI option for toggling between Euler-Impulse and Verlet-Position based collisions
+- [ ] add a UI option for toggling between broad phase methods for collision detection
+- [ ] add some kind of profiler that runs a simulation without UI
