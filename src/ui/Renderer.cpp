@@ -59,6 +59,7 @@ void Renderer::drawFrame() {
   updateText();
   randomSpawn();
   streamSpawn();
+  randomSpawnSUPERFAST();
   window_.clear();
   drawParticles();
   drawComponents();
@@ -151,9 +152,15 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
   if (e.scancode == sf::Keyboard::Scan::R) {
     randomSpawn_ = !randomSpawn_;
     streamSpawn_ = false;
+    randomSpawnSUPERFAST_ = false;
   } else if (e.scancode == sf::Keyboard::Scan::Space) {
     streamSpawn_ = !streamSpawn_;
     randomSpawn_ = false;
+    randomSpawnSUPERFAST_ = false;
+  } else if (e.scancode == sf::Keyboard::Scan::F) {
+    randomSpawnSUPERFAST_ = !randomSpawnSUPERFAST_;
+    randomSpawn_ = false;
+    streamSpawn_ = false;
   }
 }
 
@@ -201,8 +208,25 @@ void Renderer::randomSpawn() noexcept {
   if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sf::Vector2f randPos(distX(gen_), distY(gen_));
-    sim_.spawnParticle({randPos.x, randPos.y}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+                       1.0f);
+    spawnClock_.restart();
+  }
+}
+
+void Renderer::randomSpawnSUPERFAST() noexcept {
+  if (!randomSpawnSUPERFAST_ || sim_.particles().size() >= sim_.capacity()) return;
+
+  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
                        1.0f);
     spawnClock_.restart();
   }

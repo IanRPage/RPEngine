@@ -51,6 +51,7 @@ class Renderer {
   const float spawnInterval_ = 0.001f;
   bool streamSpawn_ = false;
   bool randomSpawn_ = false;
+  bool randomSpawnSUPERFAST_ = false;
   std::mt19937 gen_;
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;
@@ -76,6 +77,7 @@ class Renderer {
   void updateText() noexcept;
 
   void randomSpawn() noexcept;
+  void randomSpawnSUPERFAST() noexcept;
   void streamSpawn() noexcept;
 };
 
