@@ -44,7 +44,7 @@ class Simulator {
   // broad-phase
   void naiveBroadphase();
   void qtreeBroadphase(size_t bucketSize = 4);
-  void spatialGridBroadphase();  // TODO
+  void spatialGridBroadphase();
 
   // collisions
   void applyWall(Particle& p, float w, float h);
