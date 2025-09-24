@@ -52,7 +52,7 @@ class Renderer {
   bool streamSpawn_ = false;
   bool randomSpawn_ = false;
   bool randomSpawnSUPERFAST_ = false;
-	bool spawnMax_ = false;
+  bool spawnMax_ = false;
   std::mt19937 gen_;
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;
@@ -80,7 +80,7 @@ class Renderer {
   void randomSpawn() noexcept;
   void randomSpawnSUPERFAST() noexcept;
   void streamSpawn() noexcept;
-	void spawnMax() noexcept;
+  void spawnMax() noexcept;
 };
 
 #endif

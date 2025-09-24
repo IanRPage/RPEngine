@@ -60,7 +60,7 @@ void Renderer::drawFrame() {
   randomSpawn();
   streamSpawn();
   randomSpawnSUPERFAST();
-	spawnMax();
+  spawnMax();
   window_.clear();
   drawParticles();
   drawComponents();
@@ -154,23 +154,23 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
     randomSpawn_ = !randomSpawn_;
     streamSpawn_ = false;
     randomSpawnSUPERFAST_ = false;
-		spawnMax_ = false;
+    spawnMax_ = false;
   } else if (e.scancode == sf::Keyboard::Scan::Space) {
     streamSpawn_ = !streamSpawn_;
     randomSpawn_ = false;
-		spawnMax_ = false;
+    spawnMax_ = false;
     randomSpawnSUPERFAST_ = false;
   } else if (e.scancode == sf::Keyboard::Scan::F) {
     randomSpawnSUPERFAST_ = !randomSpawnSUPERFAST_;
     randomSpawn_ = false;
     streamSpawn_ = false;
-		spawnMax_ = false;
+    spawnMax_ = false;
   } else if (e.scancode == sf::Keyboard::Scan::M) {
-		spawnMax_ = !spawnMax_;
-		randomSpawn_ = false;
-		randomSpawnSUPERFAST_ = false;
-		streamSpawn_ = false;
-	}
+    spawnMax_ = !spawnMax_;
+    randomSpawn_ = false;
+    randomSpawnSUPERFAST_ = false;
+    streamSpawn_ = false;
+  }
 }
 
 void Renderer::drawParticles() {
@@ -224,7 +224,8 @@ void Renderer::randomSpawn() noexcept {
 }
 
 void Renderer::randomSpawnSUPERFAST() noexcept {
-  if (!randomSpawnSUPERFAST_ || sim_.particles().size() >= sim_.capacity()) return;
+  if (!randomSpawnSUPERFAST_ || sim_.particles().size() >= sim_.capacity())
+    return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
     sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
@@ -261,7 +262,8 @@ void Renderer::spawnMax() noexcept {
 
   const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
   for (size_t i = 0; i < sim_.capacity(); i++) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_, 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+                       1.0f);
     const float t = baseTime + i * 0.001f;
     colorLUT_.emplace(static_cast<uint32_t>(i), getRainbow(t));
   }
