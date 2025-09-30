@@ -12,11 +12,16 @@
 - [x] add a Verlet integration based resolver to `Simulator`
 - [x] implement spatial grid broad-phase
 - [x] add debug and release builds
+- [ ] implement SpatialGrid class and move some stuff out of
+  `Simulator::spatialGridBroadphase()`
 - [ ] add multithreading
 - [ ] add cool things that can be done with clicks
 - [ ] add rigidbody mechanics
 - [ ] optimize spatial grid broad-phase
-- [ ] MAYBE improve wall collision code by only checking particles along the walls or something
-- [ ] add a UI option for toggling between Euler-Impulse and Verlet-Position based collisions
-- [ ] add a UI option for toggling between broad phase methods for collision detection
+- [ ] MAYBE improve wall collision code by only checking particles along the
+  walls or something
+- [ ] add a UI option for toggling between Euler-Impulse and Verlet-Position
+  based collisions
+- [ ] add a UI option for toggling between broad phase methods for collision
+  detection
 - [ ] add some kind of profiler that runs a simulation without UI
