@@ -91,30 +91,37 @@ void Simulator::spatialGridBroadphase() {
   spatialGrid_.resize(particles_.size());
   spatialGrid_.build(particles_);
 
-  const int cols = spatialGrid_.cols_;
-  const int rows = spatialGrid_.rows_;
+  const int cols = spatialGrid_.cols;
+  const int rows = spatialGrid_.rows;
+  const float invCellSize = spatialGrid_.invCellSize;
+  std::vector<int>& head = spatialGrid_.head;
+  std::vector<int>& next = spatialGrid_.next;
 
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
-    int cx = static_cast<int>(p1.position.x * spatialGrid_.invCellSize_);
-    int cy = static_cast<int>(p1.position.y * spatialGrid_.invCellSize_);
-    cx = std::clamp(cx, 0, cols - 1);
-    cy = std::clamp(cy, 0, rows - 1);
+    const int cx =
+        std::clamp(static_cast<int>(p1.position.x * invCellSize), 0, cols - 1);
+    const int cy =
+        std::clamp(static_cast<int>(p1.position.y * invCellSize), 0, rows - 1);
+
+    // precompute valid neighbor ranges
+    const int dxMin = (cx > 0) ? -1 : 0;
+    const int dxMax = (cx < cols - 1) ? 1 : 0;
+    const int dyMin = (cy > 0) ? -1 : 0;
+    const int dyMax = (cy < rows - 1) ? 1 : 0;
 
     // query neighbors
-    for (int dx = -1; dx <= 1; dx++) {
-      for (int dy = -1; dy <= 1; dy++) {
-        const int nx = cx + dx;
+    for (int dx = dxMin; dx <= dxMax; dx++) {
+      const int nx = cx + dx;
+      for (int dy = dyMin; dy <= dyMax; dy++) {
         const int ny = cy + dy;
-        if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
         const int cn = ny * cols + nx;
 
         // get the second particle
-        for (int idx = spatialGrid_.head_[cn]; idx != -1; idx = spatialGrid_.next_[idx]) {
+        for (int idx = head[cn]; idx != -1; idx = next[idx]) {
           // prune redundant checks
           if (idx <= static_cast<int>(i)) continue;
-
           Particle& p2 = particles_[idx];
           particleCollision(p1, p2);
         }

@@ -7,31 +7,30 @@
 #include <vector>
 
 struct SpatialGrid {
-  float invCellSize_;
-  int cols_, rows_, nCells_;
+  float invCellSize;
+  int cols, rows, nCells;
 
-  std::vector<int> head_;
-  std::vector<int> next_;
-  size_t headSize_ = 0, nextSize_ = 0;
+  std::vector<int> head, next;
+  size_t headSize = 0, nextSize = 0;
 
   inline void configure(float cellSize, Vec2f worldSize) noexcept {
-    invCellSize_ = 1.0f / cellSize;
-    cols_ = worldSize.x * invCellSize_;
-    rows_ = worldSize.y * invCellSize_;
-    nCells_ = cols_ * rows_;
+    invCellSize = 1.0f / cellSize;
+    cols = worldSize.x * invCellSize;
+    rows = worldSize.y * invCellSize;
+    nCells = cols * rows;
   };
 
   inline void resize(size_t numItems) noexcept {
-    if (headSize_ != static_cast<size_t>(nCells_)) {
-      head_.assign(nCells_, -1);
-      headSize_ = nCells_;
+    if (headSize != static_cast<size_t>(nCells)) {
+      head.assign(nCells, -1);
+      headSize = nCells;
     } else {
-      std::fill(head_.begin(), head_.end(), -1);
+      std::fill(head.begin(), head.end(), -1);
     }
 
-    if (nextSize_ != numItems) {
-      nextSize_ = numItems;
-      next_.resize(nextSize_);
+    if (nextSize != numItems) {
+      nextSize = numItems;
+      next.resize(nextSize);
     }
   }
 
@@ -39,17 +38,17 @@ struct SpatialGrid {
   inline void build(std::vector<T>& items) noexcept {
     for (size_t i = 0; i < items.size(); i++) {
       const Vec2f& pos = items[i].position;
-      int cx = static_cast<int>(pos.x * invCellSize_);
-      int cy = static_cast<int>(pos.y * invCellSize_);
-      cx = std::clamp(cx, 0, cols_ - 1);
-      cy = std::clamp(cy, 0, rows_ - 1);
+      int cx = static_cast<int>(pos.x * invCellSize);
+      int cy = static_cast<int>(pos.y * invCellSize);
+      cx = std::clamp(cx, 0, cols - 1);
+      cy = std::clamp(cy, 0, rows - 1);
 
       // c maps grid coords to flat index in head
-      const int c = cy * cols_ + cx;
+      const int c = cy * cols + cx;
 
       // push_front operation
-      next_[i] = head_[c];
-      head_[c] = i;
+      next[i] = head[c];
+      head[c] = i;
     }
   }
 };
