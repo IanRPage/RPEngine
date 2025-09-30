@@ -9,6 +9,7 @@
 #include <vector>
 
 enum class IntegrationType { Euler, Verlet };
+enum class BroadphaseType { Naive, Qtree, UniformGrid };
 
 class Simulator {
  public:
@@ -16,7 +17,8 @@ class Simulator {
   float restitution;
 
   Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r, float dt,
-            IntegrationType integrationType, size_t maxParticles = 100000);
+            IntegrationType integrationType, BroadphaseType broadphaseType,
+            size_t maxParticles = 100000);
 
   void setWorldSize(Vec2f size) noexcept { worldSize_ = size; };
   Vec2f worldSize() const noexcept { return worldSize_; };
@@ -38,6 +40,7 @@ class Simulator {
   std::vector<Particle> particles_;
   float dt_;
   IntegrationType integrationType_;
+  BroadphaseType broadphaseType_;
 
   size_t capacity_;
 

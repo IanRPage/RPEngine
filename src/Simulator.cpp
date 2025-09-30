@@ -4,13 +4,14 @@
 
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, IntegrationType integrationType,
-                     size_t maxParticles)
+                     BroadphaseType broadphaseType, size_t maxParticles)
     : gravity(g),
       restitution(C_r),
       worldSize_(dims),
       maxParticleRadius_(maxParticleRadius),
       dt_(dt),
       integrationType_(integrationType),
+      broadphaseType_(broadphaseType),
       capacity_(maxParticles) {
   std::random_device rd;
   gen_.seed(rd());
@@ -106,6 +107,19 @@ void Simulator::spatialGridBroadphase() {
     next_.resize(nextSize);
   }
 
+  // create particle cell coordinates cache
+  struct CellCoord {
+    int x, y;
+  };
+
+  static std::vector<CellCoord> cellCoords_;
+  static size_t coordSize_ = 0;
+
+  if (coordSize_ != particles_.size()) {
+    coordSize_ = particles_.size();
+    cellCoords_.resize(coordSize_);
+  }
+
   // build linked-list representation
   for (size_t i = 0; i < particles_.size(); i++) {
     const Vec2f& pos = particles_[i].position;
@@ -113,6 +127,8 @@ void Simulator::spatialGridBroadphase() {
     int cy = static_cast<int>(pos.y * invCellSize);
     cx = std::clamp(cx, 0, cols - 1);
     cy = std::clamp(cy, 0, rows - 1);
+
+    cellCoords_[i] = {cx, cy};
 
     // c maps grid coords to flat index in head
     const int c = cy * cols + cx;
@@ -125,10 +141,9 @@ void Simulator::spatialGridBroadphase() {
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
-    int cx = static_cast<int>(p1.position.x * invCellSize);
-    int cy = static_cast<int>(p1.position.y * invCellSize);
-    cx = std::clamp(cx, 0, cols - 1);
-    cy = std::clamp(cy, 0, rows - 1);
+    const CellCoord& cell = cellCoords_[i];
+    const int cx = cell.x;
+    const int cy = cell.y;
 
     for (int dx = -1; dx <= 1; dx++) {
       for (int dy = -1; dy <= 1; dy++) {
