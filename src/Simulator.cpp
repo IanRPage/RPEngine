@@ -80,6 +80,7 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
   }
 }
 
+// O(n)
 void Simulator::spatialGridBroadphase() {
   float cellSize = 2.0f * maxParticleRadius_;
   float invCellSize = 1.0f / cellSize;  // no divisions w/ cellSize reciprocal
@@ -266,9 +267,20 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
 
 void Simulator::resolveCollisions() {
   auto [w, h] = worldSize_;
-  for (Particle& par : particles_) {
-    applyWall(par, w, h);
+  if (broadphaseType_ == BroadphaseType::UniformGrid) {
+    for (Particle& par : particles_) {
+      applyWall(par, w, h);
+    }
+    spatialGridBroadphase();
+  } else if (broadphaseType_ == BroadphaseType::Qtree) {
+    for (Particle& par : particles_) {
+      applyWall(par, w, h);
+    }
+    qtreeBroadphase(16);
+  } else {
+    for (Particle& par : particles_) {
+      applyWall(par, w, h);
+    }
+    naiveBroadphase();
   }
-  // qtreeBroadphase(16);
-  spatialGridBroadphase();
 }

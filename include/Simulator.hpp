@@ -20,18 +20,22 @@ class Simulator {
             IntegrationType integrationType, BroadphaseType broadphaseType,
             size_t maxParticles = 100000);
 
-  void setWorldSize(Vec2f size) noexcept { worldSize_ = size; };
-  Vec2f worldSize() const noexcept { return worldSize_; };
-  void setDeltaTime(float dt) noexcept { dt_ = dt; };
-  float maxParticleRadius() const noexcept { return maxParticleRadius_; };
+  void setWorldSize(Vec2f size) noexcept { worldSize_ = size; }
+  Vec2f worldSize() const noexcept { return worldSize_; }
+  void setDeltaTime(float dt) noexcept { dt_ = dt; }
+  float maxParticleRadius() const noexcept { return maxParticleRadius_; }
 
   void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f,
                      float m = 1.0f) noexcept;
   void update() noexcept;
-  const std::vector<Particle>& particles() const noexcept {
-    return particles_;
-  };
-  size_t capacity() const noexcept { return capacity_; };
+  const std::vector<Particle>& particles() const noexcept { return particles_; }
+  size_t capacity() const noexcept { return capacity_; }
+  void setIntegrationType(IntegrationType integrationType) noexcept {
+    integrationType_ = integrationType;
+  }
+  void setBroadphaseType(BroadphaseType broadphaseType) noexcept {
+    broadphaseType_ = broadphaseType;
+  }
 
  private:
   std::mt19937 gen_;
