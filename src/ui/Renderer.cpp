@@ -13,9 +13,9 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
       fpsText_(font_, "FPS: 60", 30) {
   window_.setFramerateLimit(opts.fps_limit);
   lastSize_ = window_.getSize();
-  sim_.setWorldSize(
-      Vec2f(static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)));
-  sim_.setDeltaTime(1.0f / static_cast<float>(opts.fps_limit));
+  sim_.configure(
+      {static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)},
+      1.0f / static_cast<float>(opts.fps_limit));
 
   gen_ = std::mt19937(std::random_device{}());
   distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);

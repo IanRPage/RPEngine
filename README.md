@@ -12,7 +12,7 @@
 - [x] add a Verlet integration based resolver to `Simulator`
 - [x] implement spatial grid broad-phase
 - [x] add debug and release builds
-- [ ] implement SpatialGrid class and move some stuff out of
+- [x] implement SpatialGrid class and move some stuff out of
   `Simulator::spatialGridBroadphase()`
 - [ ] add multithreading
 - [ ] add cool things that can be done with clicks

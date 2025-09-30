@@ -20,6 +20,7 @@ class Simulator {
             IntegrationType integrationType, BroadphaseType broadphaseType,
             size_t maxParticles = 100000);
 
+  void configure(Vec2f size, float dt = 1.0f / 60.0f);
   void setWorldSize(Vec2f size) noexcept { worldSize_ = size; }
   Vec2f worldSize() const noexcept { return worldSize_; }
   void setDeltaTime(float dt) noexcept { dt_ = dt; }
@@ -46,6 +47,7 @@ class Simulator {
   IntegrationType integrationType_;
   BroadphaseType broadphaseType_;
 
+  SpatialGrid spatialGrid_;
   size_t capacity_;
 
   // broad-phase
