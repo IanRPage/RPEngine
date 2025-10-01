@@ -45,7 +45,9 @@ class Renderer {
 
   // vertex based circle drawing
   sf::VertexArray particleVertices_;
-  static constexpr size_t CIRCLE_SEGMENTS = 12;
+  static constexpr size_t MIN_CIRCLE_SEGMENTS = 6;
+  static constexpr size_t MAX_CIRCLE_SEGMENTS = 24;
+  size_t getCircleSegments(float radius);
 
   // --- other variables ---
   float particleSize_ = 5.0f;

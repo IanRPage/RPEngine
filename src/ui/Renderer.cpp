@@ -71,7 +71,10 @@ void Renderer::drawFrame() {
   window_.display();
 }
 
-
+size_t Renderer::getCircleSegments(float radius) {
+  const size_t segments = radius * 1.5f + MIN_CIRCLE_SEGMENTS;
+  return std::clamp(segments, MIN_CIRCLE_SEGMENTS, MAX_CIRCLE_SEGMENTS);
+}
 
 const sf::Color Renderer::getRainbow(float t) noexcept {
   const float r = sin(t);
@@ -178,7 +181,11 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  const size_t vertexCount = sim_.particles().size() * CIRCLE_SEGMENTS * 3;
+  size_t vertexCount = 0;
+  for (const Particle& par : sim_.particles()) {
+    const size_t segments = getCircleSegments(par.radius);
+    vertexCount += segments * 3;
+  }
 
   // resize if needed
   if (particleVertices_.getVertexCount() < vertexCount) {
@@ -189,11 +196,12 @@ void Renderer::drawParticles() {
   for (const Particle& par : sim_.particles()) {
     const Vec2f& pos = par.position;
     const sf::Color& color = colorFor(par);
+    const size_t segments = getCircleSegments(par.radius);
 
     // build circle triangles
-    for (size_t k = 0; k < CIRCLE_SEGMENTS; k++) {
-      const float theta1 = 2.0f * PI * k / CIRCLE_SEGMENTS;
-      const float theta2 = 2.0f * PI * (k + 1) / CIRCLE_SEGMENTS;
+    for (size_t k = 0; k < segments; k++) {
+      const float theta1 = 2.0f * PI * k / segments;
+      const float theta2 = 2.0f * PI * (k + 1) / segments;
 
       particleVertices_[vertexIdx] =
           sf::Vertex{sf::Vector2f(pos.x, pos.y), color};
