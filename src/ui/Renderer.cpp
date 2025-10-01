@@ -28,8 +28,9 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   };
 
   particleSize_ = sim.maxParticleRadius();
-  particleShape_.setRadius(particleSize_);
-  particleShape_.setOrigin({particleSize_, particleSize_});
+
+  // set vertex array things
+  particleVertices_.setPrimitiveType(sf::PrimitiveType::Triangles);
 
   // initialize fps measurement arrays
   frameTimes_.fill(1.0f / static_cast<float>(opts.fps_limit));
@@ -69,6 +70,8 @@ void Renderer::drawFrame() {
   drawComponents();
   window_.display();
 }
+
+
 
 const sf::Color Renderer::getRainbow(float t) noexcept {
   const float r = sin(t);
@@ -175,12 +178,38 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  for (auto& par : sim_.particles()) {
-    Vec2f pos = par.position;
-    particleShape_.setPosition({pos.x, pos.y});
-    particleShape_.setFillColor(colorFor(par));
-    window_.draw(particleShape_);
+  const size_t vertexCount = sim_.particles().size() * CIRCLE_SEGMENTS * 3;
+
+  // resize if needed
+  if (particleVertices_.getVertexCount() < vertexCount) {
+    particleVertices_.resize(vertexCount);
   }
+
+  size_t vertexIdx = 0;
+  for (const Particle& par : sim_.particles()) {
+    const Vec2f& pos = par.position;
+    const sf::Color& color = colorFor(par);
+
+    // build circle triangles
+    for (size_t k = 0; k < CIRCLE_SEGMENTS; k++) {
+      const float theta1 = 2.0f * PI * k / CIRCLE_SEGMENTS;
+      const float theta2 = 2.0f * PI * (k + 1) / CIRCLE_SEGMENTS;
+
+      particleVertices_[vertexIdx] =
+          sf::Vertex{sf::Vector2f(pos.x, pos.y), color};
+      particleVertices_[vertexIdx + 1] =
+          sf::Vertex{sf::Vector2f(pos.x + par.radius * cos(theta1),
+                                  pos.y + par.radius * sin(theta1)),
+                     color};
+      particleVertices_[vertexIdx + 2] =
+          sf::Vertex{sf::Vector2f(pos.x + par.radius * cos(theta2),
+                                  pos.y + par.radius * sin(theta2)),
+                     color};
+
+      vertexIdx += 3;
+    }
+  }
+  window_.draw(particleVertices_);
 }
 
 void Renderer::drawComponents() {

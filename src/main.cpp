@@ -6,7 +6,7 @@ int main() {
   // Simulator sim({0.0f, 0.0f}, 2.0f, 0.0f, 0.0f, 0.0f, IntegrationType::Euler,
   // 100000);
   Simulator sim({0.0f, 0.0f}, 2.0f, 0.0f, 0.0f, 0.0, IntegrationType::Verlet,
-                BroadphaseType::UniformGrid, 10000);
+                BroadphaseType::UniformGrid, 20000);
 
   Renderer renderer(sim, Renderer::Options{60, "RPEngine"});
 

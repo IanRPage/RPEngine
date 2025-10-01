@@ -33,18 +33,21 @@ class Renderer {
   sf::Clock runtimeClock_;
   std::vector<std::optional<sf::Color>> colorLUT_;
 
-  // assets
+  // --- assets ---
   sf::Font font_;
   sf::Texture particleTexture_;
 
-  // UI components
+  // --- UI components ---
   HorizSlider gSlider_;
   HorizSlider eSlider_;
   sf::Text particleCountText_;
   sf::Text fpsText_;
-  sf::CircleShape particleShape_;
 
-  // other variables
+  // vertex based circle drawing
+  sf::VertexArray particleVertices_;
+  static constexpr size_t CIRCLE_SEGMENTS = 12;
+
+  // --- other variables ---
   float particleSize_ = 5.0f;
   bool draggingAny_ = false;
 
@@ -63,7 +66,7 @@ class Renderer {
   size_t frameIndex_ = 0;
   bool samplesCollected_ = false;
 
-  // helper functions
+  // --- helpers ---
   const sf::Color getRainbow(float t) noexcept;
   const sf::Color& colorFor(const Particle& p) noexcept;
   void layoutUI() noexcept;
