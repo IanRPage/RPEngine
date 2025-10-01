@@ -31,7 +31,7 @@ class Renderer {
   sf::Clock frameClock_;
   sf::Clock spawnClock_;
   sf::Clock runtimeClock_;
-  std::unordered_map<uint32_t, sf::Color> colorLUT_;
+  std::vector<std::optional<sf::Color>> colorLUT_;
 
   // assets
   sf::Font font_;

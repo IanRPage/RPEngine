@@ -1,3 +1,4 @@
+#include <SFML/Graphics/Color.hpp>
 #include <ui/Renderer.hpp>
 
 Renderer::Renderer(Simulator& sim, const Options& opts)
@@ -34,6 +35,8 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   frameTimes_.fill(1.0f / static_cast<float>(opts.fps_limit));
 
   runtimeClock_.start();
+
+  colorLUT_.assign(sim_.capacity(), std::optional<sf::Color>());
 
   layoutUI();
 }
@@ -77,13 +80,11 @@ const sf::Color Renderer::getRainbow(float t) noexcept {
 }
 
 const sf::Color& Renderer::colorFor(const Particle& p) noexcept {
-  auto it = colorLUT_.find(p.id);
-
-  if (it != colorLUT_.end())  // if color is found
-    return it->second;
-  const float t = runtimeClock_.getElapsedTime().asSeconds();
-  auto [inserted, _] = colorLUT_.emplace(p.id, getRainbow(t));
-  return inserted->second;
+  if (!colorLUT_[p.id]) {
+    const float t = runtimeClock_.getElapsedTime().asSeconds();
+    colorLUT_[p.id] = getRainbow(t);
+  }
+  return *colorLUT_[p.id];
 }
 
 void Renderer::layoutUI() noexcept {
@@ -265,7 +266,7 @@ void Renderer::spawnMax() noexcept {
     sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
                        1.0f);
     const float t = baseTime + i * 0.001f;
-    colorLUT_.emplace(static_cast<uint32_t>(i), getRainbow(t));
+    colorLUT_[i] = getRainbow(t);
   }
   spawnMax_ = false;
 }
