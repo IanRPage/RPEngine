@@ -31,6 +31,7 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
 
   // set vertex array things
   particleVertices_.setPrimitiveType(sf::PrimitiveType::Triangles);
+  computeUnitCircle();
 
   // initialize fps measurement arrays
   frameTimes_.fill(1.0f / static_cast<float>(opts.fps_limit));
@@ -69,6 +70,21 @@ void Renderer::drawFrame() {
   drawParticles();
   drawComponents();
   window_.display();
+}
+
+void Renderer::computeUnitCircle() {
+  for (size_t s = MIN_CIRCLE_SEGMENTS; s <= MAX_CIRCLE_SEGMENTS; s++) {
+    unitCircle_[s].clear();
+    unitCircle_[s].reserve(s * 3);
+    for (size_t k = 0; k < s; k++) {
+      const float theta1 = 2.0f * PI * k / s;
+      const float theta2 = 2.0f * PI * (k + 1) / s;
+
+      unitCircle_[s].emplace_back(0.0f, 0.0f);
+      unitCircle_[s].emplace_back(cos(theta1), sin(theta1));
+      unitCircle_[s].emplace_back(cos(theta2), sin(theta2));
+    }
+  }
 }
 
 size_t Renderer::getCircleSegments(float radius) {
@@ -196,25 +212,16 @@ void Renderer::drawParticles() {
   for (const Particle& par : sim_.particles()) {
     const Vec2f& pos = par.position;
     const sf::Color& color = colorFor(par);
-    const size_t segments = getCircleSegments(par.radius);
+    const size_t s = getCircleSegments(par.radius);
 
-    // build circle triangles
-    for (size_t k = 0; k < segments; k++) {
-      const float theta1 = 2.0f * PI * k / segments;
-      const float theta2 = 2.0f * PI * (k + 1) / segments;
-
+    // transform unit circle vertices
+    for (size_t i = 0; i < s; i++) {
+      const sf::Vector2f& vertex = unitCircle_[s][i];
       particleVertices_[vertexIdx] =
-          sf::Vertex{sf::Vector2f(pos.x, pos.y), color};
-      particleVertices_[vertexIdx + 1] =
-          sf::Vertex{sf::Vector2f(pos.x + par.radius * cos(theta1),
-                                  pos.y + par.radius * sin(theta1)),
+          sf::Vertex{sf::Vector2f(pos.x + par.radius * vertex.x,
+                                  pos.y + par.radius * vertex.y),
                      color};
-      particleVertices_[vertexIdx + 2] =
-          sf::Vertex{sf::Vector2f(pos.x + par.radius * cos(theta2),
-                                  pos.y + par.radius * sin(theta2)),
-                     color};
-
-      vertexIdx += 3;
+      vertexIdx++;
     }
   }
   window_.draw(particleVertices_);

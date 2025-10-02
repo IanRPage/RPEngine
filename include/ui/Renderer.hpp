@@ -47,7 +47,7 @@ class Renderer {
   sf::VertexArray particleVertices_;
   static constexpr size_t MIN_CIRCLE_SEGMENTS = 6;
   static constexpr size_t MAX_CIRCLE_SEGMENTS = 24;
-  size_t getCircleSegments(float radius);
+  std::array<std::vector<sf::Vector2f>, MAX_CIRCLE_SEGMENTS + 1> unitCircle_;
 
   // --- other variables ---
   float particleSize_ = 5.0f;
@@ -69,6 +69,9 @@ class Renderer {
   bool samplesCollected_ = false;
 
   // --- helpers ---
+  void computeUnitCircle();
+  size_t getCircleSegments(float radius);
+
   const sf::Color getRainbow(float t) noexcept;
   const sf::Color& colorFor(const Particle& p) noexcept;
   void layoutUI() noexcept;
