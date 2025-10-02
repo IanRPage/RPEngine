@@ -1,5 +1,10 @@
 # RPEngine2D
 
+Debug build can handle about 13k particles at 60 fps on my machine.
+
+Release build can handle about 55k particles at 60 fps, 100k particles at about
+31 fps on my machine.
+
 ## TODO
 
 - [x] implement working `QuadTree`
@@ -14,6 +19,7 @@
 - [x] add debug and release builds
 - [x] implement SpatialGrid class and move some stuff out of
   `Simulator::spatialGridBroadphase()`
+- [x] change particle drawing to vertex-based
 - [ ] add multithreading
 - [ ] add cool things that can be done with clicks
 - [ ] add rigidbody mechanics

@@ -197,11 +197,8 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  size_t vertexCount = 0;
-  for (const Particle& par : sim_.particles()) {
-    const size_t segments = getCircleSegments(par.radius);
-    vertexCount += segments * 3;
-  }
+  const size_t segments = getCircleSegments(particleSize_);
+  size_t vertexCount = segments * 3 * sim_.particles().size();
 
   // resize if needed
   if (particleVertices_.getVertexCount() < vertexCount) {
@@ -212,14 +209,13 @@ void Renderer::drawParticles() {
   for (const Particle& par : sim_.particles()) {
     const Vec2f& pos = par.position;
     const sf::Color& color = colorFor(par);
-    const size_t s = getCircleSegments(par.radius);
 
     // transform unit circle vertices
-    for (size_t i = 0; i < s; i++) {
-      const sf::Vector2f& vertex = unitCircle_[s][i];
+    const std::vector<sf::Vector2f>& vertices = unitCircle_[segments];
+    for (size_t i = 0; i < vertices.size(); i++) {
       particleVertices_[vertexIdx] =
-          sf::Vertex{sf::Vector2f(pos.x + par.radius * vertex.x,
-                                  pos.y + par.radius * vertex.y),
+          sf::Vertex{sf::Vector2f(pos.x + par.radius * vertices[i].x,
+                                  pos.y + par.radius * vertices[i].y),
                      color};
       vertexIdx++;
     }
