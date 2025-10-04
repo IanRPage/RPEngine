@@ -21,6 +21,7 @@ Release build can handle about 55k particles at 60 fps, 100k particles at about
   `Simulator::spatialGridBroadphase()`
 - [x] change particle drawing to vertex-based
 - [x] add radial push
+- [ ] BIG add instructions for controls!!!
 - [ ] MAYBE add orbiting
 - [ ] fix particles exploding when compacted w/ Verlet integration
 - [ ] add multithreading
