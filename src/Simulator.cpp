@@ -34,6 +34,23 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
   particles_.emplace_back(pos, vel, dt_, r, m);
 };
 
+void Simulator::radialPush(const Vec2f& origin, const float mag,
+                           const int scale) {
+  spatialGrid_.queryDoSomething(
+      -1, origin,
+      [&](int neiIdx) {
+        Particle& p = particles_[neiIdx];
+        const Vec2f d = p.position - origin;
+        const float d2 = d.x * d.x + d.y * d.y;
+
+        const float invDist = 1.0f / std::sqrt(d2);
+        const Vec2f norm = d * invDist;
+
+        p.accelerate({norm.x * mag, norm.y * mag});
+      },
+      scale);
+}
+
 void Simulator::update() noexcept {
   if (integrationType_ == IntegrationType::Euler) {
     for (Particle& par : particles_) {
@@ -91,42 +108,13 @@ void Simulator::spatialGridBroadphase() {
   spatialGrid_.resize(particles_.size());
   spatialGrid_.build(particles_);
 
-  const int cols = spatialGrid_.cols;
-  const int rows = spatialGrid_.rows;
-  const float invCellSize = spatialGrid_.invCellSize;
-  std::vector<int>& head = spatialGrid_.head;
-  std::vector<int>& next = spatialGrid_.next;
-
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
-    const int cx =
-        std::clamp(static_cast<int>(p1.position.x * invCellSize), 0, cols - 1);
-    const int cy =
-        std::clamp(static_cast<int>(p1.position.y * invCellSize), 0, rows - 1);
-
-    // precompute valid neighbor ranges
-    const int dxMin = (cx > 0) ? -1 : 0;
-    const int dxMax = (cx < cols - 1) ? 1 : 0;
-    const int dyMin = (cy > 0) ? -1 : 0;
-    const int dyMax = (cy < rows - 1) ? 1 : 0;
-
-    // query neighbors
-    for (int dx = dxMin; dx <= dxMax; dx++) {
-      const int nx = cx + dx;
-      for (int dy = dyMin; dy <= dyMax; dy++) {
-        const int ny = cy + dy;
-        const int cn = ny * cols + nx;
-
-        // get the second particle
-        for (int idx = head[cn]; idx != -1; idx = next[idx]) {
-          // prune redundant checks
-          if (idx <= static_cast<int>(i)) continue;
-          Particle& p2 = particles_[idx];
-          particleCollision(p1, p2);
-        }
-      }
-    }
+    spatialGrid_.queryDoSomething(i, p1.position, [&](int neiIdx) {
+      Particle& p2 = particles_[neiIdx];
+      particleCollision(p1, p2);
+    });
   }
 }
 

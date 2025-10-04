@@ -66,6 +66,7 @@ void Renderer::drawFrame() {
   streamSpawn();
   randomSpawnSUPERFAST();
   spawnMax();
+  radialPush();
   window_.clear();
   drawParticles();
   drawComponents();
@@ -137,18 +138,21 @@ void Renderer::layoutUI() noexcept {
 
 void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed& e) noexcept {
-  if (e.button != sf::Mouse::Button::Left) return;
-
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (gSlider_.contains(m)) {
-    gSlider_.isDragging = true;
-    gSlider_.setActive(true);
-    draggingAny_ = true;
-  } else if (eSlider_.contains(m)) {
-    eSlider_.isDragging = true;
-    eSlider_.setActive(true);
-    draggingAny_ = true;
-  } else {
+  if (e.button == sf::Mouse::Button::Left) {
+    if (gSlider_.contains(m)) {
+      gSlider_.isDragging = true;
+      gSlider_.setActive(true);
+      draggingAny_ = true;
+    } else if (eSlider_.contains(m)) {
+      eSlider_.isDragging = true;
+      eSlider_.setActive(true);
+      draggingAny_ = true;
+    } else {
+      radialPushing_ = true;
+      pushOrigin_ = m;
+    }
+  } else if (e.button == sf::Mouse::Button::Right) {
     sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
   }
 }
@@ -162,14 +166,18 @@ void Renderer::handleMouseReleased() noexcept {
     eSlider_.setActive(false);
   }
   draggingAny_ = false;
+  radialPushing_ = false;
 }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
-  if (!draggingAny_) return;
-
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (gSlider_.isDragging) gSlider_.move(m);
-  if (eSlider_.isDragging) eSlider_.move(m);
+  if (gSlider_.isDragging) {
+    gSlider_.move(m);
+  } else if (eSlider_.isDragging) {
+    eSlider_.move(m);
+  } else if (radialPushing_) {
+    pushOrigin_ = m;
+  }
 }
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
@@ -309,4 +317,10 @@ void Renderer::spawnMax() noexcept {
     colorLUT_[i] = getRainbow(t);
   }
   spawnMax_ = false;
+}
+
+void Renderer::radialPush() {
+  if (!radialPushing_) return;
+
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, 1000.0f, 5);
 }

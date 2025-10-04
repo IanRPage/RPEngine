@@ -20,9 +20,10 @@ Release build can handle about 55k particles at 60 fps, 100k particles at about
 - [x] implement SpatialGrid class and move some stuff out of
   `Simulator::spatialGridBroadphase()`
 - [x] change particle drawing to vertex-based
+- [x] add radial push
+- [ ] MAYBE add orbiting
 - [ ] fix particles exploding when compacted w/ Verlet integration
 - [ ] add multithreading
-- [ ] add cool things that can be done with clicks
 - [ ] add rigidbody mechanics
 - [ ] optimize spatial grid broad-phase
 - [ ] MAYBE improve wall collision code by only checking particles along the

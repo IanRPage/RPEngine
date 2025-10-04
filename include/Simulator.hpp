@@ -38,6 +38,9 @@ class Simulator {
     broadphaseType_ = broadphaseType;
   }
 
+  void radialPush(const Vec2f& origin, const float mag = 1000.0f,
+                  const int scale = 1);
+
  private:
   std::mt19937 gen_;
   Vec2f worldSize_;

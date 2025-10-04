@@ -28,9 +28,14 @@ class Renderer {
   Simulator& sim_;
   sf::RenderWindow window_;
   sf::Vector2u lastSize_;
+  sf::Vector2f pushOrigin_;  // tracks mouse position when held down
+
+  // timers
   sf::Clock frameClock_;
   sf::Clock spawnClock_;
   sf::Clock runtimeClock_;
+
+  // color lookup table
   std::vector<std::optional<sf::Color>> colorLUT_;
 
   // --- assets ---
@@ -52,6 +57,7 @@ class Renderer {
   // --- other variables ---
   float particleSize_ = 5.0f;
   bool draggingAny_ = false;
+  bool radialPushing_ = false;
 
   const float spawnInterval_ = 0.001f;
   bool streamSpawn_ = false;
@@ -89,6 +95,7 @@ class Renderer {
   void randomSpawnSUPERFAST() noexcept;
   void streamSpawn() noexcept;
   void spawnMax() noexcept;
+  void radialPush();
 };
 
 #endif

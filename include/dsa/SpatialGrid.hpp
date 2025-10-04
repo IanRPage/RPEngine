@@ -51,6 +51,51 @@ struct SpatialGrid {
       head[c] = i;
     }
   }
+
+  template <typename Fn>
+  inline void queryDoSomething(size_t objIdx, const Vec2f& pos, Fn&& callback,
+                               int scale = 1) {
+    const int cx =
+        std::clamp(static_cast<int>(pos.x * invCellSize), 0, cols - 1);
+    const int cy =
+        std::clamp(static_cast<int>(pos.y * invCellSize), 0, rows - 1);
+
+    // precompute valid neighbor ranges
+    int dxMin;
+    int dxMax;
+    int dyMin;
+    int dyMax;
+    if (scale == 0) {
+      return;
+    } else if (scale == 1) {
+      dxMin = (cx > 0) ? -1 : 0;
+      dxMax = (cx < cols - 1) ? 1 : 0;
+      dyMin = (cy > 0) ? -1 : 0;
+      dyMax = (cy < rows - 1) ? 1 : 0;
+    } else {
+      dxMin = (cx - scale > 0) ? -1 * scale : 0;
+      dxMax = (cx - scale < cols - 1) ? 1 * scale : 0;
+      dyMin = (cy - scale > 0) ? -1 * scale : 0;
+      dyMax = (cy - scale < rows - 1) ? 1 * scale : 0;
+    }
+
+    // query neighbors
+    for (int dx = dxMin; dx <= dxMax; dx++) {
+      const int nx = cx + dx;
+      for (int dy = dyMin; dy <= dyMax; dy++) {
+        const int ny = cy + dy;
+        const int cn = ny * cols + nx;
+        if (cn >= static_cast<int>(head.size())) continue;
+
+        // get the second particle
+        for (int idx = head[cn]; idx != -1; idx = next[idx]) {
+          // prune redundant checks
+          if (idx <= static_cast<int>(objIdx)) continue;
+          callback(idx);
+        }
+      }
+    }
+  };
 };
 
 #endif
