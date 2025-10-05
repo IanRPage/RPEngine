@@ -3,13 +3,14 @@
 This is my attempt at building a particle simulator. I made this to practice
 applying physics to code and to practice algorithms. But probably most of all
 this just felt like a fun project to make. My goal is to be able to run the 2D
-simulation with 100k particles at at least 60 fps.
+simulation with 100k particles at 60 fps.
 
 ## Building
 
 The UI uses SFML 3.0.1, so make sure you have all the dependencies installed:
 
-Debian/Ubuntu:
+### Debian/Ubuntu:
+
 ```
 sudo apt update
 sudo apt install \
@@ -25,7 +26,8 @@ sudo apt install \
     libfreetype-dev
 ```
 
-Fedora:
+### Fedora:
+
 ```
 sudo dnf update
 sudo dnf install \
@@ -40,27 +42,29 @@ sudo dnf install \
     mesa-libEGL-devel
 ```
 
-After all the dependencies are installed, run the following commands from the
-root to configure and build the project in debug mode:
-```
-cmake -B build .
-make -C build
-```
-The executable will be called `RPEngineDebug`.
+After all dependencies are installed, just configure the project as normal:
 
-If you want to build the release version, simply use the CMAKE_BUILD_TYPE flag
-when configuring with cmake. You do the following to configure for release:
 ```
-cmake -DCMAKE_BUILD_TYPE=release -B build .
+cmake -B build .  # or however you do it
 ```
-And then run `make` as normal. The release executable is called `RPEngine`.
+
+From here you can either build the debug or release executables:
+
+```
+make -C build release  (configure for release and build)
+make -C build debug    (configure for debug and build)
+```
 
 ## State of Simulation Performance
-My laptop is an Asus VivoBook, AMD Ryzen 5800HS, 12 GB RAM. Currently, the debug
-build can handle about 13k particles at 60 fps on it, and the release build can
-handle about 55k particles at 60 fps, 100k particles at about 31 fps on it.
+
+My laptop is an Asus VivoBook with AMD Ryzen 5800HS processor (integrated
+graphics), 12 GB RAM. Currently:
+
+- Debug: 13k particles at 60 fps.
+- Release: 55k particles at 60 fps. 100k at ~31 fps.
 
 ## Controls
+
 There's only some pretty rudimentary controls at the moment:
 
 - _Spawn a single particle_ -> __right click__ anywhere on the screen.
@@ -76,6 +80,7 @@ slider (describes how much kinetic energy is lost on collision) to manipulate
 the simulation some more.
 
 ## TODO
+
 - [ ] __NEXT__ fix particles exploding when compacted w/ Verlet integration
 - [ ] use ImGui to add controls for toggling between simulating different ways
 - [ ] add support for Winblows
