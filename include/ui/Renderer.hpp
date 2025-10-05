@@ -28,25 +28,36 @@ class Renderer {
   Simulator& sim_;
   sf::RenderWindow window_;
   sf::Vector2u lastSize_;
+  sf::Vector2f pushOrigin_;  // tracks mouse position when held down
+
+  // timers
   sf::Clock frameClock_;
   sf::Clock spawnClock_;
   sf::Clock runtimeClock_;
-  std::unordered_map<uint32_t, sf::Color> colorLUT_;
 
-  // assets
+  // color lookup table
+  std::vector<std::optional<sf::Color>> colorLUT_;
+
+  // --- assets ---
   sf::Font font_;
   sf::Texture particleTexture_;
 
-  // UI components
+  // --- UI components ---
   HorizSlider gSlider_;
   HorizSlider eSlider_;
   sf::Text particleCountText_;
   sf::Text fpsText_;
-  sf::CircleShape particleShape_;
 
-  // other variables
+  // vertex based circle drawing
+  sf::VertexArray particleVertices_;
+  static constexpr size_t MIN_CIRCLE_SEGMENTS = 6;
+  static constexpr size_t MAX_CIRCLE_SEGMENTS = 24;
+  std::array<std::vector<sf::Vector2f>, MAX_CIRCLE_SEGMENTS + 1> unitCircle_;
+
+  // --- other variables ---
   float particleSize_ = 5.0f;
   bool draggingAny_ = false;
+  bool radialPushing_ = false;
 
   const float spawnInterval_ = 0.001f;
   bool streamSpawn_ = false;
@@ -63,7 +74,10 @@ class Renderer {
   size_t frameIndex_ = 0;
   bool samplesCollected_ = false;
 
-  // helper functions
+  // --- helpers ---
+  void computeUnitCircle();
+  size_t getCircleSegments(float radius);
+
   const sf::Color getRainbow(float t) noexcept;
   const sf::Color& colorFor(const Particle& p) noexcept;
   void layoutUI() noexcept;
@@ -81,6 +95,7 @@ class Renderer {
   void randomSpawnSUPERFAST() noexcept;
   void streamSpawn() noexcept;
   void spawnMax() noexcept;
+  void radialPush();
 };
 
 #endif

@@ -1,3 +1,4 @@
+#include <SFML/Graphics/Color.hpp>
 #include <ui/Renderer.hpp>
 
 Renderer::Renderer(Simulator& sim, const Options& opts)
@@ -13,9 +14,9 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
       fpsText_(font_, "FPS: 60", 30) {
   window_.setFramerateLimit(opts.fps_limit);
   lastSize_ = window_.getSize();
-  sim_.setWorldSize(
-      Vec2f(static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)));
-  sim_.setDeltaTime(1.0f / static_cast<float>(opts.fps_limit));
+  sim_.configure(
+      {static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)},
+      1.0f / static_cast<float>(opts.fps_limit));
 
   gen_ = std::mt19937(std::random_device{}());
   distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);
@@ -27,13 +28,17 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   };
 
   particleSize_ = sim.maxParticleRadius();
-  particleShape_.setRadius(particleSize_);
-  particleShape_.setOrigin({particleSize_, particleSize_});
+
+  // set vertex array things
+  particleVertices_.setPrimitiveType(sf::PrimitiveType::Triangles);
+  computeUnitCircle();
 
   // initialize fps measurement arrays
   frameTimes_.fill(1.0f / static_cast<float>(opts.fps_limit));
 
   runtimeClock_.start();
+
+  colorLUT_.assign(sim_.capacity(), std::optional<sf::Color>());
 
   layoutUI();
 }
@@ -61,10 +66,31 @@ void Renderer::drawFrame() {
   streamSpawn();
   randomSpawnSUPERFAST();
   spawnMax();
+  radialPush();
   window_.clear();
   drawParticles();
   drawComponents();
   window_.display();
+}
+
+void Renderer::computeUnitCircle() {
+  for (size_t s = MIN_CIRCLE_SEGMENTS; s <= MAX_CIRCLE_SEGMENTS; s++) {
+    unitCircle_[s].clear();
+    unitCircle_[s].reserve(s * 3);
+    for (size_t k = 0; k < s; k++) {
+      const float theta1 = 2.0f * PI * k / s;
+      const float theta2 = 2.0f * PI * (k + 1) / s;
+
+      unitCircle_[s].emplace_back(0.0f, 0.0f);
+      unitCircle_[s].emplace_back(cos(theta1), sin(theta1));
+      unitCircle_[s].emplace_back(cos(theta2), sin(theta2));
+    }
+  }
+}
+
+size_t Renderer::getCircleSegments(float radius) {
+  const size_t segments = radius * 1.5f + MIN_CIRCLE_SEGMENTS;
+  return std::clamp(segments, MIN_CIRCLE_SEGMENTS, MAX_CIRCLE_SEGMENTS);
 }
 
 const sf::Color Renderer::getRainbow(float t) noexcept {
@@ -77,13 +103,11 @@ const sf::Color Renderer::getRainbow(float t) noexcept {
 }
 
 const sf::Color& Renderer::colorFor(const Particle& p) noexcept {
-  auto it = colorLUT_.find(p.id);
-
-  if (it != colorLUT_.end())  // if color is found
-    return it->second;
-  const float t = runtimeClock_.getElapsedTime().asSeconds();
-  auto [inserted, _] = colorLUT_.emplace(p.id, getRainbow(t));
-  return inserted->second;
+  if (!colorLUT_[p.id]) {
+    const float t = runtimeClock_.getElapsedTime().asSeconds();
+    colorLUT_[p.id] = getRainbow(t);
+  }
+  return *colorLUT_[p.id];
 }
 
 void Renderer::layoutUI() noexcept {
@@ -114,18 +138,21 @@ void Renderer::layoutUI() noexcept {
 
 void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed& e) noexcept {
-  if (e.button != sf::Mouse::Button::Left) return;
-
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (gSlider_.contains(m)) {
-    gSlider_.isDragging = true;
-    gSlider_.setActive(true);
-    draggingAny_ = true;
-  } else if (eSlider_.contains(m)) {
-    eSlider_.isDragging = true;
-    eSlider_.setActive(true);
-    draggingAny_ = true;
-  } else {
+  if (e.button == sf::Mouse::Button::Left) {
+    if (gSlider_.contains(m)) {
+      gSlider_.isDragging = true;
+      gSlider_.setActive(true);
+      draggingAny_ = true;
+    } else if (eSlider_.contains(m)) {
+      eSlider_.isDragging = true;
+      eSlider_.setActive(true);
+      draggingAny_ = true;
+    } else {
+      radialPushing_ = true;
+      pushOrigin_ = m;
+    }
+  } else if (e.button == sf::Mouse::Button::Right) {
     sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
   }
 }
@@ -139,14 +166,18 @@ void Renderer::handleMouseReleased() noexcept {
     eSlider_.setActive(false);
   }
   draggingAny_ = false;
+  radialPushing_ = false;
 }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
-  if (!draggingAny_) return;
-
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (gSlider_.isDragging) gSlider_.move(m);
-  if (eSlider_.isDragging) eSlider_.move(m);
+  if (gSlider_.isDragging) {
+    gSlider_.move(m);
+  } else if (eSlider_.isDragging) {
+    eSlider_.move(m);
+  } else if (radialPushing_) {
+    pushOrigin_ = m;
+  }
 }
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
@@ -174,12 +205,30 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  for (auto& par : sim_.particles()) {
-    Vec2f pos = par.position;
-    particleShape_.setPosition({pos.x, pos.y});
-    particleShape_.setFillColor(colorFor(par));
-    window_.draw(particleShape_);
+  const size_t segments = getCircleSegments(particleSize_);
+  size_t vertexCount = segments * 3 * sim_.particles().size();
+
+  // resize if needed
+  if (particleVertices_.getVertexCount() < vertexCount) {
+    particleVertices_.resize(vertexCount);
   }
+
+  size_t vertexIdx = 0;
+  for (const Particle& par : sim_.particles()) {
+    const Vec2f& pos = par.position;
+    const sf::Color& color = colorFor(par);
+
+    // transform unit circle vertices
+    const std::vector<sf::Vector2f>& vertices = unitCircle_[segments];
+    for (size_t i = 0; i < vertices.size(); i++) {
+      particleVertices_[vertexIdx] =
+          sf::Vertex{sf::Vector2f(pos.x + par.radius * vertices[i].x,
+                                  pos.y + par.radius * vertices[i].y),
+                     color};
+      vertexIdx++;
+    }
+  }
+  window_.draw(particleVertices_);
 }
 
 void Renderer::drawComponents() {
@@ -265,7 +314,13 @@ void Renderer::spawnMax() noexcept {
     sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
                        1.0f);
     const float t = baseTime + i * 0.001f;
-    colorLUT_.emplace(static_cast<uint32_t>(i), getRainbow(t));
+    colorLUT_[i] = getRainbow(t);
   }
   spawnMax_ = false;
+}
+
+void Renderer::radialPush() {
+  if (!radialPushing_) return;
+
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, 1000.0f, 5);
 }

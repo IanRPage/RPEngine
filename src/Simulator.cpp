@@ -1,21 +1,28 @@
 #include <Simulator.hpp>
-#include <algorithm>
 #include <cmath>
 
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, IntegrationType integrationType,
-                     size_t maxParticles)
+                     BroadphaseType broadphaseType, size_t maxParticles)
     : gravity(g),
       restitution(C_r),
       worldSize_(dims),
       maxParticleRadius_(maxParticleRadius),
       dt_(dt),
       integrationType_(integrationType),
+      broadphaseType_(broadphaseType),
       capacity_(maxParticles) {
   std::random_device rd;
   gen_.seed(rd());
   particles_.reserve(maxParticles);
+  spatialGrid_.configure(2.0f * maxParticleRadius_, worldSize_);
 };
+
+void Simulator::configure(Vec2f size, float dt) {
+  worldSize_ = size;
+  dt_ = dt;
+  spatialGrid_.configure(2.0f * maxParticleRadius_, worldSize_);
+}
 
 void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
   if (particles_.size() >= capacity_) return;
@@ -26,6 +33,23 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
   }
   particles_.emplace_back(pos, vel, dt_, r, m);
 };
+
+void Simulator::radialPush(const Vec2f& origin, const float mag,
+                           const int scale) {
+  spatialGrid_.queryDoSomething(
+      -1, origin,
+      [&](int neiIdx) {
+        Particle& p = particles_[neiIdx];
+        const Vec2f d = p.position - origin;
+        const float d2 = d.x * d.x + d.y * d.y;
+
+        const float invDist = 1.0f / std::sqrt(d2);
+        const Vec2f norm = d * invDist;
+
+        p.accelerate({norm.x * mag, norm.y * mag});
+      },
+      scale);
+}
 
 void Simulator::update() noexcept {
   if (integrationType_ == IntegrationType::Euler) {
@@ -79,74 +103,18 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
   }
 }
 
+// O(n)
 void Simulator::spatialGridBroadphase() {
-  float cellSize = 2.0f * maxParticleRadius_;
-  float invCellSize = 1.0f / cellSize;  // no divisions w/ cellSize reciprocal
-
-  int cols = static_cast<int>(worldSize_.x * invCellSize);
-  int rows = static_cast<int>(worldSize_.y * invCellSize);
-  int nCells = cols * rows;
-
-  static std::vector<int> head_;  // size should be number of cells
-  static std::vector<int> next_;  // size should be number of particles
-  static size_t headSize = 0;
-  static size_t nextSize = 0;
-
-  // reset head_ each frame. resize if needed
-  if (headSize != static_cast<size_t>(nCells)) {
-    head_.assign(nCells, -1);
-    headSize = nCells;
-  } else {
-    std::fill(head_.begin(), head_.end(), -1);
-  }
-
-  // resize next_ if size isn't same as number of particles
-  if (nextSize != particles_.size()) {
-    nextSize = particles_.size();
-    next_.resize(nextSize);
-  }
-
-  // build linked-list representation
-  for (size_t i = 0; i < particles_.size(); i++) {
-    const Vec2f& pos = particles_[i].position;
-    int cx = static_cast<int>(pos.x * invCellSize);
-    int cy = static_cast<int>(pos.y * invCellSize);
-    cx = std::clamp(cx, 0, cols - 1);
-    cy = std::clamp(cy, 0, rows - 1);
-
-    // c maps grid coords to flat index in head
-    const int c = cy * cols + cx;
-
-    // push_front operation
-    next_[i] = head_[c];
-    head_[c] = i;
-  }
+  spatialGrid_.resize(particles_.size());
+  spatialGrid_.build(particles_);
 
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
-    int cx = static_cast<int>(p1.position.x * invCellSize);
-    int cy = static_cast<int>(p1.position.y * invCellSize);
-    cx = std::clamp(cx, 0, cols - 1);
-    cy = std::clamp(cy, 0, rows - 1);
-
-    for (int dx = -1; dx <= 1; dx++) {
-      for (int dy = -1; dy <= 1; dy++) {
-        const int nx = cx + dx;
-        const int ny = cy + dy;
-        if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
-        const int cn = ny * cols + nx;
-
-        // get the second particle
-        for (int idx = head_[cn]; idx != -1; idx = next_[idx]) {
-          // prune redundant checks
-          if (idx <= static_cast<int>(i)) continue;
-
-          Particle& p2 = particles_[idx];
-          particleCollision(p1, p2);
-        }
-      }
-    }
+    spatialGrid_.queryDoSomething(i, p1.position, [&](int neiIdx) {
+      Particle& p2 = particles_[neiIdx];
+      particleCollision(p1, p2);
+    });
   }
 }
 
@@ -251,9 +219,20 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
 
 void Simulator::resolveCollisions() {
   auto [w, h] = worldSize_;
-  for (Particle& par : particles_) {
-    applyWall(par, w, h);
+  if (broadphaseType_ == BroadphaseType::UniformGrid) {
+    for (Particle& par : particles_) {
+      applyWall(par, w, h);
+    }
+    spatialGridBroadphase();
+  } else if (broadphaseType_ == BroadphaseType::Qtree) {
+    for (Particle& par : particles_) {
+      applyWall(par, w, h);
+    }
+    qtreeBroadphase(16);
+  } else {
+    for (Particle& par : particles_) {
+      applyWall(par, w, h);
+    }
+    naiveBroadphase();
   }
-  // qtreeBroadphase(16);
-  spatialGridBroadphase();
 }

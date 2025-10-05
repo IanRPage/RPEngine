@@ -13,12 +13,17 @@ endif()
 # make CMAKE_BUILD_TYPE case-insensitive
 string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 
+# executable name
+set(EXE_NAME ${CMAKE_PROJECT_NAME})
+
 # set compile flags for build types
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
+    set(EXE_NAME "RPEngineDebug")
     message(STATUS "Building in Debug mode")
 elseif(CMAKE_BUILD_TYPE STREQUAL "release")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    set(EXE_NAME "RPEngine")
     message(STATUS "Building in Release mode")
 endif()
 
@@ -37,10 +42,24 @@ set(SOURCES
     src/ui/Renderer.cpp
 )
 
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
-target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SFML::Graphics)
+add_executable(${EXE_NAME} ${SOURCES})
+target_compile_features(${EXE_NAME} PRIVATE cxx_std_17)
+target_include_directories(${EXE_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra)
+target_link_libraries(${EXE_NAME} PRIVATE SFML::Graphics)
 
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
+
+add_custom_target(debug
+    COMMAND "${CMAKE_COMMAND}" -DCMAKE_BUILD_TYPE=debug -S "${CMAKE_SOURCE_DIR}" -B "${CMAKE_BINARY_DIR}"
+    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}"
+    USES_TERMINAL
+    COMMENT "Configuring to Debug mode and building ..."
+)
+
+add_custom_target(release
+    COMMAND "${CMAKE_COMMAND}" -DCMAKE_BUILD_TYPE=release -S "${CMAKE_SOURCE_DIR}" -B "${CMAKE_BINARY_DIR}"
+    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}"
+    USES_TERMINAL
+    COMMENT "Configuring to Release mode and building ..."
+)
