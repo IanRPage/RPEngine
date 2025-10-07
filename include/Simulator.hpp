@@ -38,8 +38,10 @@ class Simulator {
     broadphaseType_ = broadphaseType;
   }
 
-  void radialPush(const Vec2f& origin, const float mag = 1000.0f,
-                  const int scale = 1);
+  void radialPush(const Vec2f& origin, const float radius,
+                  const float mag = 1000.0f, const int scale = 1);
+  // void radialPush(const Vec2f& origin, const float radius = 100.0f,
+  //                 const float mag = 1000.0f);
 
  private:
   std::mt19937 gen_;

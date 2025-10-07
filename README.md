@@ -138,6 +138,7 @@ graphics), 12 GB RAM. Currently
 
 ## TODO
 
+- [ ] improve `Simulator::radialPush` to work with any broadphase
 - [ ] use ImGui to add controls for toggling between simulating different ways
 - [ ] explain all controls in GUI once ImGui controls implemented
 - [ ] implement hot-reloading for quicker debugging

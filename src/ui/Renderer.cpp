@@ -66,7 +66,7 @@ void Renderer::drawFrame() {
   streamSpawn();
   randomSpawnSUPERFAST();
   spawnMax();
-  radialPush();
+  radialPush(10);
   window_.clear();
   drawParticles();
   drawComponents();
@@ -319,8 +319,11 @@ void Renderer::spawnMax() noexcept {
   spawnMax_ = false;
 }
 
-void Renderer::radialPush() {
+void Renderer::radialPush(const int scale) {
   if (!radialPushing_) return;
 
-  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, 2000.0f, 10);
+  const float pDiam = particleSize_ * 2;
+
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam * scale, 2000.0f,
+                  scale);
 }
