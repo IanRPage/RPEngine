@@ -77,6 +77,10 @@ make release
 make debug
 ```
 
+**FOR WINDOWS USERS**: I got it running on my windows system, but I had already
+gone through getting SFML to work prior. Tbh, I don't remember what I did. That
+said, I got the simulation running on windows. You're on your own here.
+
 ## Controls
 
 There's only some pretty rudimentary controls at the moment:
@@ -95,7 +99,8 @@ the simulation some more.
 
 ## Tuning the Simulation
 
-In `main.cpp`, you'll find the initialization of the simulator. Here is an explanation of each parameter:
+In `main.cpp`, you'll find the initialization of the simulator. Here is an
+explanation of each parameter:
 
 ```cpp
 Simulator sim(
@@ -135,7 +140,6 @@ graphics), 12 GB RAM. Currently
 
 - [ ] use ImGui to add controls for toggling between simulating different ways
 - [ ] explain all controls in GUI once ImGui controls implemented
-- [ ] add support for Winblows
 - [ ] implement hot-reloading for quicker debugging
 - [ ] add 3D particle simulation
 - [ ] MAYBE add orbiting
@@ -150,6 +154,7 @@ graphics), 12 GB RAM. Currently
       detection
 - [ ] add some kind of profiler that runs a simulation without UI
 - [x] fix particles exploding when compacted w/ Verlet integration
+- [x] add support for Winblows
 - [x] add instructions for controls!!!
 - [x] add radial push
 - [x] change particle drawing to vertex-based
