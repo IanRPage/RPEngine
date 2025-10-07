@@ -172,6 +172,21 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
   // square dist prune
   if (d2 >= sum_r2) return;
 
+  // if small dist apart
+  if (d2 < 1e-12f) {
+    Vec2f n = {1.0f, 0.0f};
+    const float half = (p1.radius + p2.radius) * 0.5f;
+
+    const float invMassSum = p1.invMass + p2.invMass;
+    if (invMassSum > 0.0f) {
+      p1.prevPosition = p1.position;
+      p2.prevPosition = p2.position;
+      p1.position -= n * (half * (p1.invMass / invMassSum));
+      p2.position += n * (half * (p2.invMass / invMassSum));
+    }
+    return;
+  }
+
   const float invDist = 1.0f / std::sqrt(d2);
   const float dist = 1.0f / invDist;
   const Vec2f norm = d * invDist;
@@ -180,7 +195,8 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
   const float invMassSum = p1.invMass + p2.invMass;
 
   if (penetration > 0.0f && invMassSum > 0.0f) {
-    const Vec2f correction = norm * (penetration / invMassSum);
+    float percent = 0.30f;
+    const Vec2f correction = norm * (percent * penetration / invMassSum);
     p1.position -= correction * p1.invMass;
     p2.position += correction * p2.invMass;
   }

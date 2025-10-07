@@ -322,5 +322,5 @@ void Renderer::spawnMax() noexcept {
 void Renderer::radialPush() {
   if (!radialPushing_) return;
 
-  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, 1000.0f, 5);
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, 2000.0f, 10);
 }

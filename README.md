@@ -133,7 +133,6 @@ graphics), 12 GB RAM. Currently
 
 ## TODO
 
-- [ ] **NEXT** fix particles exploding when compacted w/ Verlet integration
 - [ ] use ImGui to add controls for toggling between simulating different ways
 - [ ] explain all controls in GUI once ImGui controls implemented
 - [ ] add support for Winblows
@@ -150,6 +149,7 @@ graphics), 12 GB RAM. Currently
 - [ ] add a UI option for toggling between broad phase methods for collision
       detection
 - [ ] add some kind of profiler that runs a simulation without UI
+- [x] fix particles exploding when compacted w/ Verlet integration
 - [x] add instructions for controls!!!
 - [x] add radial push
 - [x] change particle drawing to vertex-based
