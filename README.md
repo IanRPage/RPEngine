@@ -5,6 +5,8 @@ applying physics to code and to practice algorithms. But probably most of all
 this just felt like a fun project to make. My goal is to be able to run the 2D
 simulation with 100k particles at 60 fps.
 
+![50k-demo](images/50k-demo-800px-15fps.gif?raw=true)
+
 ## Building
 
 The UI uses SFML 3.0.1, so make sure you have all the dependencies installed:
