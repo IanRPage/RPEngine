@@ -4,7 +4,6 @@
 #include <dsa/AABB.hpp>
 #include <vector>
 
-template <typename T>
 class QuadTree {
  public:
   QuadTree(AABBf bound, size_t cap)
@@ -23,53 +22,55 @@ class QuadTree {
     delete br_;
   }
 
-  bool insert(T* p) {
-    const Vec2f pos(p->position.x, p->position.y);
+  bool insert(size_t i, const Vec2f& pos) {
     if (!boundary_.contains(pos)) {
       return false;
     }
 
     if (!divided_ && data_.size() < capacity_) {
-      data_.push_back(p);
+      data_.push_back(i);
       return true;
     }
 
     if (!divided_) {
-      subdivide();
+      subdivide([&](size_t) { return Vec2f(); });
     }
 
-    if (ul_ && ul_->insert(p)) return true;
-    if (ur_ && ur_->insert(p)) return true;
-    if (bl_ && bl_->insert(p)) return true;
-    if (br_ && br_->insert(p)) return true;
+    if (ul_ && ul_->insert(i, pos)) return true;
+    if (ur_ && ur_->insert(i, pos)) return true;
+    if (bl_ && bl_->insert(i, pos)) return true;
+    if (br_ && br_->insert(i, pos)) return true;
     return false;
   };
 
-  void query(std::vector<T*>& res, const AABBf& qRange) const {
+  template <typename Fn>
+  void query(std::vector<size_t>& res, const AABBf& qRange,
+             Fn&& callback) const {
     if (!boundary_.intersects(qRange)) return;
 
-    for (T* p : data_) {
-      const Vec2f pos(p->position.x, p->position.y);
-      if (qRange.contains(pos)) res.push_back(p);
+    for (size_t i : data_) {
+      const Vec2f pos = callback(i);
+      if (qRange.contains(pos)) res.push_back(i);
     }
 
     if (divided_) {
-      if (ul_) ul_->query(res, qRange);
-      if (ur_) ur_->query(res, qRange);
-      if (bl_) bl_->query(res, qRange);
-      if (br_) br_->query(res, qRange);
+      if (ul_) ul_->query(res, qRange, callback);
+      if (ur_) ur_->query(res, qRange, callback);
+      if (bl_) bl_->query(res, qRange, callback);
+      if (br_) br_->query(res, qRange, callback);
     }
   };
 
  private:
   size_t capacity_;
-  std::vector<T*> data_;
+  std::vector<size_t> data_;
   AABBf boundary_;
   bool divided_ = false;
 
   QuadTree *ul_, *ur_, *bl_, *br_;
 
-  void subdivide() {
+  template <typename Fn>
+  void subdivide(Fn&& callback) {
     const float x = boundary_.min.x, y = boundary_.min.y;
     const float w = 0.5f * boundary_.width(), h = 0.5f * boundary_.height();
 
@@ -80,9 +81,9 @@ class QuadTree {
 
     divided_ = true;
 
-    std::vector<T*> old = std::move(data_);
-    for (T* p : old) {
-      insert(p);
+    std::vector<size_t> old = std::move(data_);
+    for (size_t i : old) {
+      insert(i, callback(i));
     }
   };
 };

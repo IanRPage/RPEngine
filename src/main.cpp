@@ -4,7 +4,7 @@
 int main() {
   // NOTE: running sim w/ Euler integration makes some really cool fx
   // Simulator sim({0.0f, 0.0f}, 2.0f, 0.0f, 0.0f, 0.0f, IntegrationType::Euler,
-  //               BroadphaseType::UniformGrid, 12000);
+  //               BroadphaseType::Naive, 5000);
   Simulator sim({0.0f, 0.0f}, 2.0f, 0.0f, 0.0f, 0.0, IntegrationType::Verlet,
                 BroadphaseType::UniformGrid, 50000);
 

@@ -79,7 +79,7 @@ class Renderer {
   size_t getCircleSegments(float radius);
 
   const sf::Color getRainbow(float t) noexcept;
-  const sf::Color& colorFor(const Particle& p) noexcept;
+  const sf::Color& colorFor(size_t i) noexcept;
   void layoutUI() noexcept;
 
   void handleMousePressed(const sf::Event::MouseButtonPressed& e) noexcept;

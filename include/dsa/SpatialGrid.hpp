@@ -52,6 +52,24 @@ struct SpatialGrid {
     }
   }
 
+  template <typename T>
+  inline void build(T& items, size_t numItems) noexcept {
+    for (size_t i = 0; i < numItems; i++) {
+      const Vec2f pos = {items.x[i], items.y[i]};
+      int cx = static_cast<int>(pos.x * invCellSize);
+      int cy = static_cast<int>(pos.y * invCellSize);
+      cx = std::clamp(cx, 0, cols - 1);
+      cy = std::clamp(cy, 0, rows - 1);
+
+      // c maps grid coords to flat index in head
+      const int c = cy * cols + cx;
+
+      // push_front operation
+      next[i] = head[c];
+      head[c] = i;
+    }
+  }
+
   template <typename Fn>
   inline void queryDoSomething(size_t objIdx, const Vec2f& pos, Fn&& callback,
                                int scale = 1) {

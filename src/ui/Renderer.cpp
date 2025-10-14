@@ -102,12 +102,12 @@ const sf::Color Renderer::getRainbow(float t) noexcept {
           static_cast<uint8_t>(255.0f * b * b)};
 }
 
-const sf::Color& Renderer::colorFor(const Particle& p) noexcept {
-  if (!colorLUT_[p.id]) {
+const sf::Color& Renderer::colorFor(size_t i) noexcept {
+  if (!colorLUT_[i]) {
     const float t = runtimeClock_.getElapsedTime().asSeconds();
-    colorLUT_[p.id] = getRainbow(t);
+    colorLUT_[i] = getRainbow(t);
   }
-  return *colorLUT_[p.id];
+  return *colorLUT_[i];
 }
 
 void Renderer::layoutUI() noexcept {
@@ -153,7 +153,7 @@ void Renderer::handleMousePressed(
       pushOrigin_ = m;
     }
   } else if (e.button == sf::Mouse::Button::Right) {
-    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
+    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f});
   }
 }
 
@@ -206,7 +206,8 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 
 void Renderer::drawParticles() {
   const size_t segments = getCircleSegments(particleSize_);
-  size_t vertexCount = segments * 3 * sim_.particles().size();
+  const size_t numParticles = sim_.numParticles();
+  size_t vertexCount = segments * 3 * numParticles;
 
   // resize if needed
   if (particleVertices_.getVertexCount() < vertexCount) {
@@ -214,16 +215,17 @@ void Renderer::drawParticles() {
   }
 
   size_t vertexIdx = 0;
-  for (const Particle& par : sim_.particles()) {
-    const Vec2f& pos = par.position;
-    const sf::Color& color = colorFor(par);
+  // for (const Particle& par : sim_.particles()) {
+  for (size_t i = 0; i < numParticles; i++) {
+    const Vec2f pos = sim_.getPos(i);
+    const sf::Color& color = colorFor(i);
 
     // transform unit circle vertices
     const std::vector<sf::Vector2f>& vertices = unitCircle_[segments];
     for (size_t i = 0; i < vertices.size(); i++) {
       particleVertices_[vertexIdx] =
-          sf::Vertex{sf::Vector2f(pos.x + par.radius * vertices[i].x,
-                                  pos.y + par.radius * vertices[i].y),
+          sf::Vertex{sf::Vector2f(pos.x + particleSize_ * vertices[i].x,
+                                  pos.y + particleSize_ * vertices[i].y),
                      color};
       vertexIdx++;
     }
@@ -259,40 +261,36 @@ void Renderer::updateText() noexcept {
   }
 
   particleCountText_.setString("Particles: " +
-                               std::to_string(sim_.particles().size()));
+                               std::to_string(sim_.numParticles()));
 }
 
 void Renderer::randomSpawn() noexcept {
-  if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
+  if (!randomSpawn_ || sim_.numParticles() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
+    // sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+    // particleSize_,
+    //                    1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f});
     spawnClock_.restart();
   }
 }
 
 void Renderer::randomSpawnSUPERFAST() noexcept {
-  if (!randomSpawnSUPERFAST_ || sim_.particles().size() >= sim_.capacity())
-    return;
+  if (!randomSpawnSUPERFAST_ || sim_.numParticles() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f});
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f});
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f});
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f});
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f});
     spawnClock_.restart();
   }
 }
 
 void Renderer::streamSpawn() noexcept {
-  if (!streamSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
+  if (!streamSpawn_ || sim_.numParticles() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
     const float speed = 1200.0f;  // tune these
@@ -300,19 +298,17 @@ void Renderer::streamSpawn() noexcept {
     const float t = runtimeClock_.getElapsedTime().asSeconds();
     const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
     sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
-                       Vec2f(cos(angle), sin(angle)) * speed, particleSize_,
-                       1.0f);
+                       Vec2f(cos(angle), sin(angle)) * speed);
     spawnClock_.restart();
   }
 }
 
 void Renderer::spawnMax() noexcept {
-  if (!spawnMax_ || sim_.particles().size() >= sim_.capacity()) return;
+  if (!spawnMax_ || sim_.numParticles() >= sim_.capacity()) return;
 
   const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
   for (size_t i = 0; i < sim_.capacity(); i++) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f});
     const float t = baseTime + i * 0.001f;
     colorLUT_[i] = getRainbow(t);
   }
