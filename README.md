@@ -129,20 +129,18 @@ My laptop is an Asus VivoBook with AMD Ryzen 5800HS processor (integrated
 graphics), 12 GB RAM. Currently
 
 - w/ Verlet Integration:
-
   - Debug: 14k particles at 60 fps.
   - Release: 55k particles at 60 fps. 100k at ~31 fps.
 
 - w/ Euler Integration:
-
   - Debug: 14k particles at 60 fps.
   - Release: 49k particle at 60 fps. 100k at ~28 fps
 
 ## TODO
 
+- [ ] rearchitect the codebase
+- [ ] make transition between integration types clean
 - [ ] improve `Simulator::radialPush` to work with any broadphase
-- [ ] use ImGui to add controls for toggling between simulating different ways
-- [ ] explain all controls in GUI once ImGui controls implemented
 - [ ] implement hot-reloading for quicker debugging
 - [ ] add 3D particle simulation
 - [ ] MAYBE add orbiting
@@ -151,11 +149,15 @@ graphics), 12 GB RAM. Currently
 - [ ] optimize spatial grid broad-phase
 - [ ] MAYBE improve wall collision code by only checking particles along the
       walls or something
-- [ ] add a UI option for toggling between Euler-Impulse and Verlet-Position
-      based collisions
-- [ ] add a UI option for toggling between broad phase methods for collision
-      detection
 - [ ] add some kind of profiler that runs a simulation without UI
+- [x] use ImGui to enable simulation configuration
+  - [ ] explain all controls in GUI once ImGui controls implemented
+  - [ ] delegate spawning methods to ImGui
+  - [ ] add particle radius field
+  - [x] add a UI option for toggling between Euler-Impulse and Verlet-Position
+        based collisions
+  - [x] add a UI option for toggling between broad phase methods for collision
+        detection
 - [x] fix particles exploding when compacted w/ Verlet integration
 - [x] add support for Winblows
 - [x] add instructions for controls!!!
