@@ -8,10 +8,12 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
       imguiCtrl_{sim} {
   window_.setFramerateLimit(opts.fps_limit);
 
+  // --- ImGui setup(-ish) ---
   if (!ImGui::SFML::Init(window_)) {
     throw std::runtime_error("Failed to initialize ImGui");
   }
   ImGui::GetIO().IniFilename = "build/imgui.ini";
+  // -------------------------
 
   lastSize_ = window_.getSize();
   sim_.configure(
@@ -126,7 +128,8 @@ void Renderer::handleMousePressed(
     radialPushing_ = true;
     pushOrigin_ = m;
   } else if (e.button == sf::Mouse::Button::Right) {
-    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
+                       1.0f);
   }
 }
 
@@ -167,16 +170,18 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  const size_t segments = getCircleSegments(imguiCtrl_.particleRadius());
-  size_t vertexCount = segments * 3 * sim_.particles().size();
-
-  // resize if needed
-  if (particleVertices_.getVertexCount() < vertexCount) {
-    particleVertices_.resize(vertexCount);
-  }
-
   size_t vertexIdx = 0;
   for (const Particle& par : sim_.particles()) {
+    const size_t segments = getCircleSegments(par.radius);
+    size_t vertexCount = segments * 3 * sim_.particles().size();
+
+    // resize if needed
+    if (particleVertices_.getVertexCount() < vertexCount) {
+      particleVertices_.resize(getCircleSegments(sim_.maxParticleRadius()) * 3 *
+                               sim_.particles().size());
+      break;
+    }
+
     const Vec2f& pos = par.position;
     const sf::Color& color = colorFor(par);
 
@@ -197,8 +202,8 @@ void Renderer::randomSpawn() noexcept {
   if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
     spawnClock_.restart();
   }
 }
@@ -208,16 +213,16 @@ void Renderer::randomSpawnSUPERFAST() noexcept {
     return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
     spawnClock_.restart();
   }
 }
@@ -231,8 +236,8 @@ void Renderer::streamSpawn() noexcept {
     const float t = runtimeClock_.getElapsedTime().asSeconds();
     const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
     sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
-                       Vec2f(cos(angle), sin(angle)) * speed, imguiCtrl_.particleRadius(),
-                       1.0f);
+                       Vec2f(cos(angle), sin(angle)) * speed,
+                       imguiCtrl_.particleRadius(), 1.0f);
     spawnClock_.restart();
   }
 }
@@ -242,8 +247,8 @@ void Renderer::spawnMax() noexcept {
 
   const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
   for (size_t i = 0; i < sim_.capacity(); i++) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
     const float t = baseTime + i * 0.001f;
     colorLUT_[i] = getRainbow(t);
   }

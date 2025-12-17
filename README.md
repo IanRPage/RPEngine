@@ -138,7 +138,10 @@ graphics), 12 GB RAM. Currently
 
 ## TODO
 
-- [ ] rearchitect the codebase
+- [ ] fix particle rightward drift when smushed due to gravity
+- [ ] figure out how to optimize `Renderer::drawParticles()`
+- [ ] update README to reflect new UI
+- [ ] rearchitect the codebase (cuz why not)
 - [ ] make transition between integration types clean
 - [ ] improve `Simulator::radialPush` to work with any broadphase
 - [ ] implement hot-reloading for quicker debugging
@@ -150,10 +153,11 @@ graphics), 12 GB RAM. Currently
 - [ ] MAYBE improve wall collision code by only checking particles along the
       walls or something
 - [ ] add some kind of profiler that runs a simulation without UI
+- [x] fix the downsizing radius issue
 - [x] use ImGui to enable simulation configuration
   - [ ] explain all controls in GUI once ImGui controls implemented
   - [ ] delegate spawning methods to ImGui
-  - [ ] add particle radius field
+  - [x] add particle radius field
   - [x] add a UI option for toggling between Euler-Impulse and Verlet-Position
         based collisions
   - [x] add a UI option for toggling between broad phase methods for collision
