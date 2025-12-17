@@ -22,8 +22,6 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);
   distY = std::uniform_real_distribution<float>(0.0f, lastSize_.y - 20.0f);
 
-  particleSize_ = sim.maxParticleRadius();
-
   // set vertex array things
   particleVertices_.setPrimitiveType(sf::PrimitiveType::Triangles);
   computeUnitCircle();
@@ -128,7 +126,7 @@ void Renderer::handleMousePressed(
     radialPushing_ = true;
     pushOrigin_ = m;
   } else if (e.button == sf::Mouse::Button::Right) {
-    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
+    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(), 1.0f);
   }
 }
 
@@ -169,7 +167,7 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  const size_t segments = getCircleSegments(particleSize_);
+  const size_t segments = getCircleSegments(imguiCtrl_.particleRadius());
   size_t vertexCount = segments * 3 * sim_.particles().size();
 
   // resize if needed
@@ -199,7 +197,7 @@ void Renderer::randomSpawn() noexcept {
   if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
     spawnClock_.restart();
   }
@@ -210,15 +208,15 @@ void Renderer::randomSpawnSUPERFAST() noexcept {
     return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
     spawnClock_.restart();
   }
@@ -233,7 +231,7 @@ void Renderer::streamSpawn() noexcept {
     const float t = runtimeClock_.getElapsedTime().asSeconds();
     const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
     sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
-                       Vec2f(cos(angle), sin(angle)) * speed, particleSize_,
+                       Vec2f(cos(angle), sin(angle)) * speed, imguiCtrl_.particleRadius(),
                        1.0f);
     spawnClock_.restart();
   }
@@ -244,7 +242,7 @@ void Renderer::spawnMax() noexcept {
 
   const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
   for (size_t i = 0; i < sim_.capacity(); i++) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
     const float t = baseTime + i * 0.001f;
     colorLUT_[i] = getRainbow(t);
@@ -255,7 +253,7 @@ void Renderer::spawnMax() noexcept {
 void Renderer::radialPush(const int scale) {
   if (!radialPushing_) return;
 
-  const float pDiam = particleSize_ * 2;
+  const float pDiam = sim_.maxParticleRadius() * 2;
 
   sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam * scale, 2000.0f,
                   scale);

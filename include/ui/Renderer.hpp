@@ -46,7 +46,6 @@ class Renderer {
   std::array<std::vector<sf::Vector2f>, MAX_CIRCLE_SEGMENTS + 1> unitCircle_;
 
   // --- other variables ---
-  float particleSize_ = 5.0f;
   bool draggingAny_ = false;
   bool radialPushing_ = false;
 

@@ -89,8 +89,9 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
     Particle& p1 = particles_[i];
     const Vec2f c1 = p1.position;
     const float r1 = p1.radius;
-    const AABBf queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
-                           {4.0f * r1, 4.0f * r1});
+    const float query_r = r1 + maxParticleRadius_;
+    const AABBf queryRange({c1.x - query_r, c1.y - query_r},
+                           {2.0f * query_r, 2.0f * query_r});
 
     std::vector<Particle*> neighbors;
     qtree.query(neighbors, queryRange);

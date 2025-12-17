@@ -1,11 +1,18 @@
+#ifndef IMGUI_CONTROLLER_HPP
+#define IMGUI_CONTROLLER_HPP
+
 #include <imgui-SFML.h>
 #include <imgui.h>
 
 #include <Simulator.hpp>
+#include <algorithm>
+
+constexpr float MIN_PARTICLE_SIZE = 0.5f;
 
 class ImguiController {
  public:
-  ImguiController(Simulator& sim) : sim_{sim} {}
+  ImguiController(Simulator& sim, float particleRadius = 2.0f)
+      : sim_{sim}, particleRadius_{particleRadius} {}
 
   void render() {
     ImGui::SetNextWindowSize(ImVec2{400.0f, 300.0f});
@@ -15,12 +22,18 @@ class ImguiController {
     ImGui::Text("Particles: %zu", sim_.particles().size());
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
+    ImGui::Spacing();
     ImGui::SeparatorText("Parameters");
     {
+      ImGui::InputFloat("Particle Radius", &particleRadius_);
+      auto t = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
+                          sim_.maxParticleRadius());
+      particleRadius_ = t;
       ImGui::SliderFloat("Gravity", &sim_.gravity, -100.0f, 100.0f);
       ImGui::SliderFloat("Restitution", &sim_.restitution, 0.0f, 1.0f);
     }
 
+    ImGui::Spacing();
     ImGui::SeparatorText("Integration");
     {
       if (ImGui::RadioButton(
@@ -34,6 +47,7 @@ class ImguiController {
       }
     }
 
+    ImGui::Spacing();
     ImGui::SeparatorText("Broadphase");
     {
       if (ImGui::RadioButton("Naive",
@@ -55,6 +69,11 @@ class ImguiController {
     ImGui::End();
   }
 
+  float particleRadius() const noexcept { return particleRadius_; }
+
  private:
   Simulator& sim_;
+  float particleRadius_;
 };
+
+#endif
