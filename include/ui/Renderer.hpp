@@ -6,7 +6,6 @@
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
 #include <array>
-#include <ui/Slider.hpp>
 
 class Renderer {
  public:
@@ -21,6 +20,7 @@ class Renderer {
   bool isOpen() const noexcept { return window_.isOpen(); };
   void pollAndHandleEvents() noexcept;
   void drawFrame();
+  void mainLoop();
 
   sf::Vector2u windowSize() const noexcept { return window_.getSize(); };
 
@@ -39,14 +39,7 @@ class Renderer {
   std::vector<std::optional<sf::Color>> colorLUT_;
 
   // --- assets ---
-  sf::Font font_;
   sf::Texture particleTexture_;
-
-  // --- UI components ---
-  HorizSlider gSlider_;
-  HorizSlider eSlider_;
-  sf::Text particleCountText_;
-  sf::Text fpsText_;
 
   // vertex based circle drawing
   sf::VertexArray particleVertices_;
@@ -68,12 +61,6 @@ class Renderer {
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;
 
-  // fps measurement
-  static constexpr size_t FPS_SAMPLE_COUNT = 60;
-  std::array<float, FPS_SAMPLE_COUNT> frameTimes_;
-  size_t frameIndex_ = 0;
-  bool samplesCollected_ = false;
-
   // --- helpers ---
   void computeUnitCircle();
   size_t getCircleSegments(float radius);
@@ -88,8 +75,6 @@ class Renderer {
   void handleKeyPressed(const sf::Event::KeyPressed& e) noexcept;
 
   void drawParticles();
-  void drawComponents();
-  void updateText() noexcept;
 
   void randomSpawn() noexcept;
   void randomSpawnSUPERFAST() noexcept;

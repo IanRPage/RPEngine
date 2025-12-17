@@ -21,16 +21,15 @@ class Simulator {
             size_t maxParticles = 100000);
 
   void configure(Vec2f size, float dt = 1.0f / 60.0f);
-  void setWorldSize(Vec2f size) noexcept { worldSize_ = size; }
-  Vec2f worldSize() const noexcept { return worldSize_; }
-  void setDeltaTime(float dt) noexcept { dt_ = dt; }
-  float maxParticleRadius() const noexcept { return maxParticleRadius_; }
-
   void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f,
                      float m = 1.0f) noexcept;
   void update() noexcept;
-  const std::vector<Particle>& particles() const noexcept { return particles_; }
-  size_t capacity() const noexcept { return capacity_; }
+  void radialPush(const Vec2f& origin, const float radius,
+                  const float mag = 1000.0f, const int scale = 1);
+
+  // --- setters ---
+  void setWorldSize(Vec2f size) noexcept { worldSize_ = size; }
+  void setDeltaTime(float dt) noexcept { dt_ = dt; }
   void setIntegrationType(IntegrationType integrationType) noexcept {
     integrationType_ = integrationType;
   }
@@ -38,10 +37,13 @@ class Simulator {
     broadphaseType_ = broadphaseType;
   }
 
-  void radialPush(const Vec2f& origin, const float radius,
-                  const float mag = 1000.0f, const int scale = 1);
-  // void radialPush(const Vec2f& origin, const float radius = 100.0f,
-  //                 const float mag = 1000.0f);
+  // --- getters ---
+  Vec2f worldSize() const noexcept { return worldSize_; }
+  float maxParticleRadius() const noexcept { return maxParticleRadius_; }
+  const std::vector<Particle>& particles() const noexcept { return particles_; }
+  size_t capacity() const noexcept { return capacity_; }
+  IntegrationType integrationType() const noexcept { return integrationType_; }
+  BroadphaseType broadphaseType() const noexcept { return broadphaseType_; }
 
  private:
   std::mt19937 gen_;

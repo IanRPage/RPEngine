@@ -1,3 +1,6 @@
+#include <imgui-SFML.h>
+#include <imgui.h>
+
 #include <SFML/Graphics/Color.hpp>
 #include <ui/Renderer.hpp>
 
@@ -5,14 +8,14 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
     : sim_(sim),
       window_(
           sf::RenderWindow(sf::VideoMode(sf::VideoMode::getDesktopMode().size),
-                           opts.window_title)),
-      gSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {-100.0f, 100.0f}, sim_.gravity,
-               font_, "Gravity"),
-      eSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {0.0f, 1.0f}, sim_.restitution,
-               font_, "Restitution", sf::Color::White, sf::Color::Yellow),
-      particleCountText_(font_, "Particles: ", 30),
-      fpsText_(font_, "FPS: 60", 30) {
+                           opts.window_title)) {
   window_.setFramerateLimit(opts.fps_limit);
+
+  if (!ImGui::SFML::Init(window_)) {
+    throw std::runtime_error("Failed to initialize ImGui");
+  }
+  ImGui::GetIO().IniFilename = "build/imgui.ini";
+
   lastSize_ = window_.getSize();
   sim_.configure(
       {static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)},
@@ -22,19 +25,11 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);
   distY = std::uniform_real_distribution<float>(0.0f, lastSize_.y - 20.0f);
 
-  // load font
-  if (!font_.openFromFile("assets/pixelated.ttf")) {
-    throw std::runtime_error("Failed to load font: assets/pixelated.ttf");
-  };
-
   particleSize_ = sim.maxParticleRadius();
 
   // set vertex array things
   particleVertices_.setPrimitiveType(sf::PrimitiveType::Triangles);
   computeUnitCircle();
-
-  // initialize fps measurement arrays
-  frameTimes_.fill(1.0f / static_cast<float>(opts.fps_limit));
 
   runtimeClock_.start();
 
@@ -45,6 +40,7 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
 
 void Renderer::pollAndHandleEvents() noexcept {
   while (const std::optional event = window_.pollEvent()) {
+    ImGui::SFML::ProcessEvent(window_, *event);
     if (event->is<sf::Event::Closed>()) {
       window_.close();
     } else if (const auto* mousePressed =
@@ -61,16 +57,72 @@ void Renderer::pollAndHandleEvents() noexcept {
 }
 
 void Renderer::drawFrame() {
-  updateText();
   randomSpawn();
   streamSpawn();
   randomSpawnSUPERFAST();
   spawnMax();
   radialPush(10);
+
+  ImGui::SFML::Update(window_, frameClock_.restart());
+  ImGui::SetNextWindowSize(ImVec2{400.0f, 300.0f});
+  ImGui::SetNextWindowPos(ImVec2{10.0f, 10.0f});
+  ImGui::Begin("Simulation");
+
+  ImGui::Text("Particles: %zu", sim_.particles().size());
+  ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+  ImGui::SeparatorText("Parameters");
+  {
+    ImGui::SliderFloat("Gravity", &sim_.gravity, -100.0f, 100.0f);
+    ImGui::SliderFloat("Restitution", &sim_.restitution, 0.0f, 1.0f);
+  }
+
+  ImGui::SeparatorText("Integration");
+  {
+    if (ImGui::RadioButton("Euler",
+                           sim_.integrationType() == IntegrationType::Euler)) {
+      sim_.setIntegrationType(IntegrationType::Euler);
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Verlet",
+                           sim_.integrationType() == IntegrationType::Verlet)) {
+      sim_.setIntegrationType(IntegrationType::Verlet);
+    }
+  }
+
+  ImGui::SeparatorText("Broadphase");
+  {
+    if (ImGui::RadioButton("Naive",
+                           sim_.broadphaseType() == BroadphaseType::Naive)) {
+      sim_.setBroadphaseType(BroadphaseType::Naive);
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Quad Tree",
+                           sim_.broadphaseType() == BroadphaseType::Qtree)) {
+      sim_.setBroadphaseType(BroadphaseType::Qtree);
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Uniform Grid", sim_.broadphaseType() ==
+                                               BroadphaseType::UniformGrid)) {
+      sim_.setBroadphaseType(BroadphaseType::UniformGrid);
+    }
+  }
+
+  ImGui::End();
+
   window_.clear();
   drawParticles();
-  drawComponents();
+  ImGui::SFML::Render(window_);
   window_.display();
+}
+
+void Renderer::mainLoop() {
+  while (isOpen()) {
+    pollAndHandleEvents();
+    sim_.update();
+    drawFrame();
+  }
+  ImGui::SFML::Shutdown();
 }
 
 void Renderer::computeUnitCircle() {
@@ -115,67 +167,27 @@ void Renderer::layoutUI() noexcept {
   lastSize_ = size;
   sim_.setWorldSize(
       Vec2f(static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)));
-
-  const float margin = 10.0f;
-  const auto [sliderWidth, sliderHeight] = gSlider_.getSize();
-
-  // button heights
-  const float y1 = static_cast<float>(size.y) - 100.0f;
-  const float y2 = static_cast<float>(size.y) - 50.0f;
-
-  gSlider_.setPosition({margin, y1});
-  gSlider_.setSize({sliderWidth, sliderHeight});
-
-  eSlider_.setPosition({margin, y2});
-  eSlider_.setSize({sliderWidth, sliderHeight});
-
-  // top corner text
-  particleCountText_.setPosition({margin, margin});
-  float fpsTextWidth = fpsText_.getLocalBounds().size.x;
-  fpsText_.setPosition(
-      {static_cast<float>(size.x) - fpsTextWidth - margin, margin});
 }
 
 void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed& e) noexcept {
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
   if (e.button == sf::Mouse::Button::Left) {
-    if (gSlider_.contains(m)) {
-      gSlider_.isDragging = true;
-      gSlider_.setActive(true);
-      draggingAny_ = true;
-    } else if (eSlider_.contains(m)) {
-      eSlider_.isDragging = true;
-      eSlider_.setActive(true);
-      draggingAny_ = true;
-    } else {
-      radialPushing_ = true;
-      pushOrigin_ = m;
-    }
+    radialPushing_ = true;
+    pushOrigin_ = m;
   } else if (e.button == sf::Mouse::Button::Right) {
     sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
   }
 }
 
 void Renderer::handleMouseReleased() noexcept {
-  if (gSlider_.isDragging) {
-    gSlider_.isDragging = false;
-    gSlider_.setActive(false);
-  } else if (eSlider_.isDragging) {
-    eSlider_.isDragging = false;
-    eSlider_.setActive(false);
-  }
   draggingAny_ = false;
   radialPushing_ = false;
 }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (gSlider_.isDragging) {
-    gSlider_.move(m);
-  } else if (eSlider_.isDragging) {
-    eSlider_.move(m);
-  } else if (radialPushing_) {
+  if (radialPushing_) {
     pushOrigin_ = m;
   }
 }
@@ -229,37 +241,6 @@ void Renderer::drawParticles() {
     }
   }
   window_.draw(particleVertices_);
-}
-
-void Renderer::drawComponents() {
-  gSlider_.draw(window_);
-  eSlider_.draw(window_);
-  window_.draw(fpsText_);
-  window_.draw(particleCountText_);
-}
-
-void Renderer::updateText() noexcept {
-  sf::Time elapsed = frameClock_.restart();
-  float frameTime = elapsed.asSeconds();
-
-  // store frame time in circular buffer
-  frameTimes_[frameIndex_] = frameTime;
-  frameIndex_ = (frameIndex_ + 1) % FPS_SAMPLE_COUNT;
-
-  // mark as collected after first full cycle
-  if (frameIndex_ == 0) samplesCollected_ = true;
-
-  // Calculate average FPS only after we have enough samples
-  if (samplesCollected_) {
-    float avgFrameTime =
-        std::accumulate(frameTimes_.begin(), frameTimes_.end(), 0.0f) /
-        FPS_SAMPLE_COUNT;
-    float fps = 1.0f / avgFrameTime;
-    fpsText_.setString("FPS: " + std::to_string(static_cast<int>(fps)));
-  }
-
-  particleCountText_.setString("Particles: " +
-                               std::to_string(sim_.particles().size()));
 }
 
 void Renderer::randomSpawn() noexcept {
