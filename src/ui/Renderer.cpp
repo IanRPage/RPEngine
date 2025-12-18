@@ -1,4 +1,8 @@
+#include <imgui.h>
+
 #include <ui/Renderer.hpp>
+
+#include "Simulator.hpp"
 
 Renderer::Renderer(Simulator& sim, const Options& opts)
     : sim_{sim},
@@ -54,10 +58,7 @@ void Renderer::pollAndHandleEvents() noexcept {
 }
 
 void Renderer::drawFrame() {
-  randomSpawn();
-  streamSpawn();
-  randomSpawnSUPERFAST();
-  spawnMax();
+  spawn();
   radialPush();
 
   ImGui::SFML::Update(window_, frameClock_.restart());
@@ -123,10 +124,15 @@ void Renderer::layoutUI() noexcept {
 
 void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed& e) noexcept {
+  if (ImGui::GetIO().WantCaptureMouse) return;
+
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
+
   if (e.button == sf::Mouse::Button::Left) {
-    radialPushing_ = true;
-    pushOrigin_ = m;
+    if (sim_.forceType() == ForceType::Radial) {
+      radialPushing_ = true;
+      pushOrigin_ = m;
+    }  // TODO: add more forces
   } else if (e.button == sf::Mouse::Button::Right) {
     sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
                        1.0f);
@@ -134,11 +140,12 @@ void Renderer::handleMousePressed(
 }
 
 void Renderer::handleMouseReleased() noexcept {
-  draggingAny_ = false;
   radialPushing_ = false;
 }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
+  // MAYBE: add mouse guard on ImGui panel
+  if (ImGui::GetIO().WantCaptureMouse) return;
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
   if (radialPushing_) {
     pushOrigin_ = m;
@@ -146,26 +153,12 @@ void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
 }
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
-  if (e.scancode == sf::Keyboard::Scan::R) {
-    randomSpawn_ = !randomSpawn_;
-    streamSpawn_ = false;
-    randomSpawnSUPERFAST_ = false;
-    spawnMax_ = false;
-  } else if (e.scancode == sf::Keyboard::Scan::Space) {
-    streamSpawn_ = !streamSpawn_;
-    randomSpawn_ = false;
-    spawnMax_ = false;
-    randomSpawnSUPERFAST_ = false;
-  } else if (e.scancode == sf::Keyboard::Scan::F) {
-    randomSpawnSUPERFAST_ = !randomSpawnSUPERFAST_;
-    randomSpawn_ = false;
-    streamSpawn_ = false;
-    spawnMax_ = false;
-  } else if (e.scancode == sf::Keyboard::Scan::M) {
-    spawnMax_ = !spawnMax_;
-    randomSpawn_ = false;
-    randomSpawnSUPERFAST_ = false;
-    streamSpawn_ = false;
+  if (e.scancode == sf::Keyboard::Scan::Space) {
+    if (sim_.spawnType() == imguiCtrl_.spawnType()) {
+      sim_.setSpawnType(SpawnType::None);
+    } else {
+      sim_.setSpawnType(imguiCtrl_.spawnType());
+    }
   }
 }
 
@@ -199,62 +192,50 @@ void Renderer::drawParticles() {
   window_.draw(particleVertices_);
 }
 
-void Renderer::randomSpawn() noexcept {
-  if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
+void Renderer::spawn() noexcept {
+  if (sim_.particles().size() >= sim_.capacity()) return;
 
-  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                       imguiCtrl_.particleRadius(), 1.0f);
-    spawnClock_.restart();
+  switch (sim_.spawnType()) {
+    case SpawnType::None: return;
+
+    case SpawnType::Random: {
+      if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
+        for (int i = 0; i < 5; i++) { // TODO: expose speed in panel
+          sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                             imguiCtrl_.particleRadius(), 1.0f);
+        }
+        spawnClock_.restart();
+      }
+      break;
+    }
+
+    case SpawnType::Stream: {
+      if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
+        const float speed = 1200.0f;  // tune these
+        const float omega = 0.5f;     // parameters
+        const float t = runtimeClock_.getElapsedTime().asSeconds();
+        const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
+        sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
+                           Vec2f(cos(angle), sin(angle)) * speed,
+                           imguiCtrl_.particleRadius(), 1.0f);
+        spawnClock_.restart();
+      }
+      break;
+    }
+
+    case SpawnType::Max: {
+      const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
+      const size_t startIdx = sim_.particles().size();
+      for (size_t i = startIdx; i < sim_.capacity(); i++) {
+        sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                           imguiCtrl_.particleRadius(), 1.0f);
+        const float t = baseTime + i * 0.001f;
+        colorLUT_[i] = getRainbow(t);
+      }
+      sim_.setSpawnType(SpawnType::None);
+      break;
+    }
   }
-}
-
-void Renderer::randomSpawnSUPERFAST() noexcept {
-  if (!randomSpawnSUPERFAST_ || sim_.particles().size() >= sim_.capacity())
-    return;
-
-  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                       imguiCtrl_.particleRadius(), 1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                       imguiCtrl_.particleRadius(), 1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                       imguiCtrl_.particleRadius(), 1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                       imguiCtrl_.particleRadius(), 1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                       imguiCtrl_.particleRadius(), 1.0f);
-    spawnClock_.restart();
-  }
-}
-
-void Renderer::streamSpawn() noexcept {
-  if (!streamSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
-
-  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    const float speed = 1200.0f;  // tune these
-    const float omega = 0.5f;     // parameters
-    const float t = runtimeClock_.getElapsedTime().asSeconds();
-    const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
-    sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
-                       Vec2f(cos(angle), sin(angle)) * speed,
-                       imguiCtrl_.particleRadius(), 1.0f);
-    spawnClock_.restart();
-  }
-}
-
-void Renderer::spawnMax() noexcept {
-  if (!spawnMax_ || sim_.particles().size() >= sim_.capacity()) return;
-
-  const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
-  const size_t startIdx = sim_.particles().size();
-  for (size_t i = startIdx; i < sim_.capacity(); i++) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                       imguiCtrl_.particleRadius(), 1.0f);
-    const float t = baseTime + i * 0.001f;
-    colorLUT_[i] = getRainbow(t);
-  }
-  spawnMax_ = false;
 }
 
 void Renderer::radialPush() {
@@ -262,5 +243,6 @@ void Renderer::radialPush() {
 
   const float pDiam = imguiCtrl_.radialPushRadius() * 2;
 
-  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam, 2000.0f);
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam,
+                  imguiCtrl_.forceMagnitude());
 }

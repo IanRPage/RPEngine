@@ -12,6 +12,8 @@ constexpr float MIN_PARTICLE_SIZE = 1.0f;
 
 enum class IntegrationType { Euler, Verlet };
 enum class BroadphaseType { Naive, Qtree, SpatialGrid };
+enum class ForceType { None, Radial };
+enum class SpawnType { None, Random, Stream, Max };
 
 class Simulator {
  public:
@@ -19,8 +21,11 @@ class Simulator {
   float restitution;
 
   Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r, float dt,
-            IntegrationType integrationType, BroadphaseType broadphaseType,
-            size_t maxParticles = 100000);
+            size_t maxParticles = 100000,
+            IntegrationType integrationType = IntegrationType::Verlet,
+            BroadphaseType broadphaseType = BroadphaseType::SpatialGrid,
+            ForceType forceType = ForceType::None,
+            SpawnType spawnType = SpawnType::None);
 
   void configure(Vec2f size, float dt = 1.0f / 60.0f);
   void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f,
@@ -38,6 +43,8 @@ class Simulator {
   void setBroadphaseType(BroadphaseType broadphaseType) noexcept {
     broadphaseType_ = broadphaseType;
   }
+  void setForceType(ForceType forceType) noexcept { forceType_ = forceType; }
+  void setSpawnType(SpawnType spawnType) noexcept { spawnType_ = spawnType; }
 
   // --- getters ---
   Vec2f worldSize() const noexcept { return worldSize_; }
@@ -46,6 +53,8 @@ class Simulator {
   size_t capacity() const noexcept { return capacity_; }
   IntegrationType integrationType() const noexcept { return integrationType_; }
   BroadphaseType broadphaseType() const noexcept { return broadphaseType_; }
+  ForceType forceType() const noexcept { return forceType_; }
+  SpawnType spawnType() const noexcept { return spawnType_; }
 
  private:
   std::mt19937 gen_;
@@ -55,6 +64,8 @@ class Simulator {
   float dt_;
   IntegrationType integrationType_;
   BroadphaseType broadphaseType_;
+  ForceType forceType_;
+  SpawnType spawnType_;
 
   SpatialGrid spatialGrid_;
   size_t capacity_;

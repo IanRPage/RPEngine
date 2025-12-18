@@ -46,14 +46,9 @@ class Renderer {
   std::array<std::vector<sf::Vector2f>, MAX_CIRCLE_SEGMENTS + 1> unitCircle_;
 
   // --- other variables ---
-  bool draggingAny_ = false;
   bool radialPushing_ = false;
 
   const float spawnInterval_ = 0.001f;
-  bool streamSpawn_ = false;
-  bool randomSpawn_ = false;
-  bool randomSpawnSUPERFAST_ = false;
-  bool spawnMax_ = false;
   std::mt19937 gen_;
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;
@@ -73,10 +68,8 @@ class Renderer {
 
   void drawParticles();
 
-  void randomSpawn() noexcept;
-  void randomSpawnSUPERFAST() noexcept;
-  void streamSpawn() noexcept;
-  void spawnMax() noexcept;
+  void spawn() noexcept;
+
   void radialPush();
 };
 

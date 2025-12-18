@@ -141,7 +141,7 @@ graphics), 12 GB RAM. Currently
 - [ ] make a callback system for event handling. right now `Renderer::drawFrame`
       is responsible for executing events
 - [ ] add testing suite to ensure physical accuracy
-- [ ] figure out how to optimize `Renderer::drawParticles`
+- [ ] see about optimizing `Renderer::drawParticles`
 - [ ] update README to reflect new UI
 - [ ] rearchitect the codebase (cuz why not)
 - [ ] make transition between integration types clean. simulation crashes from
@@ -163,10 +163,13 @@ graphics), 12 GB RAM. Currently
   - [x] fix particle rightward drift during `SpatialGrid` broadphase when
         tightly packed
 - [ ] use ImGui to enable simulation configuration
-  - [ ] explain all controls in GUI once ImGui controls implemented
-  - [ ] delegate spawning methods to ImGui
-  - [ ] create a "Forces" dropdown
-  - [ ] add magnitude param for `radialPush`
+  - [ ] make the panel cleaner looking
+  - [x] explain all controls in GUI once ImGui controls implemented
+  - [x] add spawning methods to ImGui
+  - [x] add forces options
+  - [x] add magnitude param for `radialPush`
+  - [x] make it so that forces activated on mouse click don't get applied when
+        hovering over the ImGui menu
   - [x] add radius param for `radialPush`
   - [x] add particle radius field
   - [x] add a UI option for toggling between Euler-Impulse and Verlet-Position
