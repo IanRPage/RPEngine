@@ -247,7 +247,8 @@ void Renderer::spawnMax() noexcept {
   if (!spawnMax_ || sim_.particles().size() >= sim_.capacity()) return;
 
   const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
-  for (size_t i = 0; i < sim_.capacity(); i++) {
+  const size_t startIdx = sim_.particles().size();
+  for (size_t i = startIdx; i < sim_.capacity(); i++) {
     sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
                        imguiCtrl_.particleRadius(), 1.0f);
     const float t = baseTime + i * 0.001f;
@@ -259,7 +260,6 @@ void Renderer::spawnMax() noexcept {
 void Renderer::radialPush() {
   if (!radialPushing_) return;
 
-  // const float pDiam = sim_.maxParticleRadius() * 2;
   const float pDiam = imguiCtrl_.radialPushRadius() * 2;
 
   sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam, 2000.0f);
