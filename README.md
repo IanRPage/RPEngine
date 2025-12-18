@@ -112,7 +112,7 @@ Simulator sim(
   0.0f,                             // magnitude of coefficient of restitution
   0.0,                              // delta time step for simulation
   IntegrationType::Verlet,          // integration type
-  BroadphaseType::UniformGrid,      // broadphase type
+  BroadphaseType::SpatialGrid,      // broadphase type
   14000                             // max amount of particles allowed in the
                                     // simulator
 );
@@ -139,18 +139,18 @@ graphics), 12 GB RAM. Currently
 ## TODO
 
 - [ ] add testing suite to make ensure physical accuracy
-- [ ] fix particle rightward drift when smushed due to gravity
+- [ ] fix particle rightward drift during `SpatialGrid` broadphase when tightly packed
 - [ ] figure out how to optimize `Renderer::drawParticles()`
 - [ ] update README to reflect new UI
 - [ ] rearchitect the codebase (cuz why not)
-- [ ] make transition between integration types clean
+- [ ] make transition between integration types clean. simulation crashes from Euler -> Verlet
 - [ ] improve `Simulator::radialPush` to work with any broadphase
 - [ ] implement hot-reloading for quicker debugging
 - [ ] add 3D particle simulation
 - [ ] MAYBE add orbiting
 - [ ] add multithreading
 - [ ] add rigidbody mechanics
-- [ ] optimize spatial grid broad-phase
+- [ ] optimize spatial grid broadphase
 - [ ] MAYBE improve wall collision code by only checking particles along the
       walls or something
 - [ ] add some kind of profiler that runs a simulation without UI

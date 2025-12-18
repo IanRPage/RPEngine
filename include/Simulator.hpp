@@ -9,7 +9,7 @@
 #include <vector>
 
 enum class IntegrationType { Euler, Verlet };
-enum class BroadphaseType { Naive, Qtree, UniformGrid };
+enum class BroadphaseType { Naive, Qtree, SpatialGrid };
 
 class Simulator {
  public:
@@ -56,6 +56,7 @@ class Simulator {
 
   SpatialGrid spatialGrid_;
   size_t capacity_;
+  size_t frameCount_;
 
   // broad-phase
   void naiveBroadphase();

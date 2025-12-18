@@ -4,14 +4,15 @@
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, IntegrationType integrationType,
                      BroadphaseType broadphaseType, size_t maxParticles)
-    : gravity(g),
-      restitution(C_r),
-      worldSize_(dims),
-      maxParticleRadius_(maxParticleRadius),
-      dt_(dt),
-      integrationType_(integrationType),
-      broadphaseType_(broadphaseType),
-      capacity_(maxParticles) {
+    : gravity{g},
+      restitution{C_r},
+      worldSize_{dims},
+      maxParticleRadius_{maxParticleRadius},
+      dt_{dt},
+      integrationType_{integrationType},
+      broadphaseType_{broadphaseType},
+      capacity_{maxParticles},
+      frameCount_{0} {
   std::random_device rd;
   gen_.seed(rd());
   particles_.reserve(maxParticles);
@@ -66,6 +67,7 @@ void Simulator::update() noexcept {
     }
   }
   resolveCollisions();
+  frameCount_++;
 }
 
 // O(n^2)
@@ -110,6 +112,7 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
 void Simulator::spatialGridBroadphase() {
   spatialGrid_.resize(particles_.size());
   spatialGrid_.build(particles_);
+  bool reverse = (frameCount_ % 2);
 
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
@@ -117,7 +120,7 @@ void Simulator::spatialGridBroadphase() {
     spatialGrid_.queryDoSomething(i, p1.position, [&](int neiIdx) {
       Particle& p2 = particles_[neiIdx];
       particleCollision(p1, p2);
-    });
+    }, reverse);
   }
 }
 
@@ -172,23 +175,8 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
   const float sum_r = p1.radius + p2.radius;
   const float sum_r2 = sum_r * sum_r;
 
-  // square dist prune
-  if (d2 >= sum_r2) return;
-
-  // if small dist apart
-  if (d2 < 1e-12f) {
-    Vec2f n = {1.0f, 0.0f};
-    const float half = (p1.radius + p2.radius) * 0.5f;
-
-    const float invMassSum = p1.invMass + p2.invMass;
-    if (invMassSum > 0.0f) {
-      p1.prevPosition = p1.position;
-      p2.prevPosition = p2.position;
-      p1.position -= n * (half * (p1.invMass / invMassSum));
-      p2.position += n * (half * (p2.invMass / invMassSum));
-    }
-    return;
-  }
+  // square dist prune || or if small dist apart
+  if (d2 >= sum_r2 || d2 < 1e-12f) return;
 
   const float invDist = 1.0f / std::sqrt(d2);
   const float dist = 1.0f / invDist;
@@ -238,7 +226,7 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
 
 void Simulator::resolveCollisions() {
   auto [w, h] = worldSize_;
-  if (broadphaseType_ == BroadphaseType::UniformGrid) {
+  if (broadphaseType_ == BroadphaseType::SpatialGrid) {
     for (Particle& par : particles_) {
       applyWall(par, w, h);
     }

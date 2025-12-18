@@ -54,7 +54,7 @@ struct SpatialGrid {
 
   template <typename Fn>
   inline void queryDoSomething(size_t objIdx, const Vec2f& pos, Fn&& callback,
-                               int scale = 1) {
+                               bool reverse = false, int scale = 1) {
     const int cx =
         std::clamp(static_cast<int>(pos.x * invCellSize), 0, cols - 1);
     const int cy =
@@ -79,10 +79,19 @@ struct SpatialGrid {
       dyMax = (cy - scale < rows - 1) ? 1 * scale : 0;
     }
 
+    const int dxStart = reverse ? dxMax : dxMin;
+    const int dxEnd = reverse ? dxMin : dxMax;
+    const int dxStep = reverse ? -1 : 1;
+    const int dyStart = reverse ? dyMax : dyMin;
+    const int dyEnd = reverse ? dyMin : dyMax;
+    const int dyStep = reverse ? -1 : 1;
+
     // query neighbors
-    for (int dx = dxMin; dx <= dxMax; dx++) {
+    for (int dx = dxStart; reverse ? (dx >= dxEnd) : (dx <= dxEnd);
+         dx += dxStep) {
       const int nx = cx + dx;
-      for (int dy = dyMin; dy <= dyMax; dy++) {
+      for (int dy = dyStart; reverse ? (dy >= dyEnd) : (dy <= dyEnd);
+           dy += dyStep) {
         const int ny = cy + dy;
         const int cn = ny * cols + nx;
         if (cn >= static_cast<int>(head.size())) continue;

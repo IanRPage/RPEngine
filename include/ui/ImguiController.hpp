@@ -61,8 +61,8 @@ class ImguiController {
       }
       ImGui::SameLine();
       if (ImGui::RadioButton("Uniform Grid", sim_.broadphaseType() ==
-                                                 BroadphaseType::UniformGrid)) {
-        sim_.setBroadphaseType(BroadphaseType::UniformGrid);
+                                                 BroadphaseType::SpatialGrid)) {
+        sim_.setBroadphaseType(BroadphaseType::SpatialGrid);
       }
     }
 
