@@ -58,7 +58,7 @@ void Renderer::drawFrame() {
   streamSpawn();
   randomSpawnSUPERFAST();
   spawnMax();
-  radialPush(10);
+  radialPush();
 
   ImGui::SFML::Update(window_, frameClock_.restart());
   imguiCtrl_.render();
@@ -170,21 +170,21 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  size_t vertexIdx = 0;
+  size_t totalVertexCount = 0;
   for (const Particle& par : sim_.particles()) {
     const size_t segments = getCircleSegments(par.radius);
-    size_t vertexCount = segments * 3 * sim_.particles().size();
+    totalVertexCount += segments * 3;
+  }
 
-    // resize if needed
-    if (particleVertices_.getVertexCount() < vertexCount) {
-      particleVertices_.resize(getCircleSegments(sim_.maxParticleRadius()) * 3 *
-                               sim_.particles().size());
-      drawParticles();
-      break;
-    }
+  if (particleVertices_.getVertexCount() < totalVertexCount) {
+    particleVertices_.resize(totalVertexCount);
+  }
 
+  size_t vertexIdx = 0;
+  for (const Particle& par : sim_.particles()) {
     const Vec2f& pos = par.position;
     const sf::Color& color = colorFor(par);
+    const size_t segments = getCircleSegments(par.radius);
 
     // transform unit circle vertices
     const std::vector<sf::Vector2f>& vertices = unitCircle_[segments];
@@ -256,11 +256,11 @@ void Renderer::spawnMax() noexcept {
   spawnMax_ = false;
 }
 
-void Renderer::radialPush(const int scale) {
+void Renderer::radialPush() {
   if (!radialPushing_) return;
 
-  const float pDiam = sim_.maxParticleRadius() * 2;
+  // const float pDiam = sim_.maxParticleRadius() * 2;
+  const float pDiam = imguiCtrl_.radialPushRadius() * 2;
 
-  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam * scale, 2000.0f,
-                  scale);
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam, 2000.0f);
 }

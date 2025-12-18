@@ -7,8 +7,6 @@
 #include <Simulator.hpp>
 #include <algorithm>
 
-constexpr float MIN_PARTICLE_SIZE = 0.5f;
-
 class ImguiController {
  public:
   ImguiController(Simulator& sim, float particleRadius = 2.0f)
@@ -26,11 +24,13 @@ class ImguiController {
     ImGui::SeparatorText("Parameters");
     {
       ImGui::InputFloat("Particle Radius", &particleRadius_);
-      auto t = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
+      auto temp = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
                           sim_.maxParticleRadius());
-      particleRadius_ = t;
+      particleRadius_ = temp;
       ImGui::SliderFloat("Gravity", &sim_.gravity, -100.0f, 100.0f);
       ImGui::SliderFloat("Restitution", &sim_.restitution, 0.0f, 1.0f);
+      ImGui::InputFloat("Radial Push Radius", &radialPushRadius_);
+      temp = std::clamp(radialPushRadius_, MIN_PARTICLE_SIZE, 1e7f);
     }
 
     ImGui::Spacing();
@@ -70,10 +70,12 @@ class ImguiController {
   }
 
   float particleRadius() const noexcept { return particleRadius_; }
+  float radialPushRadius() const noexcept { return radialPushRadius_; }
 
  private:
   Simulator& sim_;
   float particleRadius_;
+  float radialPushRadius_;
 };
 
 #endif

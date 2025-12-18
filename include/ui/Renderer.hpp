@@ -77,7 +77,7 @@ class Renderer {
   void randomSpawnSUPERFAST() noexcept;
   void streamSpawn() noexcept;
   void spawnMax() noexcept;
-  void radialPush(const int scale);
+  void radialPush();
 };
 
 #endif
