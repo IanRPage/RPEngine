@@ -179,6 +179,7 @@ void Renderer::drawParticles() {
     if (particleVertices_.getVertexCount() < vertexCount) {
       particleVertices_.resize(getCircleSegments(sim_.maxParticleRadius()) * 3 *
                                sim_.particles().size());
+      drawParticles();
       break;
     }
 

@@ -138,6 +138,7 @@ graphics), 12 GB RAM. Currently
 
 ## TODO
 
+- [ ] add testing suite to make ensure physical accuracy
 - [ ] fix particle rightward drift when smushed due to gravity
 - [ ] figure out how to optimize `Renderer::drawParticles()`
 - [ ] update README to reflect new UI
