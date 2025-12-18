@@ -1,17 +1,20 @@
 #include <Simulator.hpp>
-#include <cmath>
 
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, IntegrationType integrationType,
                      BroadphaseType broadphaseType, size_t maxParticles)
-    : gravity(g),
-      restitution(C_r),
-      worldSize_(dims),
-      maxParticleRadius_(maxParticleRadius),
-      dt_(dt),
-      integrationType_(integrationType),
-      broadphaseType_(broadphaseType),
-      capacity_(maxParticles) {
+    : gravity{g},
+      restitution{C_r},
+      worldSize_{dims},
+      maxParticleRadius_{maxParticleRadius},
+      dt_{dt},
+      integrationType_{integrationType},
+      broadphaseType_{broadphaseType},
+      capacity_{maxParticles},
+      frameCount_{0},
+      currBiggestRadius_{0.0f},
+      sumRadii_{0.0f},
+      prevAvgRadius_{0.0f} {
   std::random_device rd;
   gen_.seed(rd());
   particles_.reserve(maxParticles);
@@ -21,7 +24,7 @@ Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
 void Simulator::configure(Vec2f size, float dt) {
   worldSize_ = size;
   dt_ = dt;
-  spatialGrid_.configure(2.0f * maxParticleRadius_, worldSize_);
+  spatialGrid_.configure(2.0f * prevAvgRadius_, worldSize_);
 }
 
 void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
@@ -32,10 +35,14 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
     vel = {dist(gen_), dist(gen_)};
   }
   particles_.emplace_back(pos, vel, dt_, r, m);
+  currBiggestRadius_ = std::max(currBiggestRadius_, r);
+  sumRadii_ += r;
 };
 
 void Simulator::radialPush(const Vec2f& origin, const float radius,
-                           const float mag, const int scale) {
+                           const float mag) {
+  const int scale = std::max(
+      1, static_cast<int>(std::ceil(radius * spatialGrid_.invCellSize)));
   spatialGrid_.queryDoSomething(
       -1, origin,
       [&](int neiIdx) {
@@ -43,14 +50,17 @@ void Simulator::radialPush(const Vec2f& origin, const float radius,
         const Vec2f d = p.position - origin;
         const float d2 = d.x * d.x + d.y * d.y;
 
-        if (d2 > radius * radius) return;
+        if (d2 > radius * radius || d2 < 1e-12f) return;
 
         const float invDist = 1.0f / std::sqrt(d2);
         const Vec2f norm = d * invDist;
 
-        p.accelerate({norm.x * mag, norm.y * mag});
+        p.accelerate({
+            norm.x * mag * (1.0f - std::sqrt(d2) / radius),
+            norm.y * mag * (1.0f - std::sqrt(d2) / radius),
+        });
       },
-      scale);
+      frameCount_ % 2, scale);
 }
 
 void Simulator::update() noexcept {
@@ -66,6 +76,7 @@ void Simulator::update() noexcept {
     }
   }
   resolveCollisions();
+  frameCount_++;
 }
 
 // O(n^2)
@@ -89,8 +100,9 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
     Particle& p1 = particles_[i];
     const Vec2f c1 = p1.position;
     const float r1 = p1.radius;
-    const AABBf queryRange({c1.x - 2.0f * r1, c1.y - 2.0f * r1},
-                           {4.0f * r1, 4.0f * r1});
+    const float query_r = r1 + currBiggestRadius_;  // LOOK HERE LATER
+    const AABBf queryRange({c1.x - query_r, c1.y - query_r},
+                           {2.0f * query_r, 2.0f * query_r});
 
     std::vector<Particle*> neighbors;
     qtree.query(neighbors, queryRange);
@@ -107,16 +119,30 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
 
 // O(n)
 void Simulator::spatialGridBroadphase() {
+  bool reverse = (frameCount_ % 2);
+  float avg_radius = (particles_.size() > 0) ? sumRadii_ / particles_.size()
+                                             : maxParticleRadius_;
+  if (std::abs(avg_radius - prevAvgRadius_) > 0.2f) {
+    float cell_size = 2.0f * avg_radius;
+    spatialGrid_.configure(cell_size, worldSize_);
+    prevAvgRadius_ = avg_radius;
+  }
   spatialGrid_.resize(particles_.size());
   spatialGrid_.build(particles_);
 
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
-    spatialGrid_.queryDoSomething(i, p1.position, [&](int neiIdx) {
-      Particle& p2 = particles_[neiIdx];
-      particleCollision(p1, p2);
-    });
+    const float query_dist = p1.radius + currBiggestRadius_;
+    const int scale =
+        static_cast<int>(std::ceil(query_dist * spatialGrid_.invCellSize));
+    spatialGrid_.queryDoSomething(
+        i, p1.position,
+        [&](int neiIdx) {
+          Particle& p2 = particles_[neiIdx];
+          particleCollision(p1, p2);
+        },
+        reverse, scale);
   }
 }
 
@@ -174,26 +200,25 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
   // square dist prune
   if (d2 >= sum_r2) return;
 
+  const float invDist = 1.0f / std::sqrt(d2);
+  const float dist = 1.0f / invDist;
+  const Vec2f norm = d * invDist;
+
   // if small dist apart
   if (d2 < 1e-12f) {
-    Vec2f n = {1.0f, 0.0f};
     const float half = (p1.radius + p2.radius) * 0.5f;
 
     const float invMassSum = p1.invMass + p2.invMass;
     if (invMassSum > 0.0f) {
       p1.prevPosition = p1.position;
       p2.prevPosition = p2.position;
-      p1.position -= n * (half * (p1.invMass / invMassSum));
-      p2.position += n * (half * (p2.invMass / invMassSum));
+      p1.position -= norm * (half * (p1.invMass / invMassSum));
+      p2.position += norm * (half * (p2.invMass / invMassSum));
     }
     return;
   }
 
-  const float invDist = 1.0f / std::sqrt(d2);
-  const float dist = 1.0f / invDist;
-  const Vec2f norm = d * invDist;
   const float penetration = sum_r - dist;
-
   const float invMassSum = p1.invMass + p2.invMass;
 
   if (penetration > 0.0f && invMassSum > 0.0f) {
@@ -237,7 +262,7 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
 
 void Simulator::resolveCollisions() {
   auto [w, h] = worldSize_;
-  if (broadphaseType_ == BroadphaseType::UniformGrid) {
+  if (broadphaseType_ == BroadphaseType::SpatialGrid) {
     for (Particle& par : particles_) {
       applyWall(par, w, h);
     }

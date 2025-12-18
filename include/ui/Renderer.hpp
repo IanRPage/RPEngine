@@ -3,6 +3,7 @@
 
 #define PI 3.14159265
 
+#include <ui/ImguiController.hpp>
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
 #include <array>
@@ -27,6 +28,7 @@ class Renderer {
  private:
   Simulator& sim_;
   sf::RenderWindow window_;
+  ImguiController imguiCtrl_;
   sf::Vector2u lastSize_;
   sf::Vector2f pushOrigin_;  // tracks mouse position when held down
 
@@ -35,11 +37,7 @@ class Renderer {
   sf::Clock spawnClock_;
   sf::Clock runtimeClock_;
 
-  // color lookup table
-  std::vector<std::optional<sf::Color>> colorLUT_;
-
-  // --- assets ---
-  sf::Texture particleTexture_;
+  std::vector<std::optional<sf::Color>> colorLUT_;  // color lookup table
 
   // vertex based circle drawing
   sf::VertexArray particleVertices_;
@@ -48,7 +46,6 @@ class Renderer {
   std::array<std::vector<sf::Vector2f>, MAX_CIRCLE_SEGMENTS + 1> unitCircle_;
 
   // --- other variables ---
-  float particleSize_ = 5.0f;
   bool draggingAny_ = false;
   bool radialPushing_ = false;
 
@@ -80,7 +77,7 @@ class Renderer {
   void randomSpawnSUPERFAST() noexcept;
   void streamSpawn() noexcept;
   void spawnMax() noexcept;
-  void radialPush(const int scale);
+  void radialPush();
 };
 
 #endif

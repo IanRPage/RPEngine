@@ -112,7 +112,7 @@ Simulator sim(
   0.0f,                             // magnitude of coefficient of restitution
   0.0,                              // delta time step for simulation
   IntegrationType::Verlet,          // integration type
-  BroadphaseType::UniformGrid,      // broadphase type
+  BroadphaseType::SpatialGrid,      // broadphase type
   14000                             // max amount of particles allowed in the
                                     // simulator
 );
@@ -138,26 +138,42 @@ graphics), 12 GB RAM. Currently
 
 ## TODO
 
-- [ ] rearchitect the codebase
-- [ ] make transition between integration types clean
+- [ ] make a callback system for event handling. right now `Renderer::drawFrame`
+      is responsible for executing events
+- [ ] add testing suite to ensure physical accuracy
+- [ ] figure out how to optimize `Renderer::drawParticles`
+- [ ] update README to reflect new UI
+- [ ] rearchitect the codebase (cuz why not)
+- [ ] make transition between integration types clean. simulation crashes from
+      Euler -> Verlet
 - [ ] improve `Simulator::radialPush` to work with any broadphase
 - [ ] implement hot-reloading for quicker debugging
 - [ ] add 3D particle simulation
 - [ ] MAYBE add orbiting
 - [ ] add multithreading
 - [ ] add rigidbody mechanics
-- [ ] optimize spatial grid broad-phase
 - [ ] MAYBE improve wall collision code by only checking particles along the
       walls or something
 - [ ] add some kind of profiler that runs a simulation without UI
-- [x] use ImGui to enable simulation configuration
+- [ ] optimize spatial grid broadphase
+  - [ ] do a different broadphase for differently sized particles
+  - [x] fix particle collision instability; they violate particle bounds A LOT
+  - [x] fix massive performance degradation in `SpatialGrid` when lots of small
+        particles but large cell size
+  - [x] fix particle rightward drift during `SpatialGrid` broadphase when
+        tightly packed
+- [ ] use ImGui to enable simulation configuration
   - [ ] explain all controls in GUI once ImGui controls implemented
   - [ ] delegate spawning methods to ImGui
-  - [ ] add particle radius field
+  - [ ] create a "Forces" dropdown
+  - [ ] add magnitude param for `radialPush`
+  - [x] add radius param for `radialPush`
+  - [x] add particle radius field
   - [x] add a UI option for toggling between Euler-Impulse and Verlet-Position
         based collisions
   - [x] add a UI option for toggling between broad phase methods for collision
         detection
+- [x] fix the downsizing radius issue
 - [x] fix particles exploding when compacted w/ Verlet integration
 - [x] add support for Winblows
 - [x] add instructions for controls!!!

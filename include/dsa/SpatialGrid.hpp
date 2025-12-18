@@ -54,35 +54,36 @@ struct SpatialGrid {
 
   template <typename Fn>
   inline void queryDoSomething(size_t objIdx, const Vec2f& pos, Fn&& callback,
-                               int scale = 1) {
+                               bool reverse = false, int scale = 1) {
     const int cx =
         std::clamp(static_cast<int>(pos.x * invCellSize), 0, cols - 1);
     const int cy =
         std::clamp(static_cast<int>(pos.y * invCellSize), 0, rows - 1);
 
     // precompute valid neighbor ranges
-    int dxMin;
-    int dxMax;
-    int dyMin;
-    int dyMax;
-    if (scale == 0) {
-      return;
-    } else if (scale == 1) {
-      dxMin = (cx > 0) ? -1 : 0;
-      dxMax = (cx < cols - 1) ? 1 : 0;
-      dyMin = (cy > 0) ? -1 : 0;
-      dyMax = (cy < rows - 1) ? 1 : 0;
+    int dxMin = 0, dxMax = 0, dyMin = 0, dyMax = 0;
+    if (scale != 0) {
+      dxMin = -std::min(scale, cx);
+      dxMax = std::min(scale, cols - 1 - cx);
+      dyMin = -std::min(scale, cy);
+      dyMax = std::min(scale, rows - 1 - cy);
     } else {
-      dxMin = (cx - scale > 0) ? -1 * scale : 0;
-      dxMax = (cx - scale < cols - 1) ? 1 * scale : 0;
-      dyMin = (cy - scale > 0) ? -1 * scale : 0;
-      dyMax = (cy - scale < rows - 1) ? 1 * scale : 0;
+      return;
     }
 
+    const int dxStart = reverse ? dxMax : dxMin;
+    const int dxEnd = reverse ? dxMin : dxMax;
+    const int dxStep = reverse ? -1 : 1;
+    const int dyStart = reverse ? dyMax : dyMin;
+    const int dyEnd = reverse ? dyMin : dyMax;
+    const int dyStep = reverse ? -1 : 1;
+
     // query neighbors
-    for (int dx = dxMin; dx <= dxMax; dx++) {
+    for (int dx = dxStart; reverse ? (dx >= dxEnd) : (dx <= dxEnd);
+         dx += dxStep) {
       const int nx = cx + dx;
-      for (int dy = dyMin; dy <= dyMax; dy++) {
+      for (int dy = dyStart; reverse ? (dy >= dyEnd) : (dy <= dyEnd);
+           dy += dyStep) {
         const int ny = cy + dy;
         const int cn = ny * cols + nx;
         if (cn >= static_cast<int>(head.size())) continue;

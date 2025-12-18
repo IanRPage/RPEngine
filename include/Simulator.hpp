@@ -8,8 +8,10 @@
 #include <random>
 #include <vector>
 
+constexpr float MIN_PARTICLE_SIZE = 1.0f;
+
 enum class IntegrationType { Euler, Verlet };
-enum class BroadphaseType { Naive, Qtree, UniformGrid };
+enum class BroadphaseType { Naive, Qtree, SpatialGrid };
 
 class Simulator {
  public:
@@ -25,7 +27,7 @@ class Simulator {
                      float m = 1.0f) noexcept;
   void update() noexcept;
   void radialPush(const Vec2f& origin, const float radius,
-                  const float mag = 1000.0f, const int scale = 1);
+                  const float mag = 1000.0f);
 
   // --- setters ---
   void setWorldSize(Vec2f size) noexcept { worldSize_ = size; }
@@ -56,6 +58,11 @@ class Simulator {
 
   SpatialGrid spatialGrid_;
   size_t capacity_;
+  size_t frameCount_;
+
+  float currBiggestRadius_;
+  float sumRadii_;
+  float prevAvgRadius_;
 
   // broad-phase
   void naiveBroadphase();

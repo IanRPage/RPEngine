@@ -1,20 +1,19 @@
-#include <imgui-SFML.h>
-#include <imgui.h>
-
-#include <SFML/Graphics/Color.hpp>
 #include <ui/Renderer.hpp>
 
 Renderer::Renderer(Simulator& sim, const Options& opts)
-    : sim_(sim),
-      window_(
+    : sim_{sim},
+      window_{
           sf::RenderWindow(sf::VideoMode(sf::VideoMode::getDesktopMode().size),
-                           opts.window_title)) {
+                           opts.window_title)},
+      imguiCtrl_{sim} {
   window_.setFramerateLimit(opts.fps_limit);
 
+  // --- ImGui setup(-ish) ---
   if (!ImGui::SFML::Init(window_)) {
     throw std::runtime_error("Failed to initialize ImGui");
   }
   ImGui::GetIO().IniFilename = "build/imgui.ini";
+  // -------------------------
 
   lastSize_ = window_.getSize();
   sim_.configure(
@@ -24,8 +23,6 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   gen_ = std::mt19937(std::random_device{}());
   distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);
   distY = std::uniform_real_distribution<float>(0.0f, lastSize_.y - 20.0f);
-
-  particleSize_ = sim.maxParticleRadius();
 
   // set vertex array things
   particleVertices_.setPrimitiveType(sf::PrimitiveType::Triangles);
@@ -61,55 +58,10 @@ void Renderer::drawFrame() {
   streamSpawn();
   randomSpawnSUPERFAST();
   spawnMax();
-  radialPush(10);
+  radialPush();
 
   ImGui::SFML::Update(window_, frameClock_.restart());
-  ImGui::SetNextWindowSize(ImVec2{400.0f, 300.0f});
-  ImGui::SetNextWindowPos(ImVec2{10.0f, 10.0f});
-  ImGui::Begin("Simulation");
-
-  ImGui::Text("Particles: %zu", sim_.particles().size());
-  ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-
-  ImGui::SeparatorText("Parameters");
-  {
-    ImGui::SliderFloat("Gravity", &sim_.gravity, -100.0f, 100.0f);
-    ImGui::SliderFloat("Restitution", &sim_.restitution, 0.0f, 1.0f);
-  }
-
-  ImGui::SeparatorText("Integration");
-  {
-    if (ImGui::RadioButton("Euler",
-                           sim_.integrationType() == IntegrationType::Euler)) {
-      sim_.setIntegrationType(IntegrationType::Euler);
-    }
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Verlet",
-                           sim_.integrationType() == IntegrationType::Verlet)) {
-      sim_.setIntegrationType(IntegrationType::Verlet);
-    }
-  }
-
-  ImGui::SeparatorText("Broadphase");
-  {
-    if (ImGui::RadioButton("Naive",
-                           sim_.broadphaseType() == BroadphaseType::Naive)) {
-      sim_.setBroadphaseType(BroadphaseType::Naive);
-    }
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Quad Tree",
-                           sim_.broadphaseType() == BroadphaseType::Qtree)) {
-      sim_.setBroadphaseType(BroadphaseType::Qtree);
-    }
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Uniform Grid", sim_.broadphaseType() ==
-                                               BroadphaseType::UniformGrid)) {
-      sim_.setBroadphaseType(BroadphaseType::UniformGrid);
-    }
-  }
-
-  ImGui::End();
-
+  imguiCtrl_.render();
   window_.clear();
   drawParticles();
   ImGui::SFML::Render(window_);
@@ -176,7 +128,8 @@ void Renderer::handleMousePressed(
     radialPushing_ = true;
     pushOrigin_ = m;
   } else if (e.button == sf::Mouse::Button::Right) {
-    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
+    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
+                       1.0f);
   }
 }
 
@@ -217,18 +170,21 @@ void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
 }
 
 void Renderer::drawParticles() {
-  const size_t segments = getCircleSegments(particleSize_);
-  size_t vertexCount = segments * 3 * sim_.particles().size();
+  size_t totalVertexCount = 0;
+  for (const Particle& par : sim_.particles()) {
+    const size_t segments = getCircleSegments(par.radius);
+    totalVertexCount += segments * 3;
+  }
 
-  // resize if needed
-  if (particleVertices_.getVertexCount() < vertexCount) {
-    particleVertices_.resize(vertexCount);
+  if (particleVertices_.getVertexCount() < totalVertexCount) {
+    particleVertices_.resize(totalVertexCount);
   }
 
   size_t vertexIdx = 0;
   for (const Particle& par : sim_.particles()) {
     const Vec2f& pos = par.position;
     const sf::Color& color = colorFor(par);
+    const size_t segments = getCircleSegments(par.radius);
 
     // transform unit circle vertices
     const std::vector<sf::Vector2f>& vertices = unitCircle_[segments];
@@ -247,8 +203,8 @@ void Renderer::randomSpawn() noexcept {
   if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
     spawnClock_.restart();
   }
 }
@@ -258,16 +214,16 @@ void Renderer::randomSpawnSUPERFAST() noexcept {
     return;
 
   if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
     spawnClock_.restart();
   }
 }
@@ -281,8 +237,8 @@ void Renderer::streamSpawn() noexcept {
     const float t = runtimeClock_.getElapsedTime().asSeconds();
     const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
     sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
-                       Vec2f(cos(angle), sin(angle)) * speed, particleSize_,
-                       1.0f);
+                       Vec2f(cos(angle), sin(angle)) * speed,
+                       imguiCtrl_.particleRadius(), 1.0f);
     spawnClock_.restart();
   }
 }
@@ -291,20 +247,20 @@ void Renderer::spawnMax() noexcept {
   if (!spawnMax_ || sim_.particles().size() >= sim_.capacity()) return;
 
   const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
-  for (size_t i = 0; i < sim_.capacity(); i++) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
+  const size_t startIdx = sim_.particles().size();
+  for (size_t i = startIdx; i < sim_.capacity(); i++) {
+    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                       imguiCtrl_.particleRadius(), 1.0f);
     const float t = baseTime + i * 0.001f;
     colorLUT_[i] = getRainbow(t);
   }
   spawnMax_ = false;
 }
 
-void Renderer::radialPush(const int scale) {
+void Renderer::radialPush() {
   if (!radialPushing_) return;
 
-  const float pDiam = particleSize_ * 2;
+  const float pDiam = imguiCtrl_.radialPushRadius() * 2;
 
-  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam * scale, 2000.0f,
-                  scale);
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam, 2000.0f);
 }
