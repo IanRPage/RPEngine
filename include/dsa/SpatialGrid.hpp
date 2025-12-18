@@ -61,22 +61,14 @@ struct SpatialGrid {
         std::clamp(static_cast<int>(pos.y * invCellSize), 0, rows - 1);
 
     // precompute valid neighbor ranges
-    int dxMin;
-    int dxMax;
-    int dyMin;
-    int dyMax;
-    if (scale == 0) {
-      return;
-    } else if (scale == 1) {
-      dxMin = (cx > 0) ? -1 : 0;
-      dxMax = (cx < cols - 1) ? 1 : 0;
-      dyMin = (cy > 0) ? -1 : 0;
-      dyMax = (cy < rows - 1) ? 1 : 0;
+    int dxMin = 0, dxMax = 0, dyMin = 0, dyMax = 0;
+    if (scale != 0) {
+      dxMin = -std::min(scale, cx);
+      dxMax = std::min(scale, cols - 1 - cx);
+      dyMin = -std::min(scale, cy);
+      dyMax = std::min(scale, rows - 1 - cy);
     } else {
-      dxMin = (cx - scale > 0) ? -1 * scale : 0;
-      dxMax = (cx - scale < cols - 1) ? 1 * scale : 0;
-      dyMin = (cy - scale > 0) ? -1 * scale : 0;
-      dyMax = (cy - scale < rows - 1) ? 1 * scale : 0;
+      return;
     }
 
     const int dxStart = reverse ? dxMax : dxMin;

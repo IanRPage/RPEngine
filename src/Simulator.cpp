@@ -44,14 +44,14 @@ void Simulator::radialPush(const Vec2f& origin, const float radius,
         const Vec2f d = p.position - origin;
         const float d2 = d.x * d.x + d.y * d.y;
 
-        if (d2 > radius * radius) return;
+        if (d2 > radius * radius || d2 < 1e-12f) return;
 
         const float invDist = 1.0f / std::sqrt(d2);
         const Vec2f norm = d * invDist;
 
         p.accelerate({norm.x * mag, norm.y * mag});
       },
-      scale);
+      frameCount_ % 2, scale);
 }
 
 void Simulator::update() noexcept {
