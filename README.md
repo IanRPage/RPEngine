@@ -156,7 +156,8 @@ graphics), 12 GB RAM. Currently
       walls or something
 - [ ] add some kind of profiler that runs a simulation without UI
 - [ ] optimize spatial grid broadphase
-  - [ ] fix particle collision instability; they violate particle bounds A LOT
+  - [ ] do a different broadphase for differently sized particles
+  - [x] fix particle collision instability; they violate particle bounds A LOT
   - [x] fix massive performance degradation in `SpatialGrid` when lots of small
         particles but large cell size
   - [x] fix particle rightward drift during `SpatialGrid` broadphase when

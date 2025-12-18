@@ -1,5 +1,4 @@
 #include <Simulator.hpp>
-#include <cmath>
 
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, IntegrationType integrationType,
@@ -42,9 +41,8 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
 
 void Simulator::radialPush(const Vec2f& origin, const float radius,
                            const float mag) {
-  const float cell_size = 1.0f / spatialGrid_.invCellSize;
-  const int scale =
-      std::max(1, static_cast<int>(std::ceil(radius / cell_size)));
+  const int scale = std::max(
+      1, static_cast<int>(std::ceil(radius * spatialGrid_.invCellSize)));
   spatialGrid_.queryDoSomething(
       -1, origin,
       [&](int neiIdx) {
@@ -58,8 +56,8 @@ void Simulator::radialPush(const Vec2f& origin, const float radius,
         const Vec2f norm = d * invDist;
 
         p.accelerate({
-          norm.x * mag * (1.0f - std::sqrt(d2) / radius),
-          norm.y * mag * (1.0f - std::sqrt(d2) / radius),
+            norm.x * mag * (1.0f - std::sqrt(d2) / radius),
+            norm.y * mag * (1.0f - std::sqrt(d2) / radius),
         });
       },
       frameCount_ % 2, scale);
@@ -102,7 +100,7 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
     Particle& p1 = particles_[i];
     const Vec2f c1 = p1.position;
     const float r1 = p1.radius;
-    const float query_r = r1 + maxParticleRadius_;  // LOOK HERE LATER
+    const float query_r = r1 + currBiggestRadius_;  // LOOK HERE LATER
     const AABBf queryRange({c1.x - query_r, c1.y - query_r},
                            {2.0f * query_r, 2.0f * query_r});
 
@@ -135,13 +133,16 @@ void Simulator::spatialGridBroadphase() {
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
+    const float query_dist = p1.radius + currBiggestRadius_;
+    const int scale =
+        static_cast<int>(std::ceil(query_dist * spatialGrid_.invCellSize));
     spatialGrid_.queryDoSomething(
         i, p1.position,
         [&](int neiIdx) {
           Particle& p2 = particles_[neiIdx];
           particleCollision(p1, p2);
         },
-        reverse);
+        reverse, scale);
   }
 }
 
@@ -205,7 +206,6 @@ void Simulator::particleCollision(Particle& p1, Particle& p2) {
 
   // if small dist apart
   if (d2 < 1e-12f) {
-    // Vec2f n = {1.0f, 0.0f};
     const float half = (p1.radius + p2.radius) * 0.5f;
 
     const float invMassSum = p1.invMass + p2.invMass;
