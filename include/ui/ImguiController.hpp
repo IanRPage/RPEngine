@@ -18,16 +18,17 @@ class ImguiController {
         objMult_{1} {}
 
   void render() {
-    ImGui::SetNextWindowSize(ImVec2{450.0f, 500.0f});
-    ImGui::SetNextWindowPos(ImVec2{0.0f, 0.0f});
-    ImGui::Begin("Simulation");
+    ImGui::SetNextWindowSize(ImVec2{450.0f, 0.0f}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2{0.0f, 0.0f}, ImGuiCond_FirstUseEver);
+
+    ImGui::Begin("Simulation", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     ImGui::Text("Particles: %zu", sim_.particles().size());
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
+    // ------ Parameters ------
     ImGui::Spacing();
-    ImGui::SeparatorText("Parameters");
-    {
+    if (ImGui::CollapsingHeader("Parameters")) {
       ImGui::InputFloat("Particle Radius", &particleRadius_);
       particleRadius_ = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
                                    sim_.maxParticleRadius());
@@ -35,9 +36,9 @@ class ImguiController {
       ImGui::SliderFloat("Restitution", &sim_.restitution, 0.0f, 1.0f);
     }
 
+    // ------ Integration ------
     ImGui::Spacing();
-    ImGui::SeparatorText("Integration");
-    {
+    if (ImGui::CollapsingHeader("Integration")) {
       if (ImGui::RadioButton(
               "Euler", sim_.integrationType() == IntegrationType::Euler)) {
         sim_.setIntegrationType(IntegrationType::Euler);
@@ -49,9 +50,9 @@ class ImguiController {
       }
     }
 
+    // ------ Broadphase ------
     ImGui::Spacing();
-    ImGui::SeparatorText("Broadphase");
-    {
+    if (ImGui::CollapsingHeader("Broadphase")) {
       if (ImGui::RadioButton("Naive",
                              sim_.broadphaseType() == BroadphaseType::Naive)) {
         sim_.setBroadphaseType(BroadphaseType::Naive);
@@ -68,9 +69,9 @@ class ImguiController {
       }
     }
 
+    // ------ Forces ------
     ImGui::Spacing();
-    ImGui::SeparatorText("Forces");
-    {
+    if (ImGui::CollapsingHeader("Forces")) {
       ImGui::Text(
           "Select one of the below forces and then left-click to\napply it.");
       ImGui::Spacing();
@@ -96,9 +97,9 @@ class ImguiController {
       }
     }
 
+    // ------ Spawning Methods ------
     ImGui::Spacing();
-    ImGui::SeparatorText("Spawn Methods");
-    {
+    if (ImGui::CollapsingHeader("Spawn Methods")) {
       ImGui::Text(
           "Select one of the below spawning methods and then press\n<Space> to "
           "toggle it on or off.");
