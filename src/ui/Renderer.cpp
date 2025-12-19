@@ -130,7 +130,7 @@ void Renderer::handleMousePressed(
 
   if (e.button == sf::Mouse::Button::Left) {
     if (sim_.forceType() == ForceType::Radial) {
-      radialPushing_ = true;
+      applyingForce = true;
       pushOrigin_ = m;
     }  // TODO: add more forces
   } else if (e.button == sf::Mouse::Button::Right) {
@@ -139,15 +139,12 @@ void Renderer::handleMousePressed(
   }
 }
 
-void Renderer::handleMouseReleased() noexcept {
-  radialPushing_ = false;
-}
+void Renderer::handleMouseReleased() noexcept { applyingForce = false; }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
-  // MAYBE: add mouse guard on ImGui panel
   if (ImGui::GetIO().WantCaptureMouse) return;
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (radialPushing_) {
+  if (applyingForce) {
     pushOrigin_ = m;
   }
 }
@@ -196,11 +193,12 @@ void Renderer::spawn() noexcept {
   if (sim_.particles().size() >= sim_.capacity()) return;
 
   switch (sim_.spawnType()) {
-    case SpawnType::None: return;
+    case SpawnType::None:
+      return;
 
     case SpawnType::Random: {
       if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-        for (int i = 0; i < 5; i++) { // TODO: expose speed in panel
+        for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
           sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
                              imguiCtrl_.particleRadius(), 1.0f);
         }
@@ -239,7 +237,7 @@ void Renderer::spawn() noexcept {
 }
 
 void Renderer::radialPush() {
-  if (!radialPushing_) return;
+  if (!applyingForce) return;
 
   const float pDiam = imguiCtrl_.radialPushRadius() * 2;
 

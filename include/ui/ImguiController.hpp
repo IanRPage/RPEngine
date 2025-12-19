@@ -14,7 +14,8 @@ class ImguiController {
         particleRadius_{particleRadius},
         radialPushRadius_{50.0f},
         forceMagnitude_{2000.0f},
-        spawnType_{SpawnType::None} {}
+        spawnType_{SpawnType::None},
+        objMult_{1} {}
 
   void render() {
     ImGui::SetNextWindowSize(ImVec2{450.0f, 500.0f});
@@ -28,14 +29,10 @@ class ImguiController {
     ImGui::SeparatorText("Parameters");
     {
       ImGui::InputFloat("Particle Radius", &particleRadius_);
-      auto temp = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
-                             sim_.maxParticleRadius());
-      particleRadius_ = temp;
+      particleRadius_ = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
+                                   sim_.maxParticleRadius());
       ImGui::SliderFloat("Gravity", &sim_.gravity, -100.0f, 100.0f);
       ImGui::SliderFloat("Restitution", &sim_.restitution, 0.0f, 1.0f);
-      ImGui::InputFloat("Radial Push Radius", &radialPushRadius_);
-      radialPushRadius_ =
-          std::clamp(radialPushRadius_, MIN_PARTICLE_SIZE, 1e7f);
     }
 
     ImGui::Spacing();
@@ -78,14 +75,25 @@ class ImguiController {
           "Select one of the below forces and then left-click to\napply it.");
       ImGui::Spacing();
 
-      if (ImGui::RadioButton("None", sim_.forceType() == ForceType::None)) {
-        sim_.setForceType(ForceType::None);
+      int curr = toInt(sim_.forceType());
+
+      if (ImGui::RadioButton("None", &curr, toInt(ForceType::None))) {
       }
       ImGui::SameLine();
-      if (ImGui::RadioButton("Radial", sim_.forceType() == ForceType::Radial)) {
-        sim_.setForceType(ForceType::Radial);
+      if (ImGui::RadioButton("Radial", &curr, toInt(ForceType::Radial))) {
       }
-      ImGui::InputFloat("Magnitude", &forceMagnitude_);
+
+      sim_.setForceType(fromInt<ForceType>(curr));
+
+      if (sim_.forceType() == ForceType::Radial) {
+        ImGui::InputFloat("Radial Push Radius", &radialPushRadius_);
+        radialPushRadius_ =
+            std::clamp(radialPushRadius_, MIN_PARTICLE_SIZE, 1e7f);
+      }
+
+      if (sim_.forceType() != ForceType::None) {
+        ImGui::InputFloat("Magnitude", &forceMagnitude_);
+      }
     }
 
     ImGui::Spacing();
@@ -96,23 +104,27 @@ class ImguiController {
           "toggle it on or off.");
       ImGui::Spacing();
 
-      if (ImGui::RadioButton("None", spawnType_ == SpawnType::None)) {
-        spawnType_ = SpawnType::None;
+      int curr = toInt(spawnType_);
+
+      if (ImGui::RadioButton("None", &curr, toInt(SpawnType::None))) {
       }
       ImGui::SameLine();
 
-      if (ImGui::RadioButton("Random", spawnType_ == SpawnType::Random)) {
-        spawnType_ = SpawnType::Random;
+      if (ImGui::RadioButton("Random", &curr, toInt(SpawnType::Random))) {
       }
       ImGui::SameLine();
 
-      if (ImGui::RadioButton("Stream", spawnType_ == SpawnType::Stream)) {
-        spawnType_ = SpawnType::Stream;
+      if (ImGui::RadioButton("Stream", &curr, toInt(SpawnType::Stream))) {
       }
       ImGui::SameLine();
 
-      if (ImGui::RadioButton("Max", spawnType_ == SpawnType::Max)) {
-        spawnType_ = SpawnType::Max;
+      if (ImGui::RadioButton("Max", &curr, toInt(SpawnType::Max))) {
+      }
+
+      spawnType_ = fromInt<SpawnType>(curr);
+
+      if (spawnType_ == SpawnType::Random) {
+        ImGui::InputInt("Object Multiple", &objMult_);
       }
     }
 
@@ -121,15 +133,29 @@ class ImguiController {
 
   float particleRadius() const noexcept { return particleRadius_; }
   float radialPushRadius() const noexcept { return radialPushRadius_; }
+  // ForceType forceType() const noexcept { return forceType_; }
   float forceMagnitude() const noexcept { return forceMagnitude_; }
   SpawnType spawnType() const noexcept { return spawnType_; }
+  int objMultiple() const noexcept { return objMult_; }
 
  private:
   Simulator& sim_;
   float particleRadius_;
   float radialPushRadius_;
+  // ForceType forceType_;
   float forceMagnitude_;
   SpawnType spawnType_;
+  int objMult_;
+
+  template <typename E>
+  static constexpr int toInt(E e) {
+    return static_cast<int>(e);
+  }
+
+  template <typename E>
+  static constexpr E fromInt(int i) {
+    return static_cast<E>(i);
+  }
 };
 
 #endif

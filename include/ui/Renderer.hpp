@@ -3,10 +3,10 @@
 
 #define PI 3.14159265
 
-#include <ui/ImguiController.hpp>
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
 #include <array>
+#include <ui/ImguiController.hpp>
 
 class Renderer {
  public:
@@ -46,7 +46,7 @@ class Renderer {
   std::array<std::vector<sf::Vector2f>, MAX_CIRCLE_SEGMENTS + 1> unitCircle_;
 
   // --- other variables ---
-  bool radialPushing_ = false;
+  bool applyingForce = false;
 
   const float spawnInterval_ = 0.001f;
   std::mt19937 gen_;

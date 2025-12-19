@@ -5,7 +5,7 @@ applying physics to code and to practice algorithms. But probably most of all
 this just felt like a fun project to make. My goal is to be able to run the 2D
 simulation with 100k particles at 60 fps.
 
-![50k-demo](images/50k-demo-800px-15fps.gif?raw=true)
+![demo1](images/demo1.gif?raw=true)
 
 ## Building
 
@@ -140,7 +140,7 @@ graphics), 12 GB RAM. Currently
 
 - [ ] make a callback system for event handling. right now `Renderer::drawFrame`
       is responsible for executing events
-- [ ] add testing suite to ensure physical accuracy
+- [ ] add `gtest` testing suite to ensure physical accuracy
 - [ ] see about optimizing `Renderer::drawParticles`
 - [ ] update README to reflect new UI
 - [ ] rearchitect the codebase (cuz why not)
