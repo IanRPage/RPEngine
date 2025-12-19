@@ -7,7 +7,6 @@
 #include <Simulator.hpp>
 #include <algorithm>
 
-
 class ImguiController {
  public:
   ImguiController(Simulator& sim, float particleRadius = 2.0f)
@@ -27,6 +26,26 @@ class ImguiController {
 
     ImGui::Text("Particles: %zu", sim_.particles().size());
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+    // ------ Help ------
+    ImGui::Spacing();
+    if (ImGui::CollapsingHeader("Help")) {
+      ImGui::Spacing();
+      ImGui::SeparatorText("Forces");
+      ImGui::BulletText(
+          "Force controls are simple, select a force, and click.");
+
+      ImGui::Spacing();
+      ImGui::SeparatorText("Spawning");
+      ImGui::BulletText(
+          "Manual: Select it and right click on your mouse. You can increment "
+          "how many particles are spawned per click");
+      ImGui::BulletText("The rest: Select and press the space bar.");
+      ImGui::BulletText(
+          "Note that you are activating continuous spawning when you hit the "
+          "space bar. So if it's activated and you select another spawning "
+          "method, it'll automatically do that one.");
+    }
 
     // ------ Parameters ------
     ImGui::Spacing();
