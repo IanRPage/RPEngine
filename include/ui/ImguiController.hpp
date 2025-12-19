@@ -7,6 +7,7 @@
 #include <Simulator.hpp>
 #include <algorithm>
 
+
 class ImguiController {
  public:
   ImguiController(Simulator& sim, float particleRadius = 2.0f)
@@ -15,6 +16,7 @@ class ImguiController {
         radialPushRadius_{50.0f},
         forceMagnitude_{2000.0f},
         spawnType_{SpawnType::None},
+        spawning_{false},
         objMult_{1} {}
 
   void render() {
@@ -76,7 +78,7 @@ class ImguiController {
           "Select one of the below forces and then left-click to\napply it.");
       ImGui::Spacing();
 
-      int curr = toInt(sim_.forceType());
+      int curr = toInt(forceType_);
 
       if (ImGui::RadioButton("None", &curr, toInt(ForceType::None))) {
       }
@@ -84,15 +86,15 @@ class ImguiController {
       if (ImGui::RadioButton("Radial", &curr, toInt(ForceType::Radial))) {
       }
 
-      sim_.setForceType(fromInt<ForceType>(curr));
+      forceType_ = fromInt<ForceType>(curr);
 
-      if (sim_.forceType() == ForceType::Radial) {
+      if (forceType_ == ForceType::Radial) {
         ImGui::InputFloat("Radial Push Radius", &radialPushRadius_);
         radialPushRadius_ =
             std::clamp(radialPushRadius_, MIN_PARTICLE_SIZE, 1e7f);
       }
 
-      if (sim_.forceType() != ForceType::None) {
+      if (forceType_ != ForceType::None) {
         ImGui::InputFloat("Magnitude", &forceMagnitude_);
       }
     }
@@ -111,6 +113,10 @@ class ImguiController {
       }
       ImGui::SameLine();
 
+      if (ImGui::RadioButton("Manual", &curr, toInt(SpawnType::Manual))) {
+      }
+      ImGui::SameLine();
+
       if (ImGui::RadioButton("Random", &curr, toInt(SpawnType::Random))) {
       }
       ImGui::SameLine();
@@ -124,7 +130,7 @@ class ImguiController {
 
       spawnType_ = fromInt<SpawnType>(curr);
 
-      if (spawnType_ == SpawnType::Random) {
+      if (spawnType_ == SpawnType::Random || spawnType_ == SpawnType::Manual) {
         ImGui::InputInt("Object Multiple", &objMult_);
       }
     }
@@ -134,18 +140,21 @@ class ImguiController {
 
   float particleRadius() const noexcept { return particleRadius_; }
   float radialPushRadius() const noexcept { return radialPushRadius_; }
-  // ForceType forceType() const noexcept { return forceType_; }
+  ForceType forceType() const noexcept { return forceType_; }
   float forceMagnitude() const noexcept { return forceMagnitude_; }
   SpawnType spawnType() const noexcept { return spawnType_; }
   int objMultiple() const noexcept { return objMult_; }
+  bool spawning() const noexcept { return spawning_; }
+  void setSpawning(bool flag) noexcept { spawning_ = flag; }
 
  private:
   Simulator& sim_;
   float particleRadius_;
   float radialPushRadius_;
-  // ForceType forceType_;
+  ForceType forceType_;
   float forceMagnitude_;
   SpawnType spawnType_;
+  bool spawning_;
   int objMult_;
 
   template <typename E>

@@ -3,8 +3,7 @@
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, size_t maxParticles,
                      IntegrationType integrationType,
-                     BroadphaseType broadphaseType, ForceType forceType,
-                     SpawnType spawnType)
+                     BroadphaseType broadphaseType)
     : gravity{g},
       restitution{C_r},
       worldSize_{dims},
@@ -12,8 +11,6 @@ Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
       dt_{dt},
       integrationType_{integrationType},
       broadphaseType_{broadphaseType},
-      forceType_{forceType},
-      spawnType_{spawnType},
       capacity_{maxParticles},
       frameCount_{0},
       currBiggestRadius_{0.0f},

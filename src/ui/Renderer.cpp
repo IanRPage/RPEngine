@@ -1,5 +1,6 @@
 #include <imgui.h>
 
+#include <SFML/Window/Mouse.hpp>
 #include <ui/Renderer.hpp>
 
 #include "Simulator.hpp"
@@ -129,13 +130,17 @@ void Renderer::handleMousePressed(
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
 
   if (e.button == sf::Mouse::Button::Left) {
-    if (sim_.forceType() == ForceType::Radial) {
+    if (imguiCtrl_.forceType() == ForceType::Radial) {
       applyingForce = true;
       pushOrigin_ = m;
     }  // TODO: add more forces
   } else if (e.button == sf::Mouse::Button::Right) {
-    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                       1.0f);
+    // TODO: find more intelligent and unified way to deal with manual spawn
+    if (ImGui::GetIO().WantCaptureMouse) return;
+    for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
+      sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
+                         1.0f);
+    }
   }
 }
 
@@ -151,10 +156,9 @@ void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
   if (e.scancode == sf::Keyboard::Scan::Space) {
-    if (sim_.spawnType() == imguiCtrl_.spawnType()) {
-      sim_.setSpawnType(SpawnType::None);
-    } else {
-      sim_.setSpawnType(imguiCtrl_.spawnType());
+    const SpawnType mode = imguiCtrl_.spawnType();
+    if (mode != SpawnType::None && mode != SpawnType::Manual) {
+      imguiCtrl_.setSpawning(!imguiCtrl_.spawning());
     }
   }
 }
@@ -192,7 +196,11 @@ void Renderer::drawParticles() {
 void Renderer::spawn() noexcept {
   if (sim_.particles().size() >= sim_.capacity()) return;
 
-  switch (sim_.spawnType()) {
+  const SpawnType mode = imguiCtrl_.spawnType();
+
+  if (!imguiCtrl_.spawning()) return;
+
+  switch (mode) {
     case SpawnType::None:
       return;
 
@@ -230,17 +238,19 @@ void Renderer::spawn() noexcept {
         const float t = baseTime + i * 0.001f;
         colorLUT_[i] = getRainbow(t);
       }
-      sim_.setSpawnType(SpawnType::None);
       break;
     }
+
+    default:
+      break;
   }
 }
 
 void Renderer::radialPush() {
   if (!applyingForce) return;
+  if (imguiCtrl_.forceType() != ForceType::Radial) return;
 
   const float pDiam = imguiCtrl_.radialPushRadius() * 2;
-
   sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam,
                   imguiCtrl_.forceMagnitude());
 }

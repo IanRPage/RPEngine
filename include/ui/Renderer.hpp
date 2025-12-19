@@ -47,6 +47,7 @@ class Renderer {
 
   // --- other variables ---
   bool applyingForce = false;
+  Vec2f manualSpawnPos_;
 
   const float spawnInterval_ = 0.001f;
   std::mt19937 gen_;
