@@ -1,18 +1,25 @@
-#include <SFML/Graphics/Color.hpp>
+#include <imgui.h>
+
+#include <SFML/Window/Mouse.hpp>
 #include <ui/Renderer.hpp>
 
+#include "Simulator.hpp"
+
 Renderer::Renderer(Simulator& sim, const Options& opts)
-    : sim_(sim),
-      window_(
+    : sim_{sim},
+      window_{
           sf::RenderWindow(sf::VideoMode(sf::VideoMode::getDesktopMode().size),
-                           opts.window_title)),
-      gSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {-100.0f, 100.0f}, sim_.gravity,
-               font_, "Gravity"),
-      eSlider_({40.0f, 0.0f}, {200.0f, 10.0f}, {0.0f, 1.0f}, sim_.restitution,
-               font_, "Restitution", sf::Color::White, sf::Color::Yellow),
-      particleCountText_(font_, "Particles: ", 30),
-      fpsText_(font_, "FPS: 60", 30) {
+                           opts.window_title)},
+      imguiCtrl_{sim} {
   window_.setFramerateLimit(opts.fps_limit);
+
+  // --- ImGui setup(-ish) ---
+  if (!ImGui::SFML::Init(window_)) {
+    throw std::runtime_error("Failed to initialize ImGui");
+  }
+  ImGui::GetIO().IniFilename = "build/imgui.ini";
+  // -------------------------
+
   lastSize_ = window_.getSize();
   sim_.configure(
       {static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)},
@@ -22,19 +29,9 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
   distX = std::uniform_real_distribution<float>(0.0f, lastSize_.x - 20.0f);
   distY = std::uniform_real_distribution<float>(0.0f, lastSize_.y - 20.0f);
 
-  // load font
-  if (!font_.openFromFile("assets/pixelated.ttf")) {
-    throw std::runtime_error("Failed to load font: assets/pixelated.ttf");
-  };
-
-  particleSize_ = sim.maxParticleRadius();
-
   // set vertex array things
   particleVertices_.setPrimitiveType(sf::PrimitiveType::Triangles);
   computeUnitCircle();
-
-  // initialize fps measurement arrays
-  frameTimes_.fill(1.0f / static_cast<float>(opts.fps_limit));
 
   runtimeClock_.start();
 
@@ -45,6 +42,7 @@ Renderer::Renderer(Simulator& sim, const Options& opts)
 
 void Renderer::pollAndHandleEvents() noexcept {
   while (const std::optional event = window_.pollEvent()) {
+    ImGui::SFML::ProcessEvent(window_, *event);
     if (event->is<sf::Event::Closed>()) {
       window_.close();
     } else if (const auto* mousePressed =
@@ -61,16 +59,24 @@ void Renderer::pollAndHandleEvents() noexcept {
 }
 
 void Renderer::drawFrame() {
-  updateText();
-  randomSpawn();
-  streamSpawn();
-  randomSpawnSUPERFAST();
-  spawnMax();
-  radialPush(10);
+  spawn();
+  radialPush();
+
+  ImGui::SFML::Update(window_, frameClock_.restart());
+  imguiCtrl_.render();
   window_.clear();
   drawParticles();
-  drawComponents();
+  ImGui::SFML::Render(window_);
   window_.display();
+}
+
+void Renderer::mainLoop() {
+  while (isOpen()) {
+    pollAndHandleEvents();
+    sim_.update();
+    drawFrame();
+  }
+  ImGui::SFML::Shutdown();
 }
 
 void Renderer::computeUnitCircle() {
@@ -115,108 +121,67 @@ void Renderer::layoutUI() noexcept {
   lastSize_ = size;
   sim_.setWorldSize(
       Vec2f(static_cast<float>(lastSize_.x), static_cast<float>(lastSize_.y)));
-
-  const float margin = 10.0f;
-  const auto [sliderWidth, sliderHeight] = gSlider_.getSize();
-
-  // button heights
-  const float y1 = static_cast<float>(size.y) - 100.0f;
-  const float y2 = static_cast<float>(size.y) - 50.0f;
-
-  gSlider_.setPosition({margin, y1});
-  gSlider_.setSize({sliderWidth, sliderHeight});
-
-  eSlider_.setPosition({margin, y2});
-  eSlider_.setSize({sliderWidth, sliderHeight});
-
-  // top corner text
-  particleCountText_.setPosition({margin, margin});
-  float fpsTextWidth = fpsText_.getLocalBounds().size.x;
-  fpsText_.setPosition(
-      {static_cast<float>(size.x) - fpsTextWidth - margin, margin});
 }
 
 void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed& e) noexcept {
+  if (ImGui::GetIO().WantCaptureMouse) return;
+
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
+
   if (e.button == sf::Mouse::Button::Left) {
-    if (gSlider_.contains(m)) {
-      gSlider_.isDragging = true;
-      gSlider_.setActive(true);
-      draggingAny_ = true;
-    } else if (eSlider_.contains(m)) {
-      eSlider_.isDragging = true;
-      eSlider_.setActive(true);
-      draggingAny_ = true;
-    } else {
-      radialPushing_ = true;
+    if (imguiCtrl_.forceType() == ForceType::Radial) {
+      applyingForce = true;
       pushOrigin_ = m;
-    }
+    }  // TODO: add more forces
   } else if (e.button == sf::Mouse::Button::Right) {
-    sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, particleSize_, 1.0f);
+    // TODO: find more intelligent and unified way to deal with manual spawn
+    if (ImGui::GetIO().WantCaptureMouse) return;
+    if (imguiCtrl_.spawnType() == SpawnType::Manual) {
+      for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
+        sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f},
+                           imguiCtrl_.particleRadius(),
+                           imguiCtrl_.particleMass());
+      }
+    }
   }
 }
 
-void Renderer::handleMouseReleased() noexcept {
-  if (gSlider_.isDragging) {
-    gSlider_.isDragging = false;
-    gSlider_.setActive(false);
-  } else if (eSlider_.isDragging) {
-    eSlider_.isDragging = false;
-    eSlider_.setActive(false);
-  }
-  draggingAny_ = false;
-  radialPushing_ = false;
-}
+void Renderer::handleMouseReleased() noexcept { applyingForce = false; }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
+  if (ImGui::GetIO().WantCaptureMouse) return;
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (gSlider_.isDragging) {
-    gSlider_.move(m);
-  } else if (eSlider_.isDragging) {
-    eSlider_.move(m);
-  } else if (radialPushing_) {
+  if (applyingForce) {
     pushOrigin_ = m;
   }
 }
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
-  if (e.scancode == sf::Keyboard::Scan::R) {
-    randomSpawn_ = !randomSpawn_;
-    streamSpawn_ = false;
-    randomSpawnSUPERFAST_ = false;
-    spawnMax_ = false;
-  } else if (e.scancode == sf::Keyboard::Scan::Space) {
-    streamSpawn_ = !streamSpawn_;
-    randomSpawn_ = false;
-    spawnMax_ = false;
-    randomSpawnSUPERFAST_ = false;
-  } else if (e.scancode == sf::Keyboard::Scan::F) {
-    randomSpawnSUPERFAST_ = !randomSpawnSUPERFAST_;
-    randomSpawn_ = false;
-    streamSpawn_ = false;
-    spawnMax_ = false;
-  } else if (e.scancode == sf::Keyboard::Scan::M) {
-    spawnMax_ = !spawnMax_;
-    randomSpawn_ = false;
-    randomSpawnSUPERFAST_ = false;
-    streamSpawn_ = false;
+  if (e.scancode == sf::Keyboard::Scan::Space) {
+    const SpawnType mode = imguiCtrl_.spawnType();
+    if (mode != SpawnType::None && mode != SpawnType::Manual) {
+      imguiCtrl_.setSpawning(!imguiCtrl_.spawning());
+    }
   }
 }
 
 void Renderer::drawParticles() {
-  const size_t segments = getCircleSegments(particleSize_);
-  size_t vertexCount = segments * 3 * sim_.particles().size();
+  size_t totalVertexCount = 0;
+  for (const Particle& par : sim_.particles()) {
+    const size_t segments = getCircleSegments(par.radius);
+    totalVertexCount += segments * 3;
+  }
 
-  // resize if needed
-  if (particleVertices_.getVertexCount() < vertexCount) {
-    particleVertices_.resize(vertexCount);
+  if (particleVertices_.getVertexCount() < totalVertexCount) {
+    particleVertices_.resize(totalVertexCount);
   }
 
   size_t vertexIdx = 0;
   for (const Particle& par : sim_.particles()) {
     const Vec2f& pos = par.position;
     const sf::Color& color = colorFor(par);
+    const size_t segments = getCircleSegments(par.radius);
 
     // transform unit circle vertices
     const std::vector<sf::Vector2f>& vertices = unitCircle_[segments];
@@ -231,99 +196,65 @@ void Renderer::drawParticles() {
   window_.draw(particleVertices_);
 }
 
-void Renderer::drawComponents() {
-  gSlider_.draw(window_);
-  eSlider_.draw(window_);
-  window_.draw(fpsText_);
-  window_.draw(particleCountText_);
-}
+void Renderer::spawn() noexcept {
+  if (sim_.particles().size() >= sim_.capacity()) return;
 
-void Renderer::updateText() noexcept {
-  sf::Time elapsed = frameClock_.restart();
-  float frameTime = elapsed.asSeconds();
+  const SpawnType mode = imguiCtrl_.spawnType();
 
-  // store frame time in circular buffer
-  frameTimes_[frameIndex_] = frameTime;
-  frameIndex_ = (frameIndex_ + 1) % FPS_SAMPLE_COUNT;
-
-  // mark as collected after first full cycle
-  if (frameIndex_ == 0) samplesCollected_ = true;
-
-  // Calculate average FPS only after we have enough samples
-  if (samplesCollected_) {
-    float avgFrameTime =
-        std::accumulate(frameTimes_.begin(), frameTimes_.end(), 0.0f) /
-        FPS_SAMPLE_COUNT;
-    float fps = 1.0f / avgFrameTime;
-    fpsText_.setString("FPS: " + std::to_string(static_cast<int>(fps)));
-  }
-
-  particleCountText_.setString("Particles: " +
-                               std::to_string(sim_.particles().size()));
-}
-
-void Renderer::randomSpawn() noexcept {
-  if (!randomSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
-
-  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    spawnClock_.restart();
-  }
-}
-
-void Renderer::randomSpawnSUPERFAST() noexcept {
-  if (!randomSpawnSUPERFAST_ || sim_.particles().size() >= sim_.capacity())
+  // max mode
+  if (mode != SpawnType::Random && mode != SpawnType::Stream) {
+    if (mode == SpawnType::Max) {
+      const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
+      const size_t startIdx = sim_.particles().size();
+      for (size_t i = startIdx; i < sim_.capacity(); i++) {
+        sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                           imguiCtrl_.particleRadius(),
+                           imguiCtrl_.particleMass());
+        const float t = baseTime + i * 0.001f;
+        colorLUT_[i] = getRainbow(t);
+      }
+    }
     return;
+  }
 
-  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    spawnClock_.restart();
+  if (!imguiCtrl_.spawning()) return;
+
+  const float interval = imguiCtrl_.spawnInterval();
+
+  static float spawnAcc = 0.0f;
+  spawnAcc += frameClock_.getElapsedTime().asSeconds();
+
+  int emitCount = static_cast<int>(spawnAcc / interval);
+  if (emitCount <= 0) return;
+
+  spawnAcc -= emitCount * interval;
+
+  const float currentTime = runtimeClock_.getElapsedTime().asSeconds();
+
+  for (int i = 0; i < emitCount; i++) {
+    // approx time each particle should have been spawned
+    const float t = currentTime - spawnAcc - (emitCount - i - 1) * interval;
+
+    if (mode == SpawnType::Random) {
+      sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                         imguiCtrl_.particleRadius(),
+                         imguiCtrl_.particleMass());
+    } else if (mode == SpawnType::Stream) {
+      const float speed = imguiCtrl_.streamSpeed();  // init speed of particle
+      const float omega = imguiCtrl_.streamOmega();  // angular freq of stream
+      const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
+      sim_.spawnParticle(
+          {lastSize_.x * 0.5f, 25.0f}, Vec2f(cos(angle), sin(angle)) * speed,
+          imguiCtrl_.particleRadius(), imguiCtrl_.particleMass());
+    }
   }
 }
 
-void Renderer::streamSpawn() noexcept {
-  if (!streamSpawn_ || sim_.particles().size() >= sim_.capacity()) return;
+void Renderer::radialPush() {
+  if (!applyingForce) return;
+  if (imguiCtrl_.forceType() != ForceType::Radial) return;
 
-  if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-    const float speed = 1200.0f;  // tune these
-    const float omega = 0.5f;     // parameters
-    const float t = runtimeClock_.getElapsedTime().asSeconds();
-    const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
-    sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
-                       Vec2f(cos(angle), sin(angle)) * speed, particleSize_,
-                       1.0f);
-    spawnClock_.restart();
-  }
-}
-
-void Renderer::spawnMax() noexcept {
-  if (!spawnMax_ || sim_.particles().size() >= sim_.capacity()) return;
-
-  const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
-  for (size_t i = 0; i < sim_.capacity(); i++) {
-    sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f}, particleSize_,
-                       1.0f);
-    const float t = baseTime + i * 0.001f;
-    colorLUT_[i] = getRainbow(t);
-  }
-  spawnMax_ = false;
-}
-
-void Renderer::radialPush(const int scale) {
-  if (!radialPushing_) return;
-
-  const float pDiam = particleSize_ * 2;
-
-  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam * scale, 2000.0f,
-                  scale);
+  const float pDiam = imguiCtrl_.radialPushRadius() * 2;
+  sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam,
+                  imguiCtrl_.forceMagnitude());
 }

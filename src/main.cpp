@@ -1,19 +1,13 @@
+#include <imgui-SFML.h>
+
 #include <Simulator.hpp>
 #include <ui/Renderer.hpp>
 
 int main() {
-  // NOTE: running sim w/ Euler integration makes some really cool fx
-  // Simulator sim({0.0f, 0.0f}, 2.0f, 0.0f, 0.0f, 0.0f, IntegrationType::Euler,
-  //               BroadphaseType::UniformGrid, 12000);
-  Simulator sim({0.0f, 0.0f}, 2.0f, 0.0f, 0.0f, 0.0, IntegrationType::Verlet,
-                BroadphaseType::UniformGrid, 50000);
-
+  Simulator sim({0.0f, 0.0f}, 50.0f, 0.0f, 0.65f, 0.01f, 50000);
   Renderer renderer(sim, Renderer::Options{60, "RPEngine"});
 
-  while (renderer.isOpen()) {
-    renderer.pollAndHandleEvents();
-    sim.update();
-    renderer.drawFrame();
-  }
+  renderer.mainLoop();
+
   return 0;
 }

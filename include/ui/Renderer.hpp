@@ -6,7 +6,7 @@
 #include <SFML/Graphics.hpp>
 #include <Simulator.hpp>
 #include <array>
-#include <ui/Slider.hpp>
+#include <ui/ImguiController.hpp>
 
 class Renderer {
  public:
@@ -21,12 +21,14 @@ class Renderer {
   bool isOpen() const noexcept { return window_.isOpen(); };
   void pollAndHandleEvents() noexcept;
   void drawFrame();
+  void mainLoop();
 
   sf::Vector2u windowSize() const noexcept { return window_.getSize(); };
 
  private:
   Simulator& sim_;
   sf::RenderWindow window_;
+  ImguiController imguiCtrl_;
   sf::Vector2u lastSize_;
   sf::Vector2f pushOrigin_;  // tracks mouse position when held down
 
@@ -35,18 +37,7 @@ class Renderer {
   sf::Clock spawnClock_;
   sf::Clock runtimeClock_;
 
-  // color lookup table
-  std::vector<std::optional<sf::Color>> colorLUT_;
-
-  // --- assets ---
-  sf::Font font_;
-  sf::Texture particleTexture_;
-
-  // --- UI components ---
-  HorizSlider gSlider_;
-  HorizSlider eSlider_;
-  sf::Text particleCountText_;
-  sf::Text fpsText_;
+  std::vector<std::optional<sf::Color>> colorLUT_;  // color lookup table
 
   // vertex based circle drawing
   sf::VertexArray particleVertices_;
@@ -55,24 +46,12 @@ class Renderer {
   std::array<std::vector<sf::Vector2f>, MAX_CIRCLE_SEGMENTS + 1> unitCircle_;
 
   // --- other variables ---
-  float particleSize_ = 5.0f;
-  bool draggingAny_ = false;
-  bool radialPushing_ = false;
+  bool applyingForce = false;
+  Vec2f manualSpawnPos_;
 
-  const float spawnInterval_ = 0.001f;
-  bool streamSpawn_ = false;
-  bool randomSpawn_ = false;
-  bool randomSpawnSUPERFAST_ = false;
-  bool spawnMax_ = false;
   std::mt19937 gen_;
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;
-
-  // fps measurement
-  static constexpr size_t FPS_SAMPLE_COUNT = 60;
-  std::array<float, FPS_SAMPLE_COUNT> frameTimes_;
-  size_t frameIndex_ = 0;
-  bool samplesCollected_ = false;
 
   // --- helpers ---
   void computeUnitCircle();
@@ -88,14 +67,10 @@ class Renderer {
   void handleKeyPressed(const sf::Event::KeyPressed& e) noexcept;
 
   void drawParticles();
-  void drawComponents();
-  void updateText() noexcept;
 
-  void randomSpawn() noexcept;
-  void randomSpawnSUPERFAST() noexcept;
-  void streamSpawn() noexcept;
-  void spawnMax() noexcept;
-  void radialPush(const int scale);
+  void spawn() noexcept;
+
+  void radialPush();
 };
 
 #endif
