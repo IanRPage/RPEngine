@@ -8,7 +8,11 @@ simulation with 100k particles at 60 fps.
 I will eventually add a 3D mode to the simulation and GUI portion for cooler
 stuff.
 
+## Examples
+
 ![demo1](images/demo1.gif?raw=true)
+
+![demo2](images/demo2.gif?raw=true)
 
 ## Building
 
@@ -125,7 +129,7 @@ initialization.
 
 You can further tune the simulation at runtime by using the panel below:
 
-![panel1](images/panel1.gif?raw=true)
+![panel1](images/panel1.png?raw=true)
 
 ## Controls
 
@@ -145,7 +149,7 @@ To spawn particles:
 
 If you forget these instructions, the Help dropdown in the panel will tell you:
 
-![panel2](images/panel2.gif?raw=true)
+![panel2](images/panel2.png?raw=true)
 
 ## State of Simulation Performance
 
