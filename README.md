@@ -123,10 +123,29 @@ initialization.
 - NOTE: only `maxParticleRadius` and `maxParticles` don't get changed by the
   `Renderer`. So you do need to think about these ones.
 
-Now on to actually parameter tuning at runtime. All the ways you can configure
-the simulation are shown below.
+You can further tune the simulation at runtime by using the panel below:
 
-![demo1](images/panel1.gif?raw=true)
+![panel1](images/panel1.gif?raw=true)
+
+## Controls
+
+To apply a force:
+
+1. Select the force you want.
+
+2. Left-click to apply it; the force will be applied for as long as you hold
+   down the left mouse.
+
+To spawn particles:
+
+1. Select the spawning method.
+
+2. If you selected **Manual** spawn, you right-click to activate it. For all
+   other spawning methods, press \<Space\> to toggle it on/off.
+
+If you forget these instructions, the Help dropdown in the panel will tell you:
+
+![panel2](images/panel2.gif?raw=true)
 
 ## State of Simulation Performance
 
@@ -148,7 +167,6 @@ graphics), 12 GB RAM. Currently
       is responsible for executing events
 - [ ] add `gtest` testing suite to ensure physical accuracy
 - [ ] see about optimizing `Renderer::drawParticles`
-- [ ] update README to reflect new UI
 - [ ] rearchitect the codebase (cuz why not)
 - [ ] make transition between integration types clean. simulation crashes from
       Euler -> Verlet
@@ -184,9 +202,6 @@ graphics), 12 GB RAM. Currently
         detection
 - [x] fix the downsizing radius issue
 - [x] fix particles exploding when compacted w/ Verlet integration
-- [x] add support for Winblows
-- [x] add instructions for controls!!!
-- [x] add radial push
 - [x] change particle drawing to vertex-based
 - [x] implement SpatialGrid class and move some stuff out of
       `Simulator::spatialGridBroadphase()`
