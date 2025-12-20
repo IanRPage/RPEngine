@@ -190,7 +190,9 @@ graphics), 12 GB RAM. Currently
         particles but large cell size
   - [x] fix particle rightward drift during `SpatialGrid` broadphase when
         tightly packed
-- [x] use ImGui to enable simulation configuration
+- [ ] use ImGui to enable simulation configuration
+  - [ ] figure out why we can't press None radio button in Spawn dropdown when
+        Forces dropdown is also open
   - [x] make the panel cleaner looking
   - [x] explain all controls in GUI once ImGui controls implemented
   - [x] add spawning methods to ImGui
