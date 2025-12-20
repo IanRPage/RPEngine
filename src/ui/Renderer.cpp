@@ -139,7 +139,7 @@ void Renderer::handleMousePressed(
     if (ImGui::GetIO().WantCaptureMouse) return;
     for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
       sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                         1.0f);
+                         imguiCtrl_.particleMass());
     }
   }
 }
@@ -208,7 +208,8 @@ void Renderer::spawn() noexcept {
       if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
         for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
           sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                             imguiCtrl_.particleRadius(), 1.0f);
+                             imguiCtrl_.particleRadius(),
+                             imguiCtrl_.particleMass());
         }
         spawnClock_.restart();
       }
@@ -221,9 +222,9 @@ void Renderer::spawn() noexcept {
         const float omega = 0.5f;     // parameters
         const float t = runtimeClock_.getElapsedTime().asSeconds();
         const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
-        sim_.spawnParticle({lastSize_.x * 0.5f, 25.0f},
-                           Vec2f(cos(angle), sin(angle)) * speed,
-                           imguiCtrl_.particleRadius(), 1.0f);
+        sim_.spawnParticle(
+            {lastSize_.x * 0.5f, 25.0f}, Vec2f(cos(angle), sin(angle)) * speed,
+            imguiCtrl_.particleRadius(), imguiCtrl_.particleMass());
         spawnClock_.restart();
       }
       break;
@@ -234,7 +235,8 @@ void Renderer::spawn() noexcept {
       const size_t startIdx = sim_.particles().size();
       for (size_t i = startIdx; i < sim_.capacity(); i++) {
         sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                           imguiCtrl_.particleRadius(), 1.0f);
+                           imguiCtrl_.particleRadius(),
+                           imguiCtrl_.particleMass());
         const float t = baseTime + i * 0.001f;
         colorLUT_[i] = getRainbow(t);
       }

@@ -6,12 +6,14 @@
 
 #include <Simulator.hpp>
 #include <algorithm>
+#include <limits>
 
 class ImguiController {
  public:
-  ImguiController(Simulator& sim, float particleRadius = 2.0f)
+  ImguiController(Simulator& sim)
       : sim_{sim},
-        particleRadius_{particleRadius},
+        particleRadius_{2.0f},
+        particleMass_{1.0f},
         radialPushRadius_{50.0f},
         forceMagnitude_{2000.0f},
         spawnType_{SpawnType::None},
@@ -50,9 +52,6 @@ class ImguiController {
     // ------ Parameters ------
     ImGui::Spacing();
     if (ImGui::CollapsingHeader("Parameters")) {
-      ImGui::InputFloat("Particle Radius", &particleRadius_);
-      particleRadius_ = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
-                                   sim_.maxParticleRadius());
       ImGui::SliderFloat("Gravity", &sim_.gravity, -100.0f, 100.0f);
       ImGui::SliderFloat("Restitution", &sim_.restitution, 0.0f, 1.0f);
     }
@@ -149,6 +148,16 @@ class ImguiController {
 
       spawnType_ = fromInt<SpawnType>(curr);
 
+      if (spawnType_ != SpawnType::None) {
+        ImGui::InputFloat("Particle Radius", &particleRadius_);
+        particleRadius_ = std::clamp(particleRadius_, MIN_PARTICLE_SIZE,
+                                     sim_.maxParticleRadius());
+
+        ImGui::InputFloat("Particle Mass", &particleMass_);
+        particleMass_ = std::clamp(particleMass_, MIN_PARTICLE_MASS,
+                                   std::numeric_limits<float>::infinity());
+      }
+
       if (spawnType_ == SpawnType::Random || spawnType_ == SpawnType::Manual) {
         ImGui::InputInt("Object Multiple", &objMult_);
       }
@@ -157,18 +166,23 @@ class ImguiController {
     ImGui::End();
   }
 
+  // ------ setters ------
+  void setSpawning(bool flag) noexcept { spawning_ = flag; }
+
+  // ------ getters ------
   float particleRadius() const noexcept { return particleRadius_; }
+  float particleMass() const noexcept { return particleMass_; }
   float radialPushRadius() const noexcept { return radialPushRadius_; }
   ForceType forceType() const noexcept { return forceType_; }
   float forceMagnitude() const noexcept { return forceMagnitude_; }
   SpawnType spawnType() const noexcept { return spawnType_; }
   int objMultiple() const noexcept { return objMult_; }
   bool spawning() const noexcept { return spawning_; }
-  void setSpawning(bool flag) noexcept { spawning_ = flag; }
 
  private:
   Simulator& sim_;
   float particleRadius_;
+  float particleMass_;
   float radialPushRadius_;
   ForceType forceType_;
   float forceMagnitude_;

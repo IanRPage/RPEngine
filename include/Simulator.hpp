@@ -9,8 +9,6 @@
 #include <random>
 #include <vector>
 
-constexpr float MIN_PARTICLE_SIZE = 1.0f;
-
 class Simulator {
  public:
   float gravity;
