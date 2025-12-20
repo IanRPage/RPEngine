@@ -164,18 +164,18 @@ class ImguiController {
       }
 
       if (spawnType_ == SpawnType::Manual) {
-        ImGui::InputInt("Object Multiple", &objMult_);
+        ImGui::InputInt("Object Multiple", &objMult_, 1, 10);
         objMult_ = std::clamp(objMult_, 1, static_cast<int>(sim_.capacity()));
       }
 
       if (spawnType_ == SpawnType::Stream) {
-        ImGui::InputFloat("Particle Speed", &streamSpeed_);
+        ImGui::InputFloat("Particle Speed", &streamSpeed_, 50.0f, 500.0f);
         streamSpeed_ = std::clamp(streamSpeed_, 1.0f, INF);
-        ImGui::InputFloat("Stream Omega\n(angular freq.)", &streamOmega_);
+        ImGui::InputFloat("Stream Omega\n(angular freq.)", &streamOmega_, 0.1f, 1.0f);
       }
 
       if (spawnType_ == SpawnType::Stream || spawnType_ == SpawnType::Random) {
-        ImGui::InputFloat("Spawn Interval", &spawnInterval_);
+        ImGui::InputFloat("Spawn Interval", &spawnInterval_, 0.001f, 0.01f, "%.4f");
         spawnInterval_ = std::clamp(spawnInterval_, 0.001f, 1.0f);
 
         const float rate = 1.0f / spawnInterval_;
