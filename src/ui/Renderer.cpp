@@ -137,9 +137,12 @@ void Renderer::handleMousePressed(
   } else if (e.button == sf::Mouse::Button::Right) {
     // TODO: find more intelligent and unified way to deal with manual spawn
     if (ImGui::GetIO().WantCaptureMouse) return;
-    for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
-      sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f}, imguiCtrl_.particleRadius(),
-                         imguiCtrl_.particleMass());
+    if (imguiCtrl_.spawnType() == SpawnType::Manual) {
+      for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
+        sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f},
+                           imguiCtrl_.particleRadius(),
+                           imguiCtrl_.particleMass());
+      }
     }
   }
 }
@@ -198,39 +201,9 @@ void Renderer::spawn() noexcept {
 
   const SpawnType mode = imguiCtrl_.spawnType();
 
-  if (!imguiCtrl_.spawning()) return;
-
-  switch (mode) {
-    case SpawnType::None:
-      return;
-
-    case SpawnType::Random: {
-      if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-        for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
-          sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
-                             imguiCtrl_.particleRadius(),
-                             imguiCtrl_.particleMass());
-        }
-        spawnClock_.restart();
-      }
-      break;
-    }
-
-    case SpawnType::Stream: {
-      if (spawnClock_.getElapsedTime().asSeconds() >= spawnInterval_) {
-        const float speed = 1200.0f;  // tune these
-        const float omega = 0.5f;     // parameters
-        const float t = runtimeClock_.getElapsedTime().asSeconds();
-        const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
-        sim_.spawnParticle(
-            {lastSize_.x * 0.5f, 25.0f}, Vec2f(cos(angle), sin(angle)) * speed,
-            imguiCtrl_.particleRadius(), imguiCtrl_.particleMass());
-        spawnClock_.restart();
-      }
-      break;
-    }
-
-    case SpawnType::Max: {
+  // max mode
+  if (mode != SpawnType::Random && mode != SpawnType::Stream) {
+    if (mode == SpawnType::Max) {
       const float baseTime = runtimeClock_.getElapsedTime().asSeconds();
       const size_t startIdx = sim_.particles().size();
       for (size_t i = startIdx; i < sim_.capacity(); i++) {
@@ -240,11 +213,40 @@ void Renderer::spawn() noexcept {
         const float t = baseTime + i * 0.001f;
         colorLUT_[i] = getRainbow(t);
       }
-      break;
     }
+    return;
+  }
 
-    default:
-      break;
+  if (!imguiCtrl_.spawning()) return;
+
+  const float interval = imguiCtrl_.spawnInterval();
+
+  static float spawnAcc = 0.0f;
+  spawnAcc += frameClock_.getElapsedTime().asSeconds();
+
+  int emitCount = static_cast<int>(spawnAcc / interval);
+  if (emitCount <= 0) return;
+
+  spawnAcc -= emitCount * interval;
+
+  const float currentTime = runtimeClock_.getElapsedTime().asSeconds();
+
+  for (int i = 0; i < emitCount; i++) {
+    // approx time each particle should have been spawned
+    const float t = currentTime - spawnAcc - (emitCount - i - 1) * interval;
+
+    if (mode == SpawnType::Random) {
+      sim_.spawnParticle({distX(gen_), distY(gen_)}, {0.0f, 0.0f},
+                         imguiCtrl_.particleRadius(),
+                         imguiCtrl_.particleMass());
+    } else if (mode == SpawnType::Stream) {
+      const float speed = imguiCtrl_.streamSpeed();  // init speed of particle
+      const float omega = imguiCtrl_.streamOmega();  // angular freq of stream
+      const float angle = 0.5f * PI * (cos(t * omega) + 1.0f);
+      sim_.spawnParticle(
+          {lastSize_.x * 0.5f, 25.0f}, Vec2f(cos(angle), sin(angle)) * speed,
+          imguiCtrl_.particleRadius(), imguiCtrl_.particleMass());
+    }
   }
 }
 

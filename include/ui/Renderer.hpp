@@ -49,7 +49,6 @@ class Renderer {
   bool applyingForce = false;
   Vec2f manualSpawnPos_;
 
-  const float spawnInterval_ = 0.001f;
   std::mt19937 gen_;
   std::uniform_real_distribution<float> distX;
   std::uniform_real_distribution<float> distY;

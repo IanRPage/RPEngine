@@ -5,6 +5,9 @@ applying physics to code and to practice algorithms. But probably most of all
 this just felt like a fun project to make. My goal is to be able to run the 2D
 simulation with 100k particles at 60 fps.
 
+I will eventually add a 3D mode to the simulation and GUI portion for cooler
+stuff.
+
 ![demo1](images/demo1.gif?raw=true)
 
 ## Building
@@ -81,23 +84,13 @@ make debug
 
 **FOR WINDOWS USERS**: I got it running on my windows system, but I had already
 gone through getting SFML to work prior. Tbh, I don't remember what I did. That
-said, I got the simulation running on windows. You're on your own here.
+said, I got the simulation running on windows. You're on your own here. Feel
+free to find out and open a PR making changes to these instructions.
 
-## Controls
-
-There's only some pretty rudimentary controls at the moment:
-
-- _Spawn a single particle_ -> **right click** anywhere on the screen.
-- _Begin randomly spawning particles_ -> **press R**.
-- _Randomly spawn particles 5x faster_ -> **press F**.
-- _Spawn particle in an oscillating stream_ -> **press Space**.
-- _Spawn `capacity` number of particle_ -> **press M**.
-- _Radially push particles from mouse_ -> **hold fown left click**. you can move
-  your mouse around and it will continue applying.
-
-Apart from these controls there is also a gravity and coefficient of restitution
-slider (describes how much kinetic energy is lost on collision) to manipulate
-the simulation some more.
+**FOR MACOS USERS**: I don't have access to a mac, so idk what is needed to get
+it running. That said, macOS is close to unix so I'd imagine the same commands
+for getting it running on Ubuntu/Debian would be nearly the same. Feel free to
+find out and open a PR making changes to these instructions.
 
 ## Tuning the Simulation
 
@@ -106,22 +99,34 @@ explanation of each parameter:
 
 ```cpp
 Simulator sim(
-  {0.0f, 0.0f},                     // window dimensions
-  2.0f,                             // maximum particle radius
+  {0.0f, 0.0f},                     // container dimensions
+  50.0f,                            // maximum particle radius
   0.0f,                             // magnitude of gravity
   0.0f,                             // magnitude of coefficient of restitution
-  0.0,                              // delta time step for simulation
+  0.0f,                             // delta time step for simulation
+  14000,                            // max amount of particles allowed in the
+                                    // simulator
   IntegrationType::Verlet,          // integration type
   BroadphaseType::SpatialGrid,      // broadphase type
-  14000                             // max amount of particles allowed in the
-                                    // simulator
 );
 ```
 
-The reason that a bunch of these parameters are set to 0 in `main` is because
-the `Renderer` ends up manipulating them through its window size, and the
-parameters get tuned during the simulation. The simulation can run independent
-of the GUI.
+Again, these are the initialization parameters for the `Simulator` class. The
+reason I leave these parameters is because eventually I will enable running the
+simulation without the GUI, it will take in particle data and it will stream
+particle data out to different files. That will take some time but yeah.
+
+The reason that a bunch of these parameters are set to garbage values in
+`main.cpp` is because the `Renderer` ends up manipulating them upon
+initialization.
+
+- NOTE: only `maxParticleRadius` and `maxParticles` don't get changed by the
+  `Renderer`. So you do need to think about these ones.
+
+Now on to actually parameter tuning at runtime. All the ways you can configure
+the simulation are shown below.
+
+![demo1](images/panel1.gif?raw=true)
 
 ## State of Simulation Performance
 
@@ -138,6 +143,7 @@ graphics), 12 GB RAM. Currently
 
 ## TODO
 
+- [ ] look into forward declarations for certain classes that rely on others
 - [ ] make a callback system for event handling. right now `Renderer::drawFrame`
       is responsible for executing events
 - [ ] add `gtest` testing suite to ensure physical accuracy
@@ -162,8 +168,8 @@ graphics), 12 GB RAM. Currently
         particles but large cell size
   - [x] fix particle rightward drift during `SpatialGrid` broadphase when
         tightly packed
-- [ ] use ImGui to enable simulation configuration
-  - [ ] make the panel cleaner looking
+- [x] use ImGui to enable simulation configuration
+  - [x] make the panel cleaner looking
   - [x] explain all controls in GUI once ImGui controls implemented
   - [x] add spawning methods to ImGui
   - [x] add forces options
