@@ -53,42 +53,17 @@ struct SpatialGrid {
   }
 
   template <typename Fn>
-  inline void queryDoSomething(size_t objIdx, const Vec2f& pos, Fn&& callback,
-                               bool reverse = false, int scale = 1) {
-    const int cx =
-        std::clamp(static_cast<int>(pos.x * invCellSize), 0, cols - 1);
-    const int cy =
-        std::clamp(static_cast<int>(pos.y * invCellSize), 0, rows - 1);
-
-    // precompute valid neighbor ranges
-    int dxMin = 0, dxMax = 0, dyMin = 0, dyMax = 0;
-    if (scale != 0) {
-      dxMin = -std::min(scale, cx);
-      dxMax = std::min(scale, cols - 1 - cx);
-      dyMin = -std::min(scale, cy);
-      dyMax = std::min(scale, rows - 1 - cy);
-    } else {
-      return;
-    }
-
-    const int dxStart = reverse ? dxMax : dxMin;
-    const int dxEnd = reverse ? dxMin : dxMax;
-    const int dxStep = reverse ? -1 : 1;
-    const int dyStart = reverse ? dyMax : dyMin;
-    const int dyEnd = reverse ? dyMin : dyMax;
-    const int dyStep = reverse ? -1 : 1;
+  inline void queryDoSomething(size_t objIdx, const float radius,
+                               const Vec2f& pos, Fn&& callback) {
+    int cxMin = std::clamp((int)((pos.x - radius) * invCellSize), 0, cols - 1);
+    int cxMax = std::clamp((int)((pos.x + radius) * invCellSize), 0, cols - 1);
+    int cyMin = std::clamp((int)((pos.y - radius) * invCellSize), 0, rows - 1);
+    int cyMax = std::clamp((int)((pos.y + radius) * invCellSize), 0, rows - 1);
 
     // query neighbors
-    for (int dx = dxStart; reverse ? (dx >= dxEnd) : (dx <= dxEnd);
-         dx += dxStep) {
-      const int nx = cx + dx;
-      for (int dy = dyStart; reverse ? (dy >= dyEnd) : (dy <= dyEnd);
-           dy += dyStep) {
-        const int ny = cy + dy;
-        const int cn = ny * cols + nx;
-        if (cn >= static_cast<int>(head.size())) continue;
-
-        // get the second particle
+    for (int cy = cyMin; cy <= cyMax; cy++) {
+      for (int cx = cxMin; cx <= cxMax; cx++) {
+        const int cn = cy * cols + cx;
         for (int idx = head[cn]; idx != -1; idx = next[idx]) {
           // prune redundant checks
           if (idx <= static_cast<int>(objIdx)) continue;

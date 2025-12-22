@@ -42,26 +42,21 @@ void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
 
 void Simulator::radialPush(const Vec2f& origin, const float radius,
                            const float mag) {
-  const int scale = std::max(
-      1, static_cast<int>(std::ceil(radius * spatialGrid_.invCellSize)));
-  spatialGrid_.queryDoSomething(
-      -1, origin,
-      [&](int neiIdx) {
-        Particle& p = particles_[neiIdx];
-        const Vec2f d = p.position - origin;
-        const float d2 = d.x * d.x + d.y * d.y;
+  spatialGrid_.queryDoSomething(-1, radius, origin, [&](int neiIdx) {
+    Particle& p = particles_[neiIdx];
+    const Vec2f d = p.position - origin;
+    const float d2 = d.x * d.x + d.y * d.y;
 
-        if (d2 > radius * radius || d2 < 1e-12f) return;
+    if (d2 > radius * radius || d2 < 1e-12f) return;
 
-        const float invDist = 1.0f / std::sqrt(d2);
-        const Vec2f norm = d * invDist;
+    const float invDist = 1.0f / std::sqrt(d2);
+    const Vec2f norm = d * invDist;
 
-        p.accelerate({
-            norm.x * mag * (1.0f - std::sqrt(d2) / radius),
-            norm.y * mag * (1.0f - std::sqrt(d2) / radius),
-        });
-      },
-      frameCount_ % 2, scale);
+    p.accelerate({
+        norm.x * mag * (1.0f - std::sqrt(d2) / radius),
+        norm.y * mag * (1.0f - std::sqrt(d2) / radius),
+    });
+  });
 }
 
 void Simulator::update() noexcept {
@@ -120,7 +115,6 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
 
 // O(n)
 void Simulator::spatialGridBroadphase() {
-  bool reverse = (frameCount_ % 2);
   float avg_radius = (particles_.size() > 0) ? sumRadii_ / particles_.size()
                                              : maxParticleRadius_;
   if (std::abs(avg_radius - prevAvgRadius_) > 0.2f) {
@@ -134,16 +128,10 @@ void Simulator::spatialGridBroadphase() {
   // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
-    const float query_dist = p1.radius + currBiggestRadius_;
-    const int scale =
-        static_cast<int>(std::ceil(query_dist * spatialGrid_.invCellSize));
-    spatialGrid_.queryDoSomething(
-        i, p1.position,
-        [&](int neiIdx) {
-          Particle& p2 = particles_[neiIdx];
-          particleCollision(p1, p2);
-        },
-        reverse, scale);
+    spatialGrid_.queryDoSomething(i, p1.radius, p1.position, [&](int neiIdx) {
+      Particle& p2 = particles_[neiIdx];
+      particleCollision(p1, p2);
+    });
   }
 }
 
