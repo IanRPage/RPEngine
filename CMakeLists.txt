@@ -16,6 +16,9 @@ string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 # executable name
 set(EXE_NAME ${CMAKE_PROJECT_NAME})
 
+# unit tests
+option(BUILD_TESTS "Build unit tests" ON)
+
 # set compile flags for build types
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
@@ -91,3 +94,8 @@ add_custom_target(release
     USES_TERMINAL
     COMMENT "Configuring to Release mode and building ..."
 )
+
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
