@@ -1,3 +1,4 @@
+#include <imgui-SFML.h>
 #include <imgui.h>
 
 #include <SFML/Window/Mouse.hpp>

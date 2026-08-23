@@ -75,7 +75,9 @@ set(SOURCES
     src/main.cpp
     src/Particle.cpp
     src/Simulator.cpp
+    src/dsa/SpatialGrid.cpp
     src/ui/Renderer.cpp
+    src/ui/ImguiController.cpp
 )
 
 add_executable(${EXE_NAME} ${SOURCES})
