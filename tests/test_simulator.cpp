@@ -32,7 +32,7 @@ TEST_F(SimulatorTest, SpawnParticleRespectsCapacity) {
 }
 
 TEST_F(SimulatorTest, UpdateAppliesGravity) {
-  sim->spawnParticle({400.0f, 100.0f}, {0.0f, 0.0f}, 5.0f, 1.0f);
+  sim->spawnParticle({400.0f, 100.0f}, {0.0001f, 0.0f}, 5.0f, 1.0f);
   float initialY = sim->particles()[0].position.y;
   sim->update();
   EXPECT_GT(sim->particles()[0].position.y, initialY);
@@ -124,4 +124,11 @@ TEST_F(SimulatorTest, SpawnedParticleVelocityNormBugFixed) {
   const auto& p = sim->particles()[0];
   float vn = p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y;
   EXPECT_GT(vn, 0.0f);
+}
+
+TEST_F(SimulatorTest, SpawnParticleDoesNotDiscardValidNonZeroVelocity) {
+  sim->spawnParticle({400.0f, 300.0f}, {2.0f, -2.0f}, 5.0f, 1.0f);
+  const auto& p = sim->particles()[0];
+  EXPECT_FLOAT_EQ(p.velocity.x, 2.0f);
+  EXPECT_FLOAT_EQ(p.velocity.y, -2.0f);
 }
