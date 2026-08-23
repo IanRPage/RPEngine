@@ -96,6 +96,32 @@ it running. That said, macOS is close to unix so I'd imagine the same commands
 for getting it running on Ubuntu/Debian would be nearly the same. Feel free to
 find out and open a PR making changes to these instructions.
 
+## Testing
+
+Unit tests live in `tests/` and cover simulation logic using GoogleTest.
+
+Configure and build the test binary:
+
+```
+cmake -B build .          # from project root
+cmake --build build --target rp_tests -j
+```
+
+Then run the tests, either directly:
+
+```
+./build/bin/rp_tests
+```
+
+or through ctest, for per-case pass/fail output:
+
+```
+ctest --test-dir build --output-on-failure
+```
+
+Tests are built by default. To skip them (to avoid the GoogleTest fetch/build),
+configure with `-DBUILD_TESTS=OFF`.
+
 ## Tuning the Simulation
 
 In `main.cpp`, you'll find the initialization of the simulator. Here is an
@@ -169,7 +195,6 @@ graphics), 12 GB RAM. Currently
 - [ ] look into forward declarations for certain classes that rely on others
 - [ ] make a callback system for event handling. right now `Renderer::drawFrame`
       is responsible for executing events
-- [ ] add `gtest` testing suite to ensure physical accuracy
 - [ ] see about optimizing `Renderer::drawParticles`
 - [ ] rearchitect the codebase (cuz why not)
 - [ ] make transition between integration types clean. simulation crashes from
@@ -206,6 +231,7 @@ graphics), 12 GB RAM. Currently
         based collisions
   - [x] add a UI option for toggling between broad phase methods for collision
         detection
+- [x] add `gtest` testing suite to ensure physical accuracy
 - [x] fix the downsizing radius issue
 - [x] fix particles exploding when compacted w/ Verlet integration
 - [x] change particle drawing to vertex-based

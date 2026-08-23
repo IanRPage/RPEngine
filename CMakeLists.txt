@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# put all built executables in <build-dir>/bin, regardless of source
+# subdirectory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # set default build type to Debug if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build (Debug or Release)" FORCE)
@@ -15,6 +19,9 @@ string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 
 # executable name
 set(EXE_NAME ${CMAKE_PROJECT_NAME})
+
+# unit tests
+option(BUILD_TESTS "Build unit tests" ON)
 
 # set compile flags for build types
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
@@ -91,3 +98,8 @@ add_custom_target(release
     USES_TERMINAL
     COMMENT "Configuring to Release mode and building ..."
 )
+
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
