@@ -31,4 +31,4 @@ target_compile_options(rp_tests PRIVATE -Wall -Wextra)
 target_link_libraries(rp_tests PRIVATE GTest::gtest_main)
 
 include(GoogleTest)
-gtest_discover_tests(rp_tests)
+gtest_discover_tests(rp_tests EXTRA_ARGS --gtest_color=yes)
