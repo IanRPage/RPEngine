@@ -39,6 +39,7 @@ class ImguiController {
     renderParameters();
     renderIntegration();
     renderBroadphase();
+    renderSolver();
     renderForces();
     renderSpawn();
 
@@ -149,6 +150,16 @@ class ImguiController {
                                                  BroadphaseType::SpatialGrid)) {
         sim_.setBroadphaseType(BroadphaseType::SpatialGrid);
       }
+    }
+  }
+
+  void renderSolver() {
+    ImGui::Spacing();
+    if (ImGui::CollapsingHeader("Solver")) {
+      ImGui::Spacing();
+      int iterations = static_cast<int>(sim_.solverIterations);
+      ImGui::SliderInt("Iterations", &iterations, 1, 20);
+      sim_.solverIterations = static_cast<size_t>(iterations);
     }
   }
 

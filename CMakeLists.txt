@@ -73,6 +73,7 @@ FetchContent_MakeAvailable(ImGui-SFML)
 
 set(SOURCES
     src/main.cpp
+    src/Particle.cpp
     src/Simulator.cpp
     src/ui/Renderer.cpp
 )

@@ -2,6 +2,7 @@
 #define SIMULATOR_H
 
 #include <Particle.hpp>
+#include <core/Contact.hpp>
 #include <core/Enums.hpp>
 #include <dsa/QuadTree.hpp>
 #include <dsa/SpatialGrid.hpp>
@@ -13,11 +14,13 @@ class Simulator {
  public:
   float gravity;
   float restitution;
+  size_t solverIterations;
 
   Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r, float dt,
             size_t maxParticles = 100000,
             IntegrationType integrationType = IntegrationType::Verlet,
-            BroadphaseType broadphaseType = BroadphaseType::SpatialGrid);
+            BroadphaseType broadphaseType = BroadphaseType::SpatialGrid,
+            size_t iterations = 8);
 
   void configure(Vec2f size, float dt = 1.0f / 60.0f);
   void spawnParticle(Vec2f pos, Vec2f vel, float r = 10.0f,
@@ -43,6 +46,7 @@ class Simulator {
   size_t capacity() const noexcept { return capacity_; }
   IntegrationType integrationType() const noexcept { return integrationType_; }
   BroadphaseType broadphaseType() const noexcept { return broadphaseType_; }
+  size_t getIterations() const noexcept { return solverIterations; }
 
  private:
   std::mt19937 gen_;
@@ -61,15 +65,18 @@ class Simulator {
   float sumRadii_;
   float prevAvgRadius_;
 
-  // broad-phase
-  void naiveBroadphase();
-  void qtreeBroadphase(size_t bucketSize = 4);
-  void spatialGridBroadphase();
+  std::vector<Contact> contacts_;
 
-  // collisions
+  void naiveBroadphase(std::vector<Contact>& contacts);
+  void qtreeBroadphase(std::vector<Contact>& contacts, size_t bucketSize = 4);
+  void spatialGridBroadphase(std::vector<Contact>& contacts);
+
+  void detectCollision(size_t idx1, size_t idx2, std::vector<Contact>& contacts);
   void applyWall(Particle& p, float w, float h);
-  void particleCollision(Particle& p1, Particle& p2);
   void resolveCollisions();
+
+  void solveContactsPositionBased(std::vector<Contact>& contacts);
+  void solveContactsImpulseBased(std::vector<Contact>& contacts);
 };
 
 #endif
