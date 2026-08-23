@@ -3,9 +3,10 @@
 Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
                      float dt, size_t maxParticles,
                      IntegrationType integrationType,
-                     BroadphaseType broadphaseType)
+                     BroadphaseType broadphaseType, size_t iterations)
     : gravity{g},
       restitution{C_r},
+      solverIterations{iterations},
       worldSize_{dims},
       maxParticleRadius_{maxParticleRadius},
       dt_{dt},
@@ -19,6 +20,7 @@ Simulator::Simulator(Vec2f dims, float maxParticleRadius, float g, float C_r,
   std::random_device rd;
   gen_.seed(rd());
   particles_.reserve(maxParticles);
+  contacts_.reserve(maxParticles * 8);
   spatialGrid_.configure(2.0f * maxParticleRadius_, worldSize_);
 };
 
@@ -75,17 +77,16 @@ void Simulator::update() noexcept {
   frameCount_++;
 }
 
-// O(n^2)
-void Simulator::naiveBroadphase() {
+void Simulator::naiveBroadphase(std::vector<Contact>& contacts) {
   for (size_t i = 0; i < particles_.size(); i++) {
     for (size_t j = i + 1; j < particles_.size(); j++) {
-      particleCollision(particles_[i], particles_[j]);
+      detectCollision(i, j, contacts);
     }
   }
 }
 
-// O(nlog(n))
-void Simulator::qtreeBroadphase(size_t bucketSize) {
+void Simulator::qtreeBroadphase(std::vector<Contact>& contacts,
+                                size_t bucketSize) {
   QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {worldSize_.x, worldSize_.y}),
                            bucketSize);
   for (Particle& p : particles_) {
@@ -96,7 +97,7 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
     Particle& p1 = particles_[i];
     const Vec2f c1 = p1.position;
     const float r1 = p1.radius;
-    const float query_r = r1 + currBiggestRadius_;  // LOOK HERE LATER
+    const float query_r = r1 + currBiggestRadius_;
     const AABBf queryRange({c1.x - query_r, c1.y - query_r},
                            {2.0f * query_r, 2.0f * query_r});
 
@@ -104,17 +105,16 @@ void Simulator::qtreeBroadphase(size_t bucketSize) {
     qtree.query(neighbors, queryRange);
 
     for (Particle* nei : neighbors) {
-      Particle& p2 = *nei;
-      if (&p1 <= &p2) {
+      size_t j = nei->id;
+      if (i >= j) {
         continue;
       }
-      particleCollision(p1, p2);
+      detectCollision(i, j, contacts);
     }
   }
 }
 
-// O(n)
-void Simulator::spatialGridBroadphase() {
+void Simulator::spatialGridBroadphase(std::vector<Contact>& contacts) {
   float avg_radius = (particles_.size() > 0) ? sumRadii_ / particles_.size()
                                              : maxParticleRadius_;
   if (std::abs(avg_radius - prevAvgRadius_) > 0.2f) {
@@ -125,12 +125,10 @@ void Simulator::spatialGridBroadphase() {
   spatialGrid_.resize(particles_.size());
   spatialGrid_.build(particles_);
 
-  // broad-phase
   for (size_t i = 0; i < particles_.size(); i++) {
     Particle& p1 = particles_[i];
     spatialGrid_.queryDoSomething(i, p1.radius, p1.position, [&](int neiIdx) {
-      Particle& p2 = particles_[neiIdx];
-      particleCollision(p1, p2);
+      detectCollision(i, static_cast<size_t>(neiIdx), contacts);
     });
   }
 }
@@ -180,91 +178,148 @@ void Simulator::applyWall(Particle& p, float w, float h) {
   }
 }
 
-void Simulator::particleCollision(Particle& p1, Particle& p2) {
+void Simulator::detectCollision(size_t idx1, size_t idx2,
+                                std::vector<Contact>& contacts) {
+  Particle& p1 = particles_[idx1];
+  Particle& p2 = particles_[idx2];
+
   const Vec2f d = p2.position - p1.position;
   const float d2 = d.x * d.x + d.y * d.y;
   const float sum_r = p1.radius + p2.radius;
   const float sum_r2 = sum_r * sum_r;
 
-  // square dist prune
   if (d2 >= sum_r2) return;
 
-  const float invDist = 1.0f / std::sqrt(d2);
-  const float dist = 1.0f / invDist;
-  const Vec2f norm = d * invDist;
-  const float invMassSum = p1.invMass + p2.invMass;
-
-  // if small dist apart
   if (d2 < 1e-12f) {
-    const float half = (p1.radius + p2.radius) * 0.5f;
-
-    // MAYBE: throw an assert for invMassSum?
-    if (invMassSum > 0.0f) {
-      p1.prevPosition = p1.position;
-      p2.prevPosition = p2.position;
-      p1.position -= norm * (half * (p1.invMass / invMassSum));
-      p2.position += norm * (half * (p2.invMass / invMassSum));
-    }
+    contacts.emplace_back(idx1, idx2, Vec2f{1.0f, 0.0f}, sum_r);
     return;
   }
 
+  const float dist = std::sqrt(d2);
+  const Vec2f norm = d / dist;
   const float penetration = sum_r - dist;
 
-  if (penetration > 0.0f && invMassSum > 0.0f) {
-    float percent = 0.30f;
-    const Vec2f correction = norm * (percent * penetration / invMassSum);
-    p1.position -= correction * p1.invMass;
-    p2.position += correction * p2.invMass;
+  if (penetration > 0.0f) {
+    contacts.emplace_back(idx1, idx2, norm, penetration);
   }
+}
 
-  if (integrationType_ == IntegrationType::Euler) {
-    const Vec2f relV = (p2.velocity - p1.velocity);
-    const float relVel = relV.x * norm.x + relV.y * norm.y;
-    if (relVel < 0) {
-      const float magJ = (1.0f + restitution) * relVel / invMassSum;
-      const Vec2f J = norm * magJ;
-      p1.velocity += J * p1.invMass;
-      p2.velocity -= J * p2.invMass;
+void Simulator::solveContactsPositionBased(std::vector<Contact>& contacts) {
+  for (const Contact& contact : contacts) {
+    Particle& p1 = particles_[contact.indexA];
+    Particle& p2 = particles_[contact.indexB];
+
+    const float invMassSum = p1.invMass + p2.invMass;
+    if (invMassSum < 1e-12f) continue;
+
+    const Vec2f d = p2.position - p1.position;
+    const float d2 = d.x * d.x + d.y * d.y;
+    const float sum_r = p1.radius + p2.radius;
+
+    if (d2 < 1e-12f) {
+      const float half = sum_r * 0.5f;
+      p1.position -= contact.normal * (half * (p1.invMass / invMassSum));
+      p2.position += contact.normal * (half * (p2.invMass / invMassSum));
+      continue;
     }
-  } else {
-    Vec2f v1 = p1.position - p1.prevPosition;
-    Vec2f v2 = p2.position - p2.prevPosition;
-    const Vec2f relV = v2 - v1;
 
+    const float dist = std::sqrt(d2);
+    const Vec2f norm = d / dist;
+    const float penetration = sum_r - dist;
+
+    if (penetration > 0.0f) {
+      const Vec2f correction = norm * (penetration / invMassSum);
+      p1.position -= correction * p1.invMass;
+      p2.position += correction * p2.invMass;
+
+      Vec2f v1 = p1.position - p1.prevPosition;
+      Vec2f v2 = p2.position - p2.prevPosition;
+      const Vec2f relV = v2 - v1;
+      const float relVelN = relV.x * norm.x + relV.y * norm.y;
+
+      if (relVelN < 0.0f) {
+        const float w1 = p1.invMass / invMassSum;
+        const float w2 = p2.invMass / invMassSum;
+
+        const float nRelVelN = -restitution * relVelN;
+        const float dRelVelN = nRelVelN - relVelN;
+
+        const Vec2f dV = norm * dRelVelN;
+        v1 -= dV * w1;
+        v2 += dV * w2;
+
+        p1.prevPosition = p1.position - v1;
+        p2.prevPosition = p2.position - v2;
+      }
+    }
+  }
+}
+
+void Simulator::solveContactsImpulseBased(std::vector<Contact>& contacts) {
+  for (const Contact& contact : contacts) {
+    Particle& p1 = particles_[contact.indexA];
+    Particle& p2 = particles_[contact.indexB];
+
+    const float invMassSum = p1.invMass + p2.invMass;
+    if (invMassSum < 1e-12f) continue;
+
+    const Vec2f d = p2.position - p1.position;
+    const float d2 = d.x * d.x + d.y * d.y;
+    const float sum_r = p1.radius + p2.radius;
+
+    if (d2 < 1e-12f) {
+      const float half = sum_r * 0.5f;
+      p1.position -= contact.normal * (half * (p1.invMass / invMassSum));
+      p2.position += contact.normal * (half * (p2.invMass / invMassSum));
+      continue;
+    }
+
+    const float dist = std::sqrt(d2);
+    const Vec2f norm = d / dist;
+    const float penetration = sum_r - dist;
+
+    if (penetration > 0.0f) {
+      const Vec2f correction = norm * (penetration / invMassSum);
+      p1.position -= correction * p1.invMass;
+      p2.position += correction * p2.invMass;
+    }
+
+    const Vec2f relV = p2.velocity - p1.velocity;
     const float relVelN = relV.x * norm.x + relV.y * norm.y;
-    if (relVelN < 0) {
-      const float w1 = p1.invMass / invMassSum;
-      const float w2 = p2.invMass / invMassSum;
 
-      const float nRelVelN = -restitution * relVelN;
-      const float dRelVelN = nRelVelN - relVelN;
-
-      const Vec2f dV = norm * dRelVelN;
-      v1 -= dV * w1;
-      v2 += dV * w2;
-
-      p1.prevPosition = p1.position - v1;
-      p2.prevPosition = p2.position - v2;
+    if (relVelN < 0.0f) {
+      const float j = -(1.0f + restitution) * relVelN / invMassSum;
+      const Vec2f impulse = norm * j;
+      p1.velocity -= impulse * p1.invMass;
+      p2.velocity += impulse * p2.invMass;
     }
   }
 }
 
 void Simulator::resolveCollisions() {
   auto [w, h] = worldSize_;
-  if (broadphaseType_ == BroadphaseType::SpatialGrid) {
-    for (Particle& par : particles_) {
-      applyWall(par, w, h);
+
+  for (Particle& par : particles_) {
+    applyWall(par, w, h);
+  }
+
+  for (size_t iter = 0; iter < solverIterations; iter++) {
+    contacts_.clear();
+
+    if (broadphaseType_ == BroadphaseType::SpatialGrid) {
+      spatialGridBroadphase(contacts_);
+    } else if (broadphaseType_ == BroadphaseType::Qtree) {
+      qtreeBroadphase(contacts_, 16);
+    } else {
+      naiveBroadphase(contacts_);
     }
-    spatialGridBroadphase();
-  } else if (broadphaseType_ == BroadphaseType::Qtree) {
-    for (Particle& par : particles_) {
-      applyWall(par, w, h);
+
+    if (contacts_.empty()) break;
+
+    if (integrationType_ == IntegrationType::Verlet) {
+      solveContactsPositionBased(contacts_);
+    } else {
+      solveContactsImpulseBased(contacts_);
     }
-    qtreeBroadphase(16);
-  } else {
-    for (Particle& par : particles_) {
-      applyWall(par, w, h);
-    }
-    naiveBroadphase();
   }
 }

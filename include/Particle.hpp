@@ -16,41 +16,14 @@ struct Particle {
   uint32_t id;
 
   Particle(Vec2f pos, Vec2f vel, float dt = 1.0f / 60.0f, float r = 10.0f,
-           float m = 1.0f)
-      : position(pos),
-        prevPosition(pos - vel * dt),
-        velocity(vel),
-        radius(r),
-        mass(m),
-        id(nextId()) {
-    if (mass == 0.0f) {
-      invMass = 0.0f;
-    } else {
-      invMass = 1.0f / mass;
-    }
-  };
+           float m = 1.0f);
 
-  void integrateEuler(float dt) noexcept {
-    velocity += acceleration * dt;
-    position += velocity * dt;
-    acceleration = {0.0f, 0.0f};
-  }
-
-  void integrateVerlet(float dt) noexcept {
-    Vec2f newPos =
-        position + (position - prevPosition) + acceleration * dt * dt;
-    prevPosition = position;
-    position = newPos;
-    acceleration = {0.0f, 0.0f};
-  }
-
-  void accelerate(Vec2f accel) noexcept { acceleration += accel; };
+  void integrateEuler(float dt) noexcept;
+  void integrateVerlet(float dt) noexcept;
+  void accelerate(Vec2f accel) noexcept;
 
  private:
-  static uint32_t nextId() noexcept {
-    static uint32_t counter = 0;
-    return counter++;
-  }
+  static uint32_t nextId() noexcept;
 };
 
 #endif
