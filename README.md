@@ -16,6 +16,9 @@ stuff.
 
 ## Building
 
+**Prerequisite:** a Python 3 interpreter on `PATH` (`python3 --version`). CMake
+configure runs GLAD's code generator, which needs it.
+
 The UI uses SFML 3.0.1, so make sure you have all the dependencies installed:
 
 ### Debian/Ubuntu:
