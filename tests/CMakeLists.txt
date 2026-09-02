@@ -27,6 +27,9 @@ add_executable(rp_tests
     test_transform.cpp
     test_rotation.cpp
     test_constraints2d.cpp
+    test_shapes.cpp
+    test_world_support.cpp
+    test_mass_properties.cpp
     ${ENGINE_SOURCES}
 )
 
