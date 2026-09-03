@@ -75,7 +75,7 @@ TEST(ConvexHullShapeTest, RejectsEmptyVertices) {
 
 TEST(ConvexHullShapeTest, MatchesOldTriangleBoundingRadius) {
   ConvexHullShape hull({Vec3f(-6.0f, -4.0f, 0.0f), Vec3f(6.0f, -4.0f, 0.0f),
-                         Vec3f(0.0f, 8.0f, 0.0f)});
+                        Vec3f(0.0f, 8.0f, 0.0f)});
 
   EXPECT_NEAR(hull.boundingRadius(), 8.0f, 1e-4f);
 }
@@ -88,7 +88,7 @@ TEST(ConvexHullShapeTest, InertiaMatchesHandComputedPolygonValue) {
   //   Ix_area = 576 -> Ixx = mass/area * Ix_area = 576/72 = 8
   //   Izz = Ixx + Iyy = 14 (perpendicular axis theorem)
   ConvexHullShape hull({Vec3f(-6.0f, -4.0f, 0.0f), Vec3f(6.0f, -4.0f, 0.0f),
-                         Vec3f(0.0f, 8.0f, 0.0f)});
+                        Vec3f(0.0f, 8.0f, 0.0f)});
   Mat3f i = hull.localInertiaTensor(1.0f);
 
   EXPECT_NEAR(i[0][0], 8.0f, 1e-3f);

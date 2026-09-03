@@ -9,7 +9,8 @@ Vec3f transformDirection(const Transform& t, Vec3f localDir) noexcept {
 }
 
 Transform inverse(const Transform& t) noexcept {
-  Quatf invOrientation = glm::conjugate(t.orientation);  // conjugate = inverse for unit quaternions
+  Quatf invOrientation = glm::conjugate(
+      t.orientation);  // conjugate = inverse for unit quaternions
   Transform result;
   result.orientation = invOrientation;
   result.position = invOrientation * (-t.position);

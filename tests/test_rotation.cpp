@@ -13,7 +13,7 @@ TEST(RotationTest, IntegrateOrientationMatchesAnalyticConstantSpin) {
     q = integrateOrientation(q, Vec3f{0.0f, 0.0f, omega}, dt);
   }
 
-  float theta = omega * steps * dt;  // total angle after 1 second
+  float theta = omega * steps * dt; // total angle after 1 second
   Quatf expected{std::cos(theta * 0.5f), 0.0f, 0.0f, std::sin(theta * 0.5f)};
 
   // first-order integration accumulates some error over 240 steps (1e-3 is a

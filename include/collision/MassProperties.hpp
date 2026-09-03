@@ -11,6 +11,7 @@ struct MassProperties {
   Mat3f invLocalInertiaTensor;
 };
 
-MassProperties computeMassProperties(const ShapeVariant& shape, float mass) noexcept;
+MassProperties computeMassProperties(const ShapeVariant& shape,
+                                     float mass) noexcept;
 
 #endif
