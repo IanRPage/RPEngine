@@ -19,7 +19,8 @@ TEST(WorldSupportTest, RotatedBoxSupportMatchesManualTransform) {
 
 TEST(WorldSupportTest, TranslationDoesNotAffectDirectionRotation) {
   BoxShape box{Vec3f(1.0f, 1.0f, 1.0f)};
-  Quatf orientation = glm::angleAxis(glm::radians(90.0f), Vec3f(0.0f, 0.0f, 1.0f));
+  Quatf orientation =
+      glm::angleAxis(glm::radians(90.0f), Vec3f(0.0f, 0.0f, 1.0f));
   Vec3f worldDir(1.0f, 0.0f, 0.0f);
 
   Transform a;
