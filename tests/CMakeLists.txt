@@ -17,7 +17,6 @@ add_executable(rp_tests
     test_vec2.cpp
     test_aabb.cpp
     test_particle.cpp
-    test_quadtree.cpp
     test_spatial_grid.cpp
     test_simulator.cpp
     test_iterative_solver.cpp
@@ -30,6 +29,10 @@ add_executable(rp_tests
     test_shapes.cpp
     test_world_support.cpp
     test_mass_properties.cpp
+    test_body_store.cpp
+    test_dynamic_bvh.cpp
+    test_pair_cache.cpp
+    test_broadphase.cpp
     ${ENGINE_SOURCES}
 )
 

@@ -90,6 +90,12 @@ set(SOURCES
     src/math/Constraints2D.cpp
     src/collision/Shapes.cpp
     src/collision/MassProperties.cpp
+    src/core/BodyStore.cpp
+    src/broadphase/DynamicBVH.cpp
+    src/broadphase/PairCache.cpp
+    src/broadphase/NaiveBroadphase.cpp
+    src/broadphase/GridBroadphase.cpp
+    src/broadphase/DynamicBVHBroadphase.cpp
 )
 
 add_executable(${EXE_NAME} ${SOURCES})
