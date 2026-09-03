@@ -88,6 +88,8 @@ set(SOURCES
     src/math/Transform.cpp
     src/math/Rotation.cpp
     src/math/Constraints2D.cpp
+    src/collision/Shapes.cpp
+    src/collision/MassProperties.cpp
 )
 
 add_executable(${EXE_NAME} ${SOURCES})
