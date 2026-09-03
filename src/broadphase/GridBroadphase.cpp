@@ -20,15 +20,18 @@ void GridBroadphase::configureFor(const BodyStore& bodies) noexcept {
     worldMin_ = Vec3f(0.0f);
     cols_ = rows_ = depth_ = 1;
     nCells_ = 1;
+    maxRadius_ = 0.0f;
     return;
   }
 
   Vec3f mn = bodies.aabb(handles[0]).min;
   Vec3f mx = bodies.aabb(handles[0]).max;
+  maxRadius_ = glm::length(mx - mn) * 0.5f;
   for (size_t i = 1; i < handles.size(); i++) {
     const AABB& a = bodies.aabb(handles[i]);
     mn = glm::min(mn, a.min);
     mx = glm::max(mx, a.max);
+    maxRadius_ = std::max(maxRadius_, glm::length(a.max - a.min) * 0.5f);
   }
 
   worldMin_ = mn;
@@ -65,7 +68,7 @@ std::span<const std::pair<BodyHandle, BodyHandle>> GridBroadphase::computePairs(
   for (size_t i = 0; i < handles.size(); i++) {
     const AABB& aabbI = bodies.aabb(handles[i]);
     Vec3f centerI = (aabbI.min + aabbI.max) * 0.5f;
-    float radius = glm::length(aabbI.max - aabbI.min) * 0.5f;
+    float radius = glm::length(aabbI.max - aabbI.min) * 0.5f + maxRadius_;
     Vec3f local = centerI - worldMin_;
 
     int cxMin = std::clamp(static_cast<int>((local.x - radius) * invCellSize_),

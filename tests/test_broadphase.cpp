@@ -82,3 +82,46 @@ TEST(BroadphaseTest, AllImplementationsAgreeWithBruteForceOverlap) {
         << "DynamicBVHBroadphase missed a real overlap";
   }
 }
+
+TEST(BroadphaseTest, GridDoesNotMissSmallBodyOverlappingCenterDistantLargeBody) {
+  BodyStore store;
+
+  BodyHandle small = store.addBody(
+      AABB(Vec3f(-0.5f, -0.5f, -0.5f), Vec3f(0.5f, 0.5f, 0.5f)));
+  // center far from `small`'s center-cell, but its so large it still reaches
+  // back to overlap `small`
+  BodyHandle large = store.addBody(
+      AABB(Vec3f(-1.0f, -15.0f, -15.0f), Vec3f(29.0f, 15.0f, 15.0f)));
+
+  ASSERT_TRUE(overlaps(store.aabb(small), store.aabb(large)));
+
+  GridBroadphase grid(2.0f);  // small cells so the two land far apart
+  std::set<IndexPair> pairs = toIndexSet(grid.computePairs(store));
+
+  EXPECT_TRUE(pairs.count(canonical(small, large)) != 0)
+      << "GridBroadphase missed a small body overlapping a center-distant "
+         "large body";
+}
+
+TEST(BroadphaseTest, DynamicBVHHandlesSameIndexBodyReplacement) {
+  BodyStore store;
+
+  BodyHandle stationary =
+      store.addBody(AABB(Vec3f(0.0f), Vec3f(2.0f, 2.0f, 2.0f)));
+  BodyHandle original = store.addBody(
+      AABB(Vec3f(1.0f, 1.0f, 1.0f), Vec3f(3.0f, 3.0f, 3.0f)));
+
+  DynamicBVHBroadphase bvh;
+  auto initial = toIndexSet(bvh.computePairs(store));
+  ASSERT_TRUE(initial.count(canonical(stationary, original)) != 0);
+
+  store.removeBody(original);
+  BodyHandle replacement = store.addBody(
+      AABB(Vec3f(1.0f, 1.0f, 1.0f), Vec3f(3.0f, 3.0f, 3.0f)));
+  ASSERT_EQ(replacement.index, original.index);
+  ASSERT_NE(replacement.generation, original.generation);
+
+  auto after = toIndexSet(bvh.computePairs(store));
+  EXPECT_TRUE(after.count(canonical(stationary, replacement)) != 0)
+      << "DynamicBVHBroadphase dropped a new overlap on a reused node id";
+}

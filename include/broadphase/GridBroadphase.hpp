@@ -25,6 +25,8 @@ class GridBroadphase final : public IBroadphase {
   Vec3f worldMin_{0.0f};
   int cols_ = 1, rows_ = 1, depth_ = 1, nCells_ = 1;
 
+  float maxRadius_ = 0.0f;
+
   std::vector<int32_t> head_;
   std::vector<int32_t> next_;
 
