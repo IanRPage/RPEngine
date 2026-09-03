@@ -85,8 +85,9 @@ target_link_libraries(imgui PUBLIC glfw glad_gl_core_41)
 
 set(SOURCES
     src/main.cpp
-    # deleted everything except main.cpp becaue phase 0 doesn't add anything
-    # yet. delete this and replace as phases progress
+    src/math/Transform.cpp
+    src/math/Rotation.cpp
+    src/math/Constraints2D.cpp
 )
 
 add_executable(${EXE_NAME} ${SOURCES})

@@ -24,6 +24,9 @@ add_executable(rp_tests
     test_constraints.cpp
     test_collision_math.cpp
     test_math_types.cpp
+    test_transform.cpp
+    test_rotation.cpp
+    test_constraints2d.cpp
     ${ENGINE_SOURCES}
 )
 

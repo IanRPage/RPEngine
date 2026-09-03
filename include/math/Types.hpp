@@ -2,6 +2,7 @@
 #define RPENGINE_MATH_TYPES_HPP
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 using Vec2f = glm::vec2;
