@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 #include <math/Constants.hpp>
 
@@ -42,13 +43,16 @@ Mat3f CapsuleShape::localInertiaTensor(float mass) const noexcept {
   // combined cylinder-plus-offset-hemispheres term, parallel-axis shift folded
   // into formula
   const float ixx = mc * (h * h / 3.0f + r * r / 4.0f) +
-                     ms * ((2.0f / 5.0f) * r * r + h * h + (3.0f / 8.0f) * h * r);
+                     ms * ((2.0f / 5.0f) * r * r + h * h + (3.0f / 4.0f) * h * r);
 
   return Mat3f(ixx, 0.0f, 0.0f, 0.0f, iyy, 0.0f, 0.0f, 0.0f, ixx);
 }
 
 ConvexHullShape::ConvexHullShape(std::vector<Vec3f> vertices)
     : localVertices(std::move(vertices)) {
+  if (localVertices.empty()) {
+    throw std::invalid_argument("ConvexHullShape requires at least one vertex");
+  }
   float maxDistSq = 0.0f;
   for (const Vec3f& v : localVertices) {
     maxDistSq = std::max(maxDistSq, glm::dot(v, v));
@@ -73,24 +77,27 @@ Vec3f ConvexHullShape::support(Vec3f direction) const noexcept {
 // shapes exist
 Mat3f ConvexHullShape::localInertiaTensor(float mass) const noexcept {
   const std::size_t n = localVertices.size();
-  float area2 = 0.0f;     // 2*A, signed
-  float numerator = 0.0f;
+  float area2 = 0.0f;   // 2*A, signed
+  float ixArea = 0.0f;  // unscaled sum for integral of y^2 dA
+  float iyArea = 0.0f;  // unscaled sum for integral of x^2 dA
 
   for (std::size_t i = 0; i < n; ++i) {
     const Vec3f& v0 = localVertices[i];
     const Vec3f& v1 = localVertices[(i + 1) % n];
     float cross = v0.x * v1.y - v1.x * v0.y;
-    float dotTerm = v0.x * v0.x + v0.y * v0.y + v0.x * v1.x + v0.y * v1.y +
-                     v1.x * v1.x + v1.y * v1.y;
+    float xTerm = v0.x * v0.x + v0.x * v1.x + v1.x * v1.x;
+    float yTerm = v0.y * v0.y + v0.y * v1.y + v1.y * v1.y;
     area2 += cross;
-    numerator += cross * dotTerm;
+    iyArea += cross * xTerm;
+    ixArea += cross * yTerm;
   }
 
   const float area = 0.5f * std::abs(area2);
-  const float izz = (area > 1e-12f) ? (mass / (6.0f * area)) * numerator : 0.0f;
-  const float ixx = izz / 2.0f;
+  const float ixx = (area > 1e-12f) ? (mass / (12.0f * area)) * ixArea : 0.0f;
+  const float iyy = (area > 1e-12f) ? (mass / (12.0f * area)) * iyArea : 0.0f;
+  const float izz = ixx + iyy;
 
-  return Mat3f(ixx, 0.0f, 0.0f, 0.0f, ixx, 0.0f, 0.0f, 0.0f, izz);
+  return Mat3f(ixx, 0.0f, 0.0f, 0.0f, iyy, 0.0f, 0.0f, 0.0f, izz);
 }
 
 namespace {

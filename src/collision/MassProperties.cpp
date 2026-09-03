@@ -2,10 +2,12 @@
 
 namespace {
 
+float safeInverse(float v) noexcept { return (v > 1e-12f) ? 1.0f / v : 0.0f; }
+
 Mat3f invertDiagonal(const Mat3f& diag, bool isStatic) noexcept {
   if (isStatic) return Mat3f(0.0f);
-  return Mat3f(1.0f / diag[0][0], 0.0f, 0.0f, 0.0f, 1.0f / diag[1][1], 0.0f, 0.0f, 0.0f,
-               1.0f / diag[2][2]);
+  return Mat3f(safeInverse(diag[0][0]), 0.0f, 0.0f, 0.0f, safeInverse(diag[1][1]), 0.0f, 0.0f,
+               0.0f, safeInverse(diag[2][2]));
 }
 
 }  // namespace

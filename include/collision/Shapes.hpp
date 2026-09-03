@@ -52,11 +52,10 @@ struct CapsuleShape {
   float halfHeight;  // segment runs along local +Y/-Y axis
 
   Vec3f support(Vec3f direction) const noexcept {
-    Vec3f radial(direction.x, 0.0f, direction.z);
-    float len = glm::length(radial);
-    Vec3f radialSupport = (len < VECTOR_LENGTH_EPSILON) ? Vec3f(0.0f) : (radial / len) * radius;
+    float len = glm::length(direction);
+    Vec3f n = (len < VECTOR_LENGTH_EPSILON) ? Vec3f(0.0f) : direction / len;
     float yOffset = direction.y >= 0.0f ? halfHeight : -halfHeight;
-    return Vec3f(radialSupport.x, radialSupport.y + yOffset, radialSupport.z);
+    return Vec3f(radius * n.x, radius * n.y + yOffset, radius * n.z);
   }
 
   float boundingRadius() const noexcept { return halfHeight + radius; }
