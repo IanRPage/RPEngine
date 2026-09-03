@@ -11,5 +11,5 @@ Quatf nlerp(Quatf a, Quatf b, float t) noexcept {
   if (glm::dot(a, b) < 0.0f) {
     b = -b;  // take shorter path around hypersphere
   }
-  return glm::normalize(glm::mix(a, b, t));
+  return glm::normalize(glm::lerp(a, b, t));
 }

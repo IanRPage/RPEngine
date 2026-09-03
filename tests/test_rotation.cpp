@@ -1,9 +1,10 @@
-#include <cmath>
 #include <gtest/gtest.h>
+
+#include <cmath>
 #include <math/Rotation.hpp>
 
 TEST(RotationTest, IntegrateOrientationMatchesAnalyticConstantSpin) {
-  const float omega = 1.5f;        // rad/s, spin about world Z
+  const float omega = 1.5f;  // rad/s, spin about world Z
   const float dt = 1.0f / 240.0f;
   const int steps = 240;
   Quatf q{1.0f, 0.0f, 0.0f, 0.0f};
@@ -26,8 +27,6 @@ TEST(RotationTest, NlerpTakesShortestPath) {
   ASSERT_LT(glm::dot(a, b), 0.0f);
 
   Quatf result = nlerp(a, b, 0.5f);
-  // after correcting for sign flip, the result should be much closer to the
-  // small positive rotation than to a large one
-  Quatf shortPathMidpoint = glm::normalize(a + Quatf{glm::cos(0.05f), 0.0f, 0.0f, glm::sin(0.05f)});
-  EXPECT_GT(glm::abs(glm::dot(result, shortPathMidpoint)), 0.99f);
+  Quatf shortPathMidpoint = glm::normalize(a + (-b));
+  EXPECT_NEAR(glm::abs(glm::dot(result, shortPathMidpoint)), 1.0f, 1e-5f);
 }
