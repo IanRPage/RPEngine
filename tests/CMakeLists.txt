@@ -3,15 +3,15 @@ include(FetchContent)
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG v1.14.0
+    GIT_TAG v1.18.0
     GIT_SHALLOW ON
 )
 FetchContent_MakeAvailable(googletest)
 
 file(GLOB_RECURSE ENGINE_SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX "main\\.cpp$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX "Renderer\\.cpp$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX "ImguiController\\.cpp$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/src/ui/")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/src/render/")
 
 add_executable(rp_tests
     test_vec2.cpp
@@ -23,12 +23,14 @@ add_executable(rp_tests
     test_iterative_solver.cpp
     test_constraints.cpp
     test_collision_math.cpp
+    test_math_types.cpp
     ${ENGINE_SOURCES}
 )
 
 target_include_directories(rp_tests PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_compile_features(rp_tests PRIVATE cxx_std_20)
 target_compile_options(rp_tests PRIVATE -Wall -Wextra)
-target_link_libraries(rp_tests PRIVATE GTest::gtest_main)
+target_link_libraries(rp_tests PRIVATE GTest::gtest_main glm::glm)
 
 include(GoogleTest)
 gtest_discover_tests(rp_tests EXTRA_ARGS --gtest_color=yes)
