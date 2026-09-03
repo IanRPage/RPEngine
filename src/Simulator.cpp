@@ -85,35 +85,6 @@ void Simulator::naiveBroadphase(std::vector<Contact>& contacts) {
   }
 }
 
-void Simulator::qtreeBroadphase(std::vector<Contact>& contacts,
-                                size_t bucketSize) {
-  QuadTree<Particle> qtree(AABBf({0.0f, 0.0f}, {worldSize_.x, worldSize_.y}),
-                           bucketSize);
-  for (Particle& p : particles_) {
-    qtree.insert(&p);
-  }
-
-  for (size_t i = 0; i < particles_.size(); i++) {
-    Particle& p1 = particles_[i];
-    const Vec2f c1 = p1.position;
-    const float r1 = p1.radius;
-    const float query_r = r1 + currBiggestRadius_;
-    const AABBf queryRange({c1.x - query_r, c1.y - query_r},
-                           {2.0f * query_r, 2.0f * query_r});
-
-    std::vector<Particle*> neighbors;
-    qtree.query(neighbors, queryRange);
-
-    for (Particle* nei : neighbors) {
-      size_t j = nei->id;
-      if (i >= j) {
-        continue;
-      }
-      detectCollision(i, j, contacts);
-    }
-  }
-}
-
 void Simulator::spatialGridBroadphase(std::vector<Contact>& contacts) {
   float avg_radius = (particles_.size() > 0) ? sumRadii_ / particles_.size()
                                              : maxParticleRadius_;
@@ -308,8 +279,6 @@ void Simulator::resolveCollisions() {
 
     if (broadphaseType_ == BroadphaseType::SpatialGrid) {
       spatialGridBroadphase(contacts_);
-    } else if (broadphaseType_ == BroadphaseType::Qtree) {
-      qtreeBroadphase(contacts_, 16);
     } else {
       naiveBroadphase(contacts_);
     }
