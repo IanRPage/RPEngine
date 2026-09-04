@@ -183,9 +183,8 @@ GjkResult gjkOverlap(const ShapeVariant& shapeA, const Transform& ta,
       result.overlapping = false;
       return result;
     }
-    if (result.simplexCount >= 3 &&
-        isDuplicate(result.simplex, result.simplexCount, newPoint.diff)) {
-      result.overlapping = true;
+    if (isDuplicate(result.simplex, result.simplexCount, newPoint.diff)) {
+      result.overlapping = result.simplexCount >= 3;
       return result;
     }
 

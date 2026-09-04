@@ -72,6 +72,53 @@ TEST(ManifoldTest, FlushBoxOnBoxProducesFourPoints3D) {
   }
 }
 
+TEST(ManifoldTest, ClockwiseWoundHullClipsSameAsCounterclockwise) {
+  std::vector<Vec3f> ccw{Vec3f(-1.0f, -1.0f, 0.0f), Vec3f(1.0f, -1.0f, 0.0f),
+                        Vec3f(1.0f, 1.0f, 0.0f), Vec3f(-1.0f, 1.0f, 0.0f)};
+  std::vector<Vec3f> cw{Vec3f(-1.0f, -1.0f, 0.0f), Vec3f(-1.0f, 1.0f, 0.0f),
+                       Vec3f(1.0f, 1.0f, 0.0f), Vec3f(1.0f, -1.0f, 0.0f)};
+  ShapeVariant hullA{ConvexHullShape(ccw)};
+  ShapeVariant hullB{ConvexHullShape(cw)};
+  Transform ta = at(0.0f, 0.0f);
+  Transform tb = at(1.9f, 0.0f);
+
+  GjkResult gjk = gjkOverlap(hullA, ta, hullB, tb);
+  ASSERT_TRUE(gjk.overlapping);
+  EpaResult epa = epaPenetration(hullA, ta, hullB, tb, gjk);
+
+  BodyHandle a{0, 0};
+  BodyHandle b{1, 0};
+  Manifold m = buildManifold(hullA, ta, hullB, tb, a, b, gjk, epa);
+
+  ASSERT_EQ(m.pointCount, 2);
+  std::vector<float> ys;
+  for (int i = 0; i < m.pointCount; ++i) {
+    Vec3f worldA = transformPoint(ta, m.points[static_cast<std::size_t>(i)].localAnchorA);
+    ys.push_back(worldA.y);
+  }
+  std::sort(ys.begin(), ys.end());
+  EXPECT_NEAR(ys[0], -1.0f, 1e-3f);
+  EXPECT_NEAR(ys[1], 1.0f, 1e-3f);
+}
+
+TEST(ManifoldTest, CapsulePairForcedInto2DPathFallsBackToSinglePoint) {
+  ShapeVariant capsuleA{CapsuleShape{0.5f, 1.0f}};
+  ShapeVariant capsuleB{CapsuleShape{0.5f, 1.0f}};
+  Transform ta = at(0.0f, 0.0f);
+  Transform tb = at(0.5f, 0.0f);
+
+  GjkResult gjk = gjkOverlap(capsuleA, ta, capsuleB, tb);
+  ASSERT_TRUE(gjk.overlapping);
+  EpaResult epa = epaPenetration(capsuleA, ta, capsuleB, tb, gjk);
+
+  gjk.simplexCount = 3;
+  BodyHandle a{0, 0};
+  BodyHandle b{1, 0};
+  Manifold m = buildManifold(capsuleA, ta, capsuleB, tb, a, b, gjk, epa);
+
+  EXPECT_EQ(m.pointCount, 1);
+}
+
 TEST(ManifoldTest, SpherePairProducesSinglePoint) {
   ShapeVariant a{SphereShape{1.0f}};
   ShapeVariant b{SphereShape{1.0f}};

@@ -52,6 +52,17 @@ TEST(GjkTest, DetectsSeparatedBoxes2D) {
   EXPECT_FALSE(result.overlapping);
 }
 
+TEST(GjkTest, DegenerateSingleVertexHullsReportDefinedResult) {
+  std::vector<Vec3f> onePoint{Vec3f(0.0f, 0.0f, 0.0f)};
+  ShapeVariant a{ConvexHullShape(onePoint)};
+  ShapeVariant b{ConvexHullShape(onePoint)};
+  Transform ta = at(0.0f, 0.0f);
+  Transform tb = at(0.0f, 0.0f);
+
+  GjkResult result = gjkOverlap(a, ta, b, tb);
+  EXPECT_FALSE(result.overlapping);
+}
+
 TEST(GjkTest, DetectsOverlappingHull2D) {
   std::vector<Vec3f> verts{Vec3f(-1.0f, -1.0f, 0.0f), Vec3f(1.0f, -1.0f, 0.0f),
                            Vec3f(0.0f, 1.0f, 0.0f)};

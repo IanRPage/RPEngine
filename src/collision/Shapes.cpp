@@ -147,3 +147,12 @@ AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept {
       },
       shape);
 }
+
+bool isFlatPair(const ShapeVariant& shapeA, const Transform& ta,
+               const ShapeVariant& shapeB, const Transform& tb) noexcept {
+  constexpr float kFlatEpsilon = 1e-5f;
+  AABB aabbA = worldAABB(shapeA, ta);
+  AABB aabbB = worldAABB(shapeB, tb);
+  return (aabbA.max.z - aabbA.min.z) < kFlatEpsilon &&
+        (aabbB.max.z - aabbB.min.z) < kFlatEpsilon;
+}

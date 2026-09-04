@@ -48,6 +48,16 @@ struct Edge2D {
   Vec3f normal;  // outward
 };
 
+float signedArea2D(const std::vector<Vec3f>& poly) noexcept {
+  float area = 0.0f;
+  std::size_t n = poly.size();
+  for (std::size_t i = 0; i < n; ++i) {
+    std::size_t j = (i + 1) % n;
+    area += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+  }
+  return 0.5f * area;
+}
+
 std::vector<Vec3f> shapeWorldPolygon2D(const ShapeVariant& shape,
                                        const Transform& t) noexcept {
   std::vector<Vec3f> verts;
@@ -59,6 +69,9 @@ std::vector<Vec3f> shapeWorldPolygon2D(const ShapeVariant& shape,
     verts = hull->localVertices;
   }
   for (Vec3f& v : verts) v = transformPoint(t, v);
+  if (verts.size() >= 3 && signedArea2D(verts) < 0.0f) {
+    std::reverse(verts.begin(), verts.end());
+  }
   return verts;
 }
 
@@ -130,6 +143,10 @@ Manifold clip2D(const ShapeVariant& shapeA, const Transform& ta,
                const EpaResult& epa) noexcept {
   std::vector<Vec3f> polyA = shapeWorldPolygon2D(shapeA, ta);
   std::vector<Vec3f> polyB = shapeWorldPolygon2D(shapeB, tb);
+
+  if (polyA.size() < 2 || polyB.size() < 2) {
+    return singlePointManifold(ta, tb, bodyA, bodyB, epa);
+  }
 
   Edge2D edgeA = bestAlignedEdge2D(polyA, epa.normal);
   Edge2D edgeB = bestAlignedEdge2D(polyB, -epa.normal);
@@ -292,7 +309,7 @@ Manifold buildManifold(const ShapeVariant& shapeA, const Transform& ta,
     return singlePointManifold(ta, tb, bodyA, bodyB, epa);
   }
 
-  bool is2D = terminalSimplex.simplexCount == 3;
+  bool is2D = isFlatPair(shapeA, ta, shapeB, tb) || terminalSimplex.simplexCount == 3;
   if (is2D) {
     return clip2D(shapeA, ta, shapeB, tb, bodyA, bodyB, epa);
   }

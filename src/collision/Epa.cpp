@@ -169,13 +169,13 @@ EpaResult epa3D(const ShapeVariant& shapeA, const Transform& ta,
       makeFace(verts, 0, 1, 2, centroid), makeFace(verts, 0, 2, 3, centroid),
       makeFace(verts, 0, 3, 1, centroid), makeFace(verts, 1, 3, 2, centroid)};
 
-  std::size_t closestIdx = 0;
+  Face closest = faces[0];
   for (int iter = 0; iter < kMaxIterations; ++iter) {
-    closestIdx = 0;
+    std::size_t closestIdx = 0;
     for (std::size_t i = 1; i < faces.size(); ++i) {
       if (faces[i].distance < faces[closestIdx].distance) closestIdx = i;
     }
-    const Face closest = faces[closestIdx];
+    closest = faces[closestIdx];
 
     SupportPoint support =
         minkowskiSupport(shapeA, ta, shapeB, tb, closest.normal);
@@ -208,7 +208,6 @@ EpaResult epa3D(const ShapeVariant& shapeA, const Transform& ta,
     if (faces.empty()) break;
   }
 
-  const Face& closest = faces[closestIdx];
   const Vec3f& A = verts[static_cast<std::size_t>(closest.a)].diff;
   const Vec3f& B = verts[static_cast<std::size_t>(closest.b)].diff;
   const Vec3f& C = verts[static_cast<std::size_t>(closest.c)].diff;
@@ -245,7 +244,8 @@ EpaResult epaPenetration(const ShapeVariant& shapeA, const Transform& ta,
          terminalSimplex.simplexCount == 4) &&
         "EPA requires GJK's 3- or 4-point terminal simplex");
 
-  if (terminalSimplex.simplexCount == 3) {
+  bool flat = isFlatPair(shapeA, ta, shapeB, tb);
+  if (flat || terminalSimplex.simplexCount == 3) {
     return epa2D(shapeA, ta, shapeB, tb, terminalSimplex);
   }
   return epa3D(shapeA, ta, shapeB, tb, terminalSimplex);
