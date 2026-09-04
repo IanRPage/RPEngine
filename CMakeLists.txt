@@ -90,6 +90,10 @@ set(SOURCES
     src/math/Constraints2D.cpp
     src/collision/Shapes.cpp
     src/collision/MassProperties.cpp
+    src/collision/Gjk.cpp
+    src/collision/Epa.cpp
+    src/collision/ManifoldBuilder.cpp
+    src/collision/ManifoldCache.cpp
     src/core/BodyStore.cpp
     src/broadphase/DynamicBVH.cpp
     src/broadphase/PairCache.cpp
