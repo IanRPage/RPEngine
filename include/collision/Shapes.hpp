@@ -1,13 +1,12 @@
 #ifndef RPENGINE_COLLISION_SHAPES_HPP
 #define RPENGINE_COLLISION_SHAPES_HPP
 
-#include <variant>
-#include <vector>
-
 #include <collision/AABB.hpp>
 #include <math/Constants.hpp>
 #include <math/Transform.hpp>
 #include <math/Types.hpp>
+#include <variant>
+#include <vector>
 
 namespace shapes_detail {
 inline float signNonZero(float v) noexcept { return v < 0.0f ? -1.0f : 1.0f; }
@@ -69,7 +68,8 @@ struct CapsuleShape {
 };
 
 struct ConvexHullShape {
-  std::vector<Vec3f> localVertices;  // relative to centroid; CCW winding for 2D hulls
+  std::vector<Vec3f>
+      localVertices;  // relative to centroid; CCW winding for 2D hulls
 
   explicit ConvexHullShape(std::vector<Vec3f> vertices);
 
@@ -93,9 +93,11 @@ struct ConvexHullShape {
   float cachedBoundingRadius_ = 0.0f;  // precomputed in constructor
 };
 
-using ShapeVariant = std::variant<SphereShape, BoxShape, CapsuleShape, ConvexHullShape>;
+using ShapeVariant =
+    std::variant<SphereShape, BoxShape, CapsuleShape, ConvexHullShape>;
 
-Vec3f worldSupport(const ShapeVariant& shape, const Transform& t, Vec3f worldDir) noexcept;
+Vec3f worldSupport(const ShapeVariant& shape, const Transform& t,
+                   Vec3f worldDir) noexcept;
 
 AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept;
 

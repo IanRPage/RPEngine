@@ -4,6 +4,6 @@
 #include <math/Types.hpp>
 
 void apply2DConstraint(Vec3f& position, Vec3f& linearVelocity,
-                        Vec3f& angularVelocity) noexcept;
+                       Vec3f& angularVelocity) noexcept;
 
 #endif

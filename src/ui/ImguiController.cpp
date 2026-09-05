@@ -48,8 +48,7 @@ void ImguiController::renderHelp() {
   if (ImGui::CollapsingHeader("Help")) {
     ImGui::Spacing();
     ImGui::SeparatorText("Forces");
-    ImGui::BulletText(
-        "Force controls are simple, select a force, and click.");
+    ImGui::BulletText("Force controls are simple, select a force, and click.");
 
     ImGui::Spacing();
     ImGui::SeparatorText("Spawning");
@@ -77,13 +76,13 @@ void ImguiController::renderIntegration() {
   ImGui::Spacing();
   if (ImGui::CollapsingHeader("Integration")) {
     ImGui::Spacing();
-    if (ImGui::RadioButton(
-            "Euler", sim_.integrationType() == IntegrationType::Euler)) {
+    if (ImGui::RadioButton("Euler",
+                           sim_.integrationType() == IntegrationType::Euler)) {
       sim_.setIntegrationType(IntegrationType::Euler);
     }
     ImGui::SameLine();
-    if (ImGui::RadioButton(
-            "Verlet", sim_.integrationType() == IntegrationType::Verlet)) {
+    if (ImGui::RadioButton("Verlet",
+                           sim_.integrationType() == IntegrationType::Verlet)) {
       sim_.setIntegrationType(IntegrationType::Verlet);
     }
   }
@@ -96,11 +95,6 @@ void ImguiController::renderBroadphase() {
     if (ImGui::RadioButton("Naive",
                            sim_.broadphaseType() == BroadphaseType::Naive)) {
       sim_.setBroadphaseType(BroadphaseType::Naive);
-    }
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Quad Tree",
-                           sim_.broadphaseType() == BroadphaseType::Qtree)) {
-      sim_.setBroadphaseType(BroadphaseType::Qtree);
     }
     ImGui::SameLine();
     if (ImGui::RadioButton("Uniform Grid", sim_.broadphaseType() ==

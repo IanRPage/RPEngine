@@ -1,7 +1,6 @@
-#include <collision/Shapes.hpp>
-
 #include <algorithm>
 #include <cmath>
+#include <collision/Shapes.hpp>
 #include <limits>
 #include <stdexcept>
 
@@ -13,7 +12,8 @@ Mat3f SphereShape::localInertiaTensor(float mass) const noexcept {
 }
 
 // textbook box inertia is stated in terms of FULL side lengths:
-//   Ixx = m/12 * ((2hy)^2 + (2hz)^2) = m/12 * (4hy^2 + 4hz^2) = m/3 * (hy^2 + hz^2)
+//   Ixx = m/12 * ((2hy)^2 + (2hz)^2) = m/12 * (4hy^2 + 4hz^2) = m/3 * (hy^2 +
+//         hz^2)
 Mat3f BoxShape::localInertiaTensor(float mass) const noexcept {
   float hx = halfExtents.x, hy = halfExtents.y, hz = halfExtents.z;
   float ixx = (mass / 3.0f) * (hy * hy + hz * hz);
@@ -102,7 +102,8 @@ Mat3f ConvexHullShape::localInertiaTensor(float mass) const noexcept {
 
 namespace {
 
-AABB transformedCorners(const std::vector<Vec3f>& localPoints, const Transform& t) noexcept {
+AABB transformedCorners(const std::vector<Vec3f>& localPoints,
+                        const Transform& t) noexcept {
   Vec3f worldMin(std::numeric_limits<float>::max());
   Vec3f worldMax(std::numeric_limits<float>::lowest());
   for (const Vec3f& p : localPoints) {
@@ -115,9 +116,11 @@ AABB transformedCorners(const std::vector<Vec3f>& localPoints, const Transform& 
 
 }  // namespace
 
-Vec3f worldSupport(const ShapeVariant& shape, const Transform& t, Vec3f worldDir) noexcept {
+Vec3f worldSupport(const ShapeVariant& shape, const Transform& t,
+                   Vec3f worldDir) noexcept {
   const Vec3f localDir = glm::inverse(t.orientation) * worldDir;
-  const Vec3f localPoint = std::visit([&](const auto& s) { return s.support(localDir); }, shape);
+  const Vec3f localPoint =
+      std::visit([&](const auto& s) { return s.support(localDir); }, shape);
   return t.position + (t.orientation * localPoint);
 }
 
@@ -125,7 +128,8 @@ AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept {
   return std::visit(
       [&](const auto& s) -> AABB {
         using ShapeT = std::decay_t<decltype(s)>;
-        if constexpr (std::is_same_v<ShapeT, SphereShape> || std::is_same_v<ShapeT, CapsuleShape>) {
+        if constexpr (std::is_same_v<ShapeT, SphereShape> ||
+                      std::is_same_v<ShapeT, CapsuleShape>) {
           Vec3f r(s.boundingRadius());
           return AABB(t.position - r, t.position + r);
         } else if constexpr (std::is_same_v<ShapeT, BoxShape>) {
@@ -134,7 +138,8 @@ AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept {
           for (float sx : {-1.0f, 1.0f})
             for (float sy : {-1.0f, 1.0f})
               for (float sz : {-1.0f, 1.0f})
-                corners.emplace_back(sx * s.halfExtents.x, sy * s.halfExtents.y, sz * s.halfExtents.z);
+                corners.emplace_back(sx * s.halfExtents.x, sy * s.halfExtents.y,
+                                     sz * s.halfExtents.z);
           return transformedCorners(corners, t);
         } else {  // ConvexHullShape
           return transformedCorners(s.localVertices, t);
