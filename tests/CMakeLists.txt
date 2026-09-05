@@ -33,6 +33,11 @@ add_executable(rp_tests
     test_dynamic_bvh.cpp
     test_pair_cache.cpp
     test_broadphase.cpp
+    test_gjk.cpp
+    test_epa.cpp
+    test_narrowphase_regression.cpp
+    test_manifold.cpp
+    test_manifold_cache.cpp
     ${ENGINE_SOURCES}
 )
 
