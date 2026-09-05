@@ -4,7 +4,6 @@
 #include <Particle.hpp>
 #include <core/Contact.hpp>
 #include <core/Enums.hpp>
-#include <dsa/QuadTree.hpp>
 #include <dsa/SpatialGrid.hpp>
 #include <dsa/Vec2.hpp>
 #include <random>
@@ -68,10 +67,10 @@ class Simulator {
   std::vector<Contact> contacts_;
 
   void naiveBroadphase(std::vector<Contact>& contacts);
-  void qtreeBroadphase(std::vector<Contact>& contacts, size_t bucketSize = 4);
   void spatialGridBroadphase(std::vector<Contact>& contacts);
 
-  void detectCollision(size_t idx1, size_t idx2, std::vector<Contact>& contacts);
+  void detectCollision(size_t idx1, size_t idx2,
+                       std::vector<Contact>& contacts);
   void applyWall(Particle& p, float w, float h);
   void resolveCollisions();
 

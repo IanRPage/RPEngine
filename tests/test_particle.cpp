@@ -1,6 +1,6 @@
 #include <Particle.hpp>
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
 TEST(ParticleTest, ConstructorSetsFields) {
   Particle p({100.0f, 200.0f}, {10.0f, 20.0f}, 1.0f / 60.0f, 5.0f, 2.0f);
@@ -71,7 +71,8 @@ TEST(ParticleTest, AccelerationAccumulates) {
 TEST(ParticleTest, IntegrationDefinitionsInSourceFile) {
   // After the refactor, Particle integration methods should be declared
   // in include/Particle.hpp but defined in src/Particle.cpp.
-  // This test simply ensures the methods are callable and produce correct results.
+  // This test simply ensures the methods are callable and produce correct
+  // results.
   float dt = 0.01f;
   Particle p1({50.0f, 50.0f}, {5.0f, 0.0f}, dt, 3.0f, 1.0f);
   p1.accelerate({0.0f, -9.81f});
