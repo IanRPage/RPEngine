@@ -3,7 +3,7 @@
 
 struct SimConfig {
   float fixedDt = 1.0f / 60.0f;
-  int maxStepsPerFrame = 5;  // spiral-of-death guard
+  int maxStepsPerFrame = 5;
 };
 
 #endif

@@ -9,9 +9,6 @@ void Simulator::advance(float realDeltaTime) noexcept {
 
   while (accumulator_ >= config_.fixedDt && steps < config_.maxStepsPerFrame) {
     if (!steppedAtLeastOnce) {
-      // Snapshot BEFORE the first substep of this advance() call, so the
-      // interpolation window spans the whole gap since the last render
-      // frame, not just the last substep taken this call.
       world_.snapshotPrevState();
       steppedAtLeastOnce = true;
     }
