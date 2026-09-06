@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <sim/Simulator.hpp>
 
 namespace {
@@ -13,6 +14,18 @@ BodyHandle spawnFreeBody(Simulator& sim, Vec3f position, Vec3f linearVelocity) {
   return h;
 }
 }  // namespace
+
+TEST(FixedTimestepTest, ZeroFixedDtConfigurationIsRejected) {
+  SimConfig config;
+  config.fixedDt = 0.0f;
+  Simulator sim(config);
+
+  EXPECT_GT(sim.config().fixedDt, 0.0f);
+
+  sim.advance(0.1f);
+  EXPECT_FALSE(std::isnan(sim.interpolationAlpha()));
+  EXPECT_FALSE(std::isinf(sim.interpolationAlpha()));
+}
 
 TEST(FixedTimestepTest, StepCountMatchesFloorOfElapsedOverFixedDt) {
   Simulator sim;  // fixedDt = 1/60 by default
