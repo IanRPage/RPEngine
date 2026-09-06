@@ -189,7 +189,7 @@ void solvePosition(std::span<Manifold> manifolds, BodyStore& bodies,
       Vec3f worldAnchorA = transformPoint(ta, point.localAnchorA);
       Vec3f worldAnchorB = transformPoint(tb, point.localAnchorB);
       float currentPenetration =
-          glm::dot(worldAnchorB - worldAnchorA, m.normal);
+          glm::dot(worldAnchorA - worldAnchorB, m.normal);
       if (currentPenetration <= config.slop) { continue; }
 
       Vec3f rA = transformDirection(ta, point.localAnchorA);

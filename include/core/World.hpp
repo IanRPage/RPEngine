@@ -40,9 +40,7 @@ class World {
   Vec3f gravity() const noexcept { return gravity_; }
   void setGravity(Vec3f gravity) noexcept { gravity_ = gravity; }
 
-  void setBroadphase(std::unique_ptr<IBroadphase> broadphase) noexcept {
-    broadphase_ = std::move(broadphase);
-  }
+  void setBroadphase(std::unique_ptr<IBroadphase> broadphase) noexcept;
 
   using GjkFn = std::function<GjkResult(const ShapeVariant&, const Transform&,
                                         const ShapeVariant&, const Transform&)>;
@@ -50,8 +48,8 @@ class World {
                                         const ShapeVariant&, const Transform&,
                                         const GjkResult&)>;
   void setNarrowphaseFns(GjkFn gjkFn, EpaFn epaFn) noexcept {
-    gjkFn_ = std::move(gjkFn);
-    epaFn_ = std::move(epaFn);
+    if (gjkFn) { gjkFn_ = std::move(gjkFn); }
+    if (epaFn) { epaFn_ = std::move(epaFn); }
   }
 
  private:

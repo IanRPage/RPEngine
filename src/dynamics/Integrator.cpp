@@ -15,13 +15,13 @@ void integratePosition(BodyStore& bodies, float dt) noexcept {
   for (BodyHandle h : bodies.liveHandles()) {
     if (bodies.invMass(h) <= 0.0f) { continue; }
 
-    bodies.position(h) += bodies.linearVelocity(h) * dt;
-    bodies.orientation(h) = integrateOrientation(bodies.orientation(h),
-                                                 bodies.angularVelocity(h), dt);
-
     if (bodies.constrainTo2D(h)) {
       apply2DConstraint(bodies.position(h), bodies.linearVelocity(h),
                         bodies.angularVelocity(h));
     }
+
+    bodies.position(h) += bodies.linearVelocity(h) * dt;
+    bodies.orientation(h) = integrateOrientation(bodies.orientation(h),
+                                                 bodies.angularVelocity(h), dt);
   }
 }

@@ -10,12 +10,22 @@ namespace {
 float boundingRadiusOf(const ShapeVariant& shape) noexcept {
   return std::visit([](const auto& s) { return s.boundingRadius(); }, shape);
 }
+
+std::unique_ptr<IBroadphase> normalizeBroadphase(
+    std::unique_ptr<IBroadphase> broadphase) noexcept {
+  return broadphase ? std::move(broadphase)
+                    : std::make_unique<DynamicBVHBroadphase>();
+}
 }  // namespace
 
 World::World() : World(std::make_unique<DynamicBVHBroadphase>()) {}
 
 World::World(std::unique_ptr<IBroadphase> broadphase)
-    : broadphase_(std::move(broadphase)) {}
+    : broadphase_(normalizeBroadphase(std::move(broadphase))) {}
+
+void World::setBroadphase(std::unique_ptr<IBroadphase> broadphase) noexcept {
+  broadphase_ = normalizeBroadphase(std::move(broadphase));
+}
 
 BodyHandle World::createDynamicBody(const ShapeVariant& shape,
                                     const Transform& transform, float mass,

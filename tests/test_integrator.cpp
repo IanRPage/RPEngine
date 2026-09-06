@@ -70,6 +70,9 @@ TEST(IntegratorTest, ConstrainedBodyStaysInPlaneAndLosesOutOfPlaneSpin) {
   EXPECT_FLOAT_EQ(store.angularVelocity(h).y, 0.0f);
   // the one rotational DoF 2D body keeps
   EXPECT_FLOAT_EQ(store.angularVelocity(h).z, 1.0f);
+
+  EXPECT_FLOAT_EQ(store.orientation(h).x, 0.0f);
+  EXPECT_FLOAT_EQ(store.orientation(h).y, 0.0f);
 }
 
 TEST(IntegratorTest, SemiImplicitEulerIntegratorMatchesFreeFunctions) {

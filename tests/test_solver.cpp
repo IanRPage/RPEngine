@@ -61,6 +61,23 @@ TEST(SolverTest, WarmStartReducesSecondFrameFirstIterationDeltaImpulse) {
   EXPECT_LT(std::abs(secondDelta), std::abs(firstDelta));
 }
 
+TEST(SolverTest, SolvePositionSeparatesADeeplyPenetratingPair) {
+  BodyStore store;
+  BodyHandle a = addSphere(store, Vec3f(0.0f), 0.0f);              // static
+  BodyHandle b = addSphere(store, Vec3f(1.5f, 0.0f, 0.0f), 1.0f);  // overlap .5
+
+  Manifold manifold = buildSphereManifold(store, a, b);
+  ASSERT_GE(manifold.pointCount, 1);
+  std::array<Manifold, 1> manifolds{manifold};
+
+  SolverConfig config;
+  float xBefore = store.position(b).x;
+  solvePosition(manifolds, store, config);
+  float xAfter = store.position(b).x;
+
+  EXPECT_GT(xAfter, xBefore + 0.01f);
+}
+
 TEST(SolverTest, RestitutionProducesExpectedBounceHeight) {
   World world;
   world.setGravity(Vec3f(0.0f, -9.81f, 0.0f));

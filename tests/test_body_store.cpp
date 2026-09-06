@@ -119,3 +119,24 @@ TEST(BodyStoreTest, MutableAccessorsWriteThrough) {
   EXPECT_FLOAT_EQ(store.transform(h).position.z, 3.0f);
   EXPECT_FLOAT_EQ(store.transform(h).orientation.x, 1.0f);
 }
+
+TEST(BodyStoreTest, RemoveThenReAddDoesNotInheritStaleDynamicsState) {
+  BodyStore store;
+  BodyDesc fastDesc;
+  fastDesc.shape = ShapeVariant{SphereShape{1.0f}};
+  fastDesc.invMass = 1.0f;
+  BodyHandle fast = store.addBody(fastDesc);
+  store.linearVelocity(fast) = Vec3f(50.0f, -25.0f, 0.0f);
+  store.angularVelocity(fast) = Vec3f(0.0f, 0.0f, 10.0f);
+  store.removeBody(fast);
+
+  BodyDesc freshDesc;
+  freshDesc.shape = ShapeVariant{SphereShape{1.0f}};
+  freshDesc.invMass = 1.0f;
+  BodyHandle fresh = store.addBody(freshDesc);
+
+  ASSERT_EQ(fresh.index, fast.index);  // same slot, reused from free list
+  EXPECT_FLOAT_EQ(store.linearVelocity(fresh).x, 0.0f);
+  EXPECT_FLOAT_EQ(store.linearVelocity(fresh).y, 0.0f);
+  EXPECT_FLOAT_EQ(store.angularVelocity(fresh).z, 0.0f);
+}

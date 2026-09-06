@@ -11,6 +11,9 @@ uint32_t BodyStore::allocateSlot() noexcept {
   }
 
   Slot& slot = slots_[index];
+  uint32_t generation = slot.generation;
+  slot = Slot{};
+  slot.generation = generation;
   slot.alive = true;
 
   BodyHandle handle{index, slot.generation};
