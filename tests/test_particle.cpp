@@ -1,6 +1,5 @@
-#include <Particle.hpp>
-#include <cmath>
 #include <gtest/gtest.h>
+#include <Particle.hpp>
 
 TEST(ParticleTest, ConstructorSetsFields) {
   Particle p({100.0f, 200.0f}, {10.0f, 20.0f}, 1.0f / 60.0f, 5.0f, 2.0f);

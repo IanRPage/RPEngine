@@ -18,7 +18,7 @@ struct NarrowphaseResult {
 NarrowphaseResult narrowphase(const ShapeVariant& a, const Transform& ta,
                               const ShapeVariant& b, const Transform& tb) {
   GjkResult gjk = gjkOverlap(a, ta, b, tb);
-  if (!gjk.overlapping) return {false, 0.0f, Vec3f(0.0f)};
+  if (!gjk.overlapping) { return {false, 0.0f, Vec3f(0.0f)}; }
   EpaResult epa = epaPenetration(a, ta, b, tb, gjk);
   return {true, epa.penetrationDepth, epa.normal};
 }
@@ -116,8 +116,8 @@ TEST(NarrowphaseRegressionTest, CircleVsTriangle_DeepIntersection) {
   ShapeVariant circle = sphere(5.0f);
   Transform tc = at(0.0f, 0.0f);
   Transform tt;
-  ShapeVariant tri = triangle(Vec2f{-6.0f, -6.0f}, Vec2f{6.0f, -6.0f},
-                              Vec2f{0.0f, 6.0f}, tt);
+  ShapeVariant tri =
+      triangle(Vec2f{-6.0f, -6.0f}, Vec2f{6.0f, -6.0f}, Vec2f{0.0f, 6.0f}, tt);
 
   auto result = narrowphase(circle, tc, tri, tt);
   EXPECT_TRUE(result.colliding);
@@ -128,8 +128,8 @@ TEST(NarrowphaseRegressionTest, CircleVsTriangle_EdgeIntersection) {
   ShapeVariant circle = sphere(3.0f);
   Transform tc = at(0.0f, -2.0f);
   Transform tt;
-  ShapeVariant tri = triangle(Vec2f{-5.0f, 0.0f}, Vec2f{5.0f, 0.0f},
-                              Vec2f{0.0f, 10.0f}, tt);
+  ShapeVariant tri =
+      triangle(Vec2f{-5.0f, 0.0f}, Vec2f{5.0f, 0.0f}, Vec2f{0.0f, 10.0f}, tt);
 
   auto result = narrowphase(circle, tc, tri, tt);
   EXPECT_TRUE(result.colliding);
@@ -140,8 +140,8 @@ TEST(NarrowphaseRegressionTest, CircleVsTriangle_VertexIntersection) {
   ShapeVariant circle = sphere(2.0f);
   Transform tc = at(0.0f, -1.0f);
   Transform tt;
-  ShapeVariant tri = triangle(Vec2f{0.0f, 0.0f}, Vec2f{5.0f, 5.0f},
-                              Vec2f{-5.0f, 5.0f}, tt);
+  ShapeVariant tri =
+      triangle(Vec2f{0.0f, 0.0f}, Vec2f{5.0f, 5.0f}, Vec2f{-5.0f, 5.0f}, tt);
 
   auto result = narrowphase(circle, tc, tri, tt);
   EXPECT_TRUE(result.colliding);
@@ -152,8 +152,8 @@ TEST(NarrowphaseRegressionTest, CircleVsTriangle_FalsePositive) {
   ShapeVariant circle = sphere(2.0f);
   Transform tc = at(0.0f, -3.0f);
   Transform tt;
-  ShapeVariant tri = triangle(Vec2f{0.0f, 0.0f}, Vec2f{5.0f, 5.0f},
-                              Vec2f{-5.0f, 5.0f}, tt);
+  ShapeVariant tri =
+      triangle(Vec2f{0.0f, 0.0f}, Vec2f{5.0f, 5.0f}, Vec2f{-5.0f, 5.0f}, tt);
 
   auto result = narrowphase(circle, tc, tri, tt);
   EXPECT_FALSE(result.colliding);
@@ -221,8 +221,8 @@ TEST(NarrowphaseRegressionTest, RectangleVsTriangle_DeepIntersection) {
   ShapeVariant rect = box(10.0f, 10.0f);
   Transform tr = at(0.0f, 0.0f);
   Transform tt;
-  ShapeVariant tri = triangle(Vec2f{-6.0f, -6.0f}, Vec2f{6.0f, -6.0f},
-                              Vec2f{0.0f, 6.0f}, tt);
+  ShapeVariant tri =
+      triangle(Vec2f{-6.0f, -6.0f}, Vec2f{6.0f, -6.0f}, Vec2f{0.0f, 6.0f}, tt);
 
   auto result = narrowphase(rect, tr, tri, tt);
   EXPECT_TRUE(result.colliding);
@@ -245,8 +245,8 @@ TEST(NarrowphaseRegressionTest, RectangleVsTriangle_VertexToVertex) {
   ShapeVariant rect = box(6.0f, 6.0f);
   Transform tr = at(0.0f, -3.0f);  // top-right corner at (3, 0)
   Transform tt;
-  ShapeVariant tri = triangle(Vec2f{2.5f, -0.5f}, Vec2f{8.0f, -1.0f},
-                              Vec2f{5.0f, 5.0f}, tt);
+  ShapeVariant tri =
+      triangle(Vec2f{2.5f, -0.5f}, Vec2f{8.0f, -1.0f}, Vec2f{5.0f, 5.0f}, tt);
 
   auto result = narrowphase(rect, tr, tri, tt);
   EXPECT_TRUE(result.colliding);
@@ -268,10 +268,10 @@ TEST(NarrowphaseRegressionTest, RectangleVsTriangle_FalsePositive) {
 
 TEST(NarrowphaseRegressionTest, TriangleVsTriangle_DeepIntersection) {
   Transform t1t, t2t;
-  ShapeVariant t1 = triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f},
-                             Vec2f{0.0f, 5.0f}, t1t);
-  ShapeVariant t2 = triangle(Vec2f{-5.0f, 5.0f}, Vec2f{5.0f, 5.0f},
-                             Vec2f{0.0f, -5.0f}, t2t);
+  ShapeVariant t1 =
+      triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f}, Vec2f{0.0f, 5.0f}, t1t);
+  ShapeVariant t2 =
+      triangle(Vec2f{-5.0f, 5.0f}, Vec2f{5.0f, 5.0f}, Vec2f{0.0f, -5.0f}, t2t);
 
   auto result = narrowphase(t1, t1t, t2, t2t);
   EXPECT_TRUE(result.colliding);
@@ -280,10 +280,10 @@ TEST(NarrowphaseRegressionTest, TriangleVsTriangle_DeepIntersection) {
 
 TEST(NarrowphaseRegressionTest, TriangleVsTriangle_EdgeIntersection) {
   Transform t1t, t2t;
-  ShapeVariant t1 = triangle(Vec2f{-5.0f, 0.0f}, Vec2f{5.0f, 0.0f},
-                             Vec2f{0.0f, 10.0f}, t1t);
-  ShapeVariant t2 = triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f},
-                             Vec2f{0.0f, 1.0f}, t2t);
+  ShapeVariant t1 =
+      triangle(Vec2f{-5.0f, 0.0f}, Vec2f{5.0f, 0.0f}, Vec2f{0.0f, 10.0f}, t1t);
+  ShapeVariant t2 =
+      triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f}, Vec2f{0.0f, 1.0f}, t2t);
 
   auto result = narrowphase(t1, t1t, t2, t2t);
   EXPECT_TRUE(result.colliding);
@@ -292,10 +292,10 @@ TEST(NarrowphaseRegressionTest, TriangleVsTriangle_EdgeIntersection) {
 
 TEST(NarrowphaseRegressionTest, TriangleVsTriangle_VertexToVertex) {
   Transform t1t, t2t;
-  ShapeVariant t1 = triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f},
-                             Vec2f{0.0f, 1.0f}, t1t);
-  ShapeVariant t2 = triangle(Vec2f{-5.0f, 5.0f}, Vec2f{5.0f, 5.0f},
-                             Vec2f{0.0f, 0.0f}, t2t);
+  ShapeVariant t1 =
+      triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f}, Vec2f{0.0f, 1.0f}, t1t);
+  ShapeVariant t2 =
+      triangle(Vec2f{-5.0f, 5.0f}, Vec2f{5.0f, 5.0f}, Vec2f{0.0f, 0.0f}, t2t);
 
   auto result = narrowphase(t1, t1t, t2, t2t);
   EXPECT_TRUE(result.colliding);
@@ -304,10 +304,10 @@ TEST(NarrowphaseRegressionTest, TriangleVsTriangle_VertexToVertex) {
 
 TEST(NarrowphaseRegressionTest, TriangleVsTriangle_FalsePositive) {
   Transform t1t, t2t;
-  ShapeVariant t1 = triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f},
-                             Vec2f{0.0f, 0.0f}, t1t);
-  ShapeVariant t2 = triangle(Vec2f{-5.0f, 5.0f}, Vec2f{5.0f, 5.0f},
-                             Vec2f{0.0f, 1.0f}, t2t);
+  ShapeVariant t1 =
+      triangle(Vec2f{-5.0f, -5.0f}, Vec2f{5.0f, -5.0f}, Vec2f{0.0f, 0.0f}, t1t);
+  ShapeVariant t2 =
+      triangle(Vec2f{-5.0f, 5.0f}, Vec2f{5.0f, 5.0f}, Vec2f{0.0f, 1.0f}, t2t);
 
   auto result = narrowphase(t1, t1t, t2, t2t);
   EXPECT_FALSE(result.colliding);

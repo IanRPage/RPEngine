@@ -31,7 +31,7 @@ void Simulator::configure(Vec2f size, float dt) {
 }
 
 void Simulator::spawnParticle(Vec2f pos, Vec2f vel, float r, float m) noexcept {
-  if (particles_.size() >= capacity_) return;
+  if (particles_.size() >= capacity_) { return; }
   const float vn = vel.x * vel.x + vel.y + vel.y;
   if (!vn) {
     std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
@@ -49,7 +49,7 @@ void Simulator::radialPush(const Vec2f& origin, const float radius,
     const Vec2f d = p.position - origin;
     const float d2 = d.x * d.x + d.y * d.y;
 
-    if (d2 > radius * radius || d2 < 1e-12f) return;
+    if (d2 > radius * radius || d2 < 1e-12f) { return; }
 
     const float invDist = 1.0f / std::sqrt(d2);
     const Vec2f norm = d * invDist;
@@ -159,7 +159,7 @@ void Simulator::detectCollision(size_t idx1, size_t idx2,
   const float sum_r = p1.radius + p2.radius;
   const float sum_r2 = sum_r * sum_r;
 
-  if (d2 >= sum_r2) return;
+  if (d2 >= sum_r2) { return; }
 
   if (d2 < 1e-12f) {
     contacts.emplace_back(idx1, idx2, Vec2f{1.0f, 0.0f}, sum_r);
@@ -181,7 +181,7 @@ void Simulator::solveContactsPositionBased(std::vector<Contact>& contacts) {
     Particle& p2 = particles_[contact.indexB];
 
     const float invMassSum = p1.invMass + p2.invMass;
-    if (invMassSum < 1e-12f) continue;
+    if (invMassSum < 1e-12f) { continue; }
 
     const Vec2f d = p2.position - p1.position;
     const float d2 = d.x * d.x + d.y * d.y;
@@ -232,7 +232,7 @@ void Simulator::solveContactsImpulseBased(std::vector<Contact>& contacts) {
     Particle& p2 = particles_[contact.indexB];
 
     const float invMassSum = p1.invMass + p2.invMass;
-    if (invMassSum < 1e-12f) continue;
+    if (invMassSum < 1e-12f) { continue; }
 
     const Vec2f d = p2.position - p1.position;
     const float d2 = d.x * d.x + d.y * d.y;
@@ -270,9 +270,7 @@ void Simulator::solveContactsImpulseBased(std::vector<Contact>& contacts) {
 void Simulator::resolveCollisions() {
   auto [w, h] = worldSize_;
 
-  for (Particle& par : particles_) {
-    applyWall(par, w, h);
-  }
+  for (Particle& par : particles_) { applyWall(par, w, h); }
 
   for (size_t iter = 0; iter < solverIterations; iter++) {
     contacts_.clear();
@@ -283,7 +281,7 @@ void Simulator::resolveCollisions() {
       naiveBroadphase(contacts_);
     }
 
-    if (contacts_.empty()) break;
+    if (contacts_.empty()) { break; }
 
     if (integrationType_ == IntegrationType::Verlet) {
       solveContactsPositionBased(contacts_);

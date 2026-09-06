@@ -17,20 +17,19 @@ IndexPair canonical(BodyHandle a, BodyHandle b) {
                              : IndexPair{b.index, a.index};
 }
 
-std::set<IndexPair>
-toIndexSet(std::span<const std::pair<BodyHandle, BodyHandle>> pairs) {
+std::set<IndexPair> toIndexSet(
+    std::span<const std::pair<BodyHandle, BodyHandle>> pairs) {
   std::set<IndexPair> result;
-  for (const auto &[a, b] : pairs)
-    result.insert(canonical(a, b));
+  for (const auto& [a, b] : pairs) { result.insert(canonical(a, b)); }
   return result;
 }
 
-bool overlaps(const AABB &a, const AABB &b) {
+bool overlaps(const AABB& a, const AABB& b) {
   return a.min.x <= b.max.x && a.max.x >= b.min.x && a.min.y <= b.max.y &&
          a.max.y >= b.min.y && a.min.z <= b.max.z && a.max.z >= b.min.z;
 }
 
-} // namespace
+}  // namespace
 
 TEST(BroadphaseTest, AllImplementationsAgreeWithBruteForceOverlap) {
   BodyStore store;
@@ -70,24 +69,25 @@ TEST(BroadphaseTest, AllImplementationsAgreeWithBruteForceOverlap) {
 
   GridBroadphase grid;
   std::set<IndexPair> gridPairs = toIndexSet(grid.computePairs(store));
-  for (const IndexPair &p : realOverlaps) {
+  for (const IndexPair& p : realOverlaps) {
     EXPECT_TRUE(gridPairs.count(p) != 0)
         << "GridBroadphase missed a real overlap";
   }
 
   DynamicBVHBroadphase bvh;
   std::set<IndexPair> bvhPairs = toIndexSet(bvh.computePairs(store));
-  for (const IndexPair &p : realOverlaps) {
+  for (const IndexPair& p : realOverlaps) {
     EXPECT_TRUE(bvhPairs.count(p) != 0)
         << "DynamicBVHBroadphase missed a real overlap";
   }
 }
 
-TEST(BroadphaseTest, GridDoesNotMissSmallBodyOverlappingCenterDistantLargeBody) {
+TEST(BroadphaseTest,
+     GridDoesNotMissSmallBodyOverlappingCenterDistantLargeBody) {
   BodyStore store;
 
-  BodyHandle small = store.addBody(
-      AABB(Vec3f(-0.5f, -0.5f, -0.5f), Vec3f(0.5f, 0.5f, 0.5f)));
+  BodyHandle small =
+      store.addBody(AABB(Vec3f(-0.5f, -0.5f, -0.5f), Vec3f(0.5f, 0.5f, 0.5f)));
   // center far from `small`'s center-cell, but its so large it still reaches
   // back to overlap `small`
   BodyHandle large = store.addBody(
@@ -108,16 +108,16 @@ TEST(BroadphaseTest, DynamicBVHHandlesSameIndexBodyReplacement) {
 
   BodyHandle stationary =
       store.addBody(AABB(Vec3f(0.0f), Vec3f(2.0f, 2.0f, 2.0f)));
-  BodyHandle original = store.addBody(
-      AABB(Vec3f(1.0f, 1.0f, 1.0f), Vec3f(3.0f, 3.0f, 3.0f)));
+  BodyHandle original =
+      store.addBody(AABB(Vec3f(1.0f, 1.0f, 1.0f), Vec3f(3.0f, 3.0f, 3.0f)));
 
   DynamicBVHBroadphase bvh;
   auto initial = toIndexSet(bvh.computePairs(store));
   ASSERT_TRUE(initial.count(canonical(stationary, original)) != 0);
 
   store.removeBody(original);
-  BodyHandle replacement = store.addBody(
-      AABB(Vec3f(1.0f, 1.0f, 1.0f), Vec3f(3.0f, 3.0f, 3.0f)));
+  BodyHandle replacement =
+      store.addBody(AABB(Vec3f(1.0f, 1.0f, 1.0f), Vec3f(3.0f, 3.0f, 3.0f)));
   ASSERT_EQ(replacement.index, original.index);
   ASSERT_NE(replacement.generation, original.generation);
 

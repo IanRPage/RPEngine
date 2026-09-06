@@ -28,9 +28,11 @@ TEST(MassPropertiesTest, NonZeroMassInvertsDiagonal) {
 }
 
 TEST(MassPropertiesTest, DegenerateHullWithPositiveMassDoesNotProduceInf) {
-  ConvexHullShape collinearHull(
-      {Vec3f(-1.0f, 0.0f, 0.0f), Vec3f(0.0f, 0.0f, 0.0f), Vec3f(1.0f, 0.0f, 0.0f)});
-  MassProperties props = computeMassProperties(ShapeVariant{collinearHull}, 5.0f);
+  ConvexHullShape collinearHull({Vec3f(-1.0f, 0.0f, 0.0f),
+                                 Vec3f(0.0f, 0.0f, 0.0f),
+                                 Vec3f(1.0f, 0.0f, 0.0f)});
+  MassProperties props =
+      computeMassProperties(ShapeVariant{collinearHull}, 5.0f);
 
   EXPECT_TRUE(std::isfinite(props.invLocalInertiaTensor[0][0]));
   EXPECT_TRUE(std::isfinite(props.invLocalInertiaTensor[1][1]));

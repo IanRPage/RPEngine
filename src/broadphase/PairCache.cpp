@@ -27,7 +27,7 @@ void PairCache::update(const DynamicBVH& tree,
   for (int32_t movedId : movedNodeIds) {
     const BVHNode& movedNode = tree.node(movedId);
     tree.query(movedNode.fatAABB, [&](int32_t otherId, BodyHandle otherBody) {
-      if (otherId == movedId) return;
+      if (otherId == movedId) { return; }
 
       int32_t nodeA = movedId, nodeB = otherId;
       BodyHandle a = movedNode.body, b = otherBody;
@@ -37,7 +37,7 @@ void PairCache::update(const DynamicBVH& tree,
       }
 
       auto key = std::make_pair(nodeA, nodeB);
-      if (nodePairSet_.count(key) != 0) return;
+      if (nodePairSet_.count(key) != 0) { return; }
       nodePairSet_.insert(key);
       entries_.push_back(Entry{nodeA, nodeB, a, b});
     });
@@ -45,7 +45,5 @@ void PairCache::update(const DynamicBVH& tree,
 
   pairs_.clear();
   pairs_.reserve(entries_.size());
-  for (const Entry& e : entries_) {
-    pairs_.push_back(canonicalize(e.a, e.b));
-  }
+  for (const Entry& e : entries_) { pairs_.push_back(canonicalize(e.a, e.b)); }
 }

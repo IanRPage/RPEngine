@@ -1,5 +1,5 @@
-#include <dsa/AABB.hpp>
 #include <gtest/gtest.h>
+#include <dsa/AABB.hpp>
 
 TEST(AABBTest, Construction) {
   AABBf box({0.0f, 0.0f}, {10.0f, 20.0f});

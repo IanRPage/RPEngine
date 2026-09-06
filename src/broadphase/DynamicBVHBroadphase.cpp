@@ -9,7 +9,7 @@ DynamicBVHBroadphase::computePairs(const BodyStore& bodies) {
   const std::vector<BodyHandle>& liveHandles = bodies.liveHandles();
 
   uint32_t maxIndex = 0;
-  for (BodyHandle h : liveHandles) maxIndex = std::max(maxIndex, h.index);
+  for (BodyHandle h : liveHandles) { maxIndex = std::max(maxIndex, h.index); }
   if (nodeByBodyIndex_.size() <= maxIndex) {
     nodeByBodyIndex_.resize(maxIndex + 1, kInvalidNode);
     trackedHandles_.resize(maxIndex + 1);
@@ -22,14 +22,14 @@ DynamicBVHBroadphase::computePairs(const BodyStore& bodies) {
     int32_t& nodeId = nodeByBodyIndex_[h.index];
 
     if (nodeId == kInvalidNode || !(trackedHandles_[h.index] == h)) {
-      if (nodeId != kInvalidNode) tree_.remove(nodeId);
+      if (nodeId != kInvalidNode) { tree_.remove(nodeId); }
       nodeId = tree_.insert(h, bodies.aabb(h));
       trackedHandles_[h.index] = h;
       movedNodeIds_.push_back(nodeId);  // newly inserted counts as moved
     } else {
       bool moved =
           tree_.moveProxy(nodeId, bodies.aabb(h), bodies.displacement(h));
-      if (moved) movedNodeIds_.push_back(nodeId);
+      if (moved) { movedNodeIds_.push_back(nodeId); }
     }
   }
 

@@ -70,7 +70,7 @@ void DynamicBVH::remove(int32_t nodeId) {
 
 bool DynamicBVH::moveProxy(int32_t nodeId, const AABB& realAABB,
                            Vec3f displacement) {
-  if (contains(nodes_[nodeId].fatAABB, realAABB)) return false;
+  if (contains(nodes_[nodeId].fatAABB, realAABB)) { return false; }
 
   removeLeaf(nodeId);
   nodes_[nodeId].fatAABB = fatten(realAABB, displacement);
@@ -118,7 +118,7 @@ void DynamicBVH::insertLeaf(int32_t leafId) {
     float cost1 = descendCost(child1);
     float cost2 = descendCost(child2);
 
-    if (cost < cost1 && cost < cost2) break;
+    if (cost < cost1 && cost < cost2) { break; }
 
     index = (cost1 < cost2) ? child1 : child2;
   }
@@ -209,7 +209,7 @@ void DynamicBVH::removeLeaf(int32_t leafId) {
 
 int32_t DynamicBVH::balance(int32_t iA) {
   BVHNode& A = nodes_[iA];
-  if (A.isLeaf() || A.height < 2) return iA;
+  if (A.isLeaf() || A.height < 2) { return iA; }
 
   int32_t iB = A.child1;
   int32_t iC = A.child2;

@@ -17,7 +17,7 @@ struct SphereShape {
 
   Vec3f support(Vec3f direction) const noexcept {
     float len = glm::length(direction);
-    if (len < VECTOR_LENGTH_EPSILON) return Vec3f{radius, 0.0f, 0.0f};
+    if (len < VECTOR_LENGTH_EPSILON) { return Vec3f{radius, 0.0f, 0.0f}; }
     return (direction / len) * radius;
   }
 

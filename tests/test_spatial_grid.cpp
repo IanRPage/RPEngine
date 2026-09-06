@@ -1,6 +1,6 @@
+#include <gtest/gtest.h>
 #include <Particle.hpp>
 #include <dsa/SpatialGrid.hpp>
-#include <gtest/gtest.h>
 
 TEST(SpatialGridTest, ConfigureSetsGridDimensions) {
   SpatialGrid grid;

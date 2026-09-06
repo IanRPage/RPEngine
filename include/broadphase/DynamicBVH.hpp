@@ -29,14 +29,14 @@ class DynamicBVH {
   // fatAABB overlaps queryAABB
   template <typename Callback>
   void query(const AABB& queryAABB, Callback&& cb) const {
-    if (root_ == -1) return;
+    if (root_ == -1) { return; }
     std::vector<int32_t> stack;
     stack.push_back(root_);
     while (!stack.empty()) {
       int32_t nodeId = stack.back();
       stack.pop_back();
       const BVHNode& node = nodes_[nodeId];
-      if (!overlaps(queryAABB, node.fatAABB)) continue;
+      if (!overlaps(queryAABB, node.fatAABB)) { continue; }
       if (node.isLeaf()) {
         cb(nodeId, node.body);
       } else {

@@ -13,7 +13,8 @@ class ManifoldCache {
  public:
   Manifold& getOrCreate(BodyHandle a, BodyHandle b) noexcept;
 
-  void updateManifold(const Manifold& freshManifold, const Transform& transformA,
+  void updateManifold(const Manifold& freshManifold,
+                      const Transform& transformA,
                       float matchThreshold) noexcept;
 
   void beginFrame() noexcept;  // mark all entries unvisited
@@ -23,7 +24,8 @@ class ManifoldCache {
 
  private:
   struct PairHash {
-    size_t operator()(const std::pair<BodyHandle, BodyHandle>& p) const noexcept;
+    size_t operator()(
+        const std::pair<BodyHandle, BodyHandle>& p) const noexcept;
   };
 
   static std::pair<BodyHandle, BodyHandle> canonicalize(BodyHandle a,

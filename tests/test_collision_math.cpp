@@ -1,9 +1,9 @@
+#include <gtest/gtest.h>
 #include <Simulator.hpp>
 #include <cmath>
-#include <gtest/gtest.h>
 
 class CollisionMathTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     sim = std::make_unique<Simulator>(
         Vec2f(800.0f, 600.0f), 20.0f, 0.0f, 1.0f, 1.0f / 60.0f, 10000,
@@ -16,12 +16,10 @@ TEST_F(CollisionMathTest, TwoCollidingParticlesSeparate) {
   sim->spawnParticle({100.0f, 300.0f}, {50.0f, 0.0f}, 10.0f, 1.0f);
   sim->spawnParticle({115.0f, 300.0f}, {-50.0f, 0.0f}, 10.0f, 1.0f);
 
-  for (int i = 0; i < 50; i++) {
-    sim->update();
-  }
+  for (int i = 0; i < 50; i++) { sim->update(); }
 
-  const auto &p1 = sim->particles()[0];
-  const auto &p2 = sim->particles()[1];
+  const auto& p1 = sim->particles()[0];
+  const auto& p2 = sim->particles()[1];
   float dx = p2.position.x - p1.position.x;
   float dy = p2.position.y - p1.position.y;
   float dist = std::sqrt(dx * dx + dy * dy);
@@ -41,7 +39,7 @@ TEST_F(CollisionMathTest, MomentumConservedInElasticCollision) {
   elasticSim->spawnParticle({200.0f, 300.0f}, {50.0f, 0.0f}, 10.0f, 1.0f);
   elasticSim->spawnParticle({225.0f, 300.0f}, {-50.0f, 0.0f}, 10.0f, 1.0f);
 
-  const auto &particles = elasticSim->particles();
+  const auto& particles = elasticSim->particles();
   const float m0 = particles[0].mass;
   const float m1 = particles[1].mass;
   float initialV0 = particles[0].velocity.x;
@@ -51,9 +49,7 @@ TEST_F(CollisionMathTest, MomentumConservedInElasticCollision) {
       0.5f * m0 * particles[0].velocity.x * particles[0].velocity.x +
       0.5f * m1 * particles[1].velocity.x * particles[1].velocity.x;
 
-  for (int i = 0; i < 20; i++) {
-    elasticSim->update();
-  }
+  for (int i = 0; i < 20; i++) { elasticSim->update(); }
 
   float finalMomentumX =
       m0 * particles[0].velocity.x + m1 * particles[1].velocity.x;
@@ -90,13 +86,11 @@ TEST_F(CollisionMathTest, NearZeroDistanceHandledSafely) {
   sim->spawnParticle({300.0f, 300.0f}, {5.0f, 5.0f}, 10.0f, 1.0f);
 
   EXPECT_NO_THROW({
-    for (int i = 0; i < 10; i++) {
-      sim->update();
-    }
+    for (int i = 0; i < 10; i++) { sim->update(); }
   });
 
-  const auto &p1 = sim->particles()[0];
-  const auto &p2 = sim->particles()[1];
+  const auto& p1 = sim->particles()[0];
+  const auto& p2 = sim->particles()[1];
   EXPECT_FALSE(std::isnan(p1.position.x));
   EXPECT_FALSE(std::isnan(p1.position.y));
   EXPECT_FALSE(std::isnan(p2.position.x));
@@ -118,12 +112,10 @@ TEST_F(CollisionMathTest, UnequalMassCollision) {
                     0.5f * m1 * sim->particles()[1].velocity.x *
                         sim->particles()[1].velocity.x;
 
-  for (int i = 0; i < 20; i++) {
-    sim->update();
-  }
+  for (int i = 0; i < 20; i++) { sim->update(); }
 
-  const auto &heavy = sim->particles()[0];
-  const auto &light = sim->particles()[1];
+  const auto& heavy = sim->particles()[0];
+  const auto& light = sim->particles()[1];
 
   EXPECT_GT(heavy.velocity.x, 0.0f);
   EXPECT_LT(heavy.velocity.x, 20.0f);
@@ -143,12 +135,10 @@ TEST_F(CollisionMathTest, PositionalCorrectionResolvesOverlap) {
   sim->spawnParticle({300.0f, 300.0f}, {0.0f, 0.0f}, 10.0f, 1.0f);
   sim->spawnParticle({310.0f, 300.0f}, {0.0f, 0.0f}, 10.0f, 1.0f);
 
-  for (int i = 0; i < 50; i++) {
-    sim->update();
-  }
+  for (int i = 0; i < 50; i++) { sim->update(); }
 
-  const auto &p1 = sim->particles()[0];
-  const auto &p2 = sim->particles()[1];
+  const auto& p1 = sim->particles()[0];
+  const auto& p2 = sim->particles()[1];
   float dx = p2.position.x - p1.position.x;
   float dy = p2.position.y - p1.position.y;
   float dist = std::sqrt(dx * dx + dy * dy);
@@ -172,12 +162,10 @@ TEST_F(CollisionMathTest, VerletCollisionResolution) {
   float initialKE =
       0.5f * m0 * initialV0 * initialV0 + 0.5f * m1 * initialV1 * initialV1;
 
-  for (int i = 0; i < 50; i++) {
-    verletSim->update();
-  }
+  for (int i = 0; i < 50; i++) { verletSim->update(); }
 
-  const auto &p1 = verletSim->particles()[0];
-  const auto &p2 = verletSim->particles()[1];
+  const auto& p1 = verletSim->particles()[0];
+  const auto& p2 = verletSim->particles()[1];
   float dx = p2.position.x - p1.position.x;
   float dy = p2.position.y - p1.position.y;
   float dist = std::sqrt(dx * dx + dy * dy);

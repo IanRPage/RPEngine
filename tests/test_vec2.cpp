@@ -1,5 +1,5 @@
-#include <dsa/Vec2.hpp>
 #include <gtest/gtest.h>
+#include <dsa/Vec2.hpp>
 
 TEST(Vec2Test, DefaultConstructor) {
   Vec2f v;
