@@ -168,11 +168,10 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
           } else if constexpr (std::is_same_v<T, BoxShape>) {
             instance.scale = s.halfExtents;
             if (!is2D) {
-              // it a small min visual thickness so it doesn't degenerate into a
-              // flat plane
-              constexpr float kMinVisualHalfThickness = 0.05f;
+              float minVisualHalfThickness =
+                  std::min(instance.scale.x, instance.scale.y);
               instance.scale.z =
-                  std::max(instance.scale.z, kMinVisualHalfThickness);
+                  std::max(instance.scale.z, minVisualHalfThickness);
             }
             (is2D ? quadBatch_ : boxBatch_).add(instance);
           } else if constexpr (std::is_same_v<T, CapsuleShape>) {

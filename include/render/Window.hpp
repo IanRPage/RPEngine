@@ -1,8 +1,8 @@
 #ifndef RPENGINE_RENDER_WINDOW_HPP
 #define RPENGINE_RENDER_WINDOW_HPP
 
-#include <GLFW/glfw3.h>
 #include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 #include <string>
 
