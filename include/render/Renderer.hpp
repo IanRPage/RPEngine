@@ -66,6 +66,10 @@ class Renderer {
   OrthographicCamera orthoCamera_;
   FreeFlyCameraController flyCamera_;
 
+  bool hasLastMouseLookPos_ = false;
+  Vec2f lastMouseLookPos_{0.0f, 0.0f};
+  bool mouseCaptured_ = false;
+
   double lastFrameTimestamp_ = 0.0;
   double lastAdvanceTimestamp_ = 0.0;
 };

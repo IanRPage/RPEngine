@@ -60,8 +60,9 @@ void ImguiController::renderCameraControls() {
     ImGui::TextWrapped("Left-drag the world view to pan.");
   } else {
     ImGui::TextWrapped(
-        "Left-drag the world view to look around. W/A/S/D to move, "
-        "Space/Ctrl for up/down.");
+        "Click the world view to capture the mouse: look around, W/A/S/D "
+        "to move, Space/Ctrl for up/down, all together. Esc releases the "
+        "cursor.");
   }
 }
 

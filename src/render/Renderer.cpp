@@ -63,8 +63,14 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
   ImGuiIO& io = ImGui::GetIO();
   bool overWorldView =
       !io.WantCaptureMouse && io.MousePos.x >= ImguiController::kSidebarWidth;
+  GLFWwindow* handle = window_.handle();
 
   if (imguiCtrl_.cameraMode() == CameraMode::Orthographic2D) {
+    if (mouseCaptured_) {
+      glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      mouseCaptured_ = false;
+    }
+    hasLastMouseLookPos_ = false;
     if (overWorldView && io.MouseDown[ImGuiMouseButton_Left]) {
       float viewportHeight =
           std::max(static_cast<float>(window_.height()), 1.0f);
@@ -76,31 +82,45 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
     return;
   }
 
-  if (overWorldView && io.MouseDown[ImGuiMouseButton_Left]) {
-    flyCamera_.onMouseLook(Vec2f(io.MouseDelta.x, io.MouseDelta.y));
+  if (mouseCaptured_ && glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    mouseCaptured_ = false;
+    hasLastMouseLookPos_ = false;
+  } else if (!mouseCaptured_ && overWorldView &&
+             ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    mouseCaptured_ = true;
+    hasLastMouseLookPos_ = false;
   }
-  if (!io.WantCaptureKeyboard) {
-    constexpr float kMoveSpeed = 8.0f;  // world units / second
-    float step = kMoveSpeed * dt;
-    GLFWwindow* handle = window_.handle();
-    if (glfwGetKey(handle, GLFW_KEY_W) == GLFW_PRESS) {
-      flyCamera_.moveForward(step);
-    }
-    if (glfwGetKey(handle, GLFW_KEY_S) == GLFW_PRESS) {
-      flyCamera_.moveForward(-step);
-    }
-    if (glfwGetKey(handle, GLFW_KEY_D) == GLFW_PRESS) {
-      flyCamera_.moveRight(step);
-    }
-    if (glfwGetKey(handle, GLFW_KEY_A) == GLFW_PRESS) {
-      flyCamera_.moveRight(-step);
-    }
-    if (glfwGetKey(handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
-      flyCamera_.moveUp(step);
-    }
-    if (glfwGetKey(handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-      flyCamera_.moveUp(-step);
-    }
+
+  if (!mouseCaptured_) { return; }
+
+  Vec2f mousePos(io.MousePos.x, io.MousePos.y);
+  if (hasLastMouseLookPos_) {
+    flyCamera_.onMouseLook(mousePos - lastMouseLookPos_);
+  }
+  lastMouseLookPos_ = mousePos;
+  hasLastMouseLookPos_ = true;
+
+  constexpr float kMoveSpeed = 8.0f;  // world units / second
+  float step = kMoveSpeed * dt;
+  if (glfwGetKey(handle, GLFW_KEY_W) == GLFW_PRESS) {
+    flyCamera_.moveForward(step);
+  }
+  if (glfwGetKey(handle, GLFW_KEY_S) == GLFW_PRESS) {
+    flyCamera_.moveForward(-step);
+  }
+  if (glfwGetKey(handle, GLFW_KEY_D) == GLFW_PRESS) {
+    flyCamera_.moveRight(step);
+  }
+  if (glfwGetKey(handle, GLFW_KEY_A) == GLFW_PRESS) {
+    flyCamera_.moveRight(-step);
+  }
+  if (glfwGetKey(handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    flyCamera_.moveUp(step);
+  }
+  if (glfwGetKey(handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+    flyCamera_.moveUp(-step);
   }
 }
 
