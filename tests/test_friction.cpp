@@ -26,7 +26,8 @@ TEST(FrictionTest, OrthonormalBasisForAxisAlignedNormals) {
 TEST(FrictionTest, OrthonormalBasisForArbitraryNormals) {
   expectOrthonormalBasis(Vec3f(1.0f, 1.0f, 1.0f));
   expectOrthonormalBasis(Vec3f(0.6f, 0.8f, 0.0f));
-  expectOrthonormalBasis(Vec3f(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3));  // branch threshold
+  expectOrthonormalBasis(
+      Vec3f(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3));  // branch threshold
 }
 
 TEST(FrictionTest, BranchSelectionMatchesXComponentThreshold) {

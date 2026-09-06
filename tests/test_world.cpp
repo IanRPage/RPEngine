@@ -26,7 +26,8 @@ class CountingBroadphase : public IBroadphase {
 
 }  // namespace
 
-TEST(SolverLoopStructureTest, BroadphaseAndNarrowphaseCalledExactlyOnceCePerStep) {
+TEST(SolverLoopStructureTest,
+     BroadphaseAndNarrowphaseCalledExactlyOnceCePerStep) {
   World world;
 
   auto counting = std::make_unique<CountingBroadphase>(
@@ -38,12 +39,12 @@ TEST(SolverLoopStructureTest, BroadphaseAndNarrowphaseCalledExactlyOnceCePerStep
   int epaCalls = 0;
   world.setNarrowphaseFns(
       [&](const ShapeVariant& a, const Transform& ta, const ShapeVariant& b,
-         const Transform& tb) {
+          const Transform& tb) {
         gjkCalls++;
         return gjkOverlap(a, ta, b, tb);
       },
       [&](const ShapeVariant& a, const Transform& ta, const ShapeVariant& b,
-         const Transform& tb, const GjkResult& gjk) {
+          const Transform& tb, const GjkResult& gjk) {
         epaCalls++;
         return epaPenetration(a, ta, b, tb, gjk);
       });
@@ -52,10 +53,10 @@ TEST(SolverLoopStructureTest, BroadphaseAndNarrowphaseCalledExactlyOnceCePerStep
   ta.position = Vec3f(0.0f, 0.0f, 0.0f);
   Transform tb;
   tb.position = Vec3f(0.5f, 0.0f, 0.0f);
-  world.createDynamicBody(ShapeVariant{SphereShape{1.0f}}, ta, 1.0f, 0.5f,
-                          0.0f, true);
-  world.createDynamicBody(ShapeVariant{SphereShape{1.0f}}, tb, 1.0f, 0.5f,
-                          0.0f, true);
+  world.createDynamicBody(ShapeVariant{SphereShape{1.0f}}, ta, 1.0f, 0.5f, 0.0f,
+                          true);
+  world.createDynamicBody(ShapeVariant{SphereShape{1.0f}}, tb, 1.0f, 0.5f, 0.0f,
+                          true);
 
   world.config().velocityIterations = 8;
   world.config().positionIterations = 4;
@@ -70,14 +71,15 @@ TEST(SolverLoopStructureTest, BroadphaseAndNarrowphaseCalledExactlyOnceCePerStep
 TEST(WorldTest, WorldBoundariesConstrainFallingBody) {
   World world;
   world.setGravity(Vec3f(0.0f, -9.81f, 0.0f));
-  world.addWorldBoundaries(Vec3f(-10.0f, -10.0f, 0.0f), Vec3f(10.0f, 10.0f, 0.0f),
-                          1.0f, /*friction=*/0.5f, /*restitution=*/0.3f,
-                          /*is2D=*/true);
+  world.addWorldBoundaries(Vec3f(-10.0f, -10.0f, 0.0f),
+                           Vec3f(10.0f, 10.0f, 0.0f), 1.0f, /*friction=*/0.5f,
+                           /*restitution=*/0.3f,
+                           /*is2D=*/true);
 
   Transform sphereT;
   sphereT.position = Vec3f(0.0f, 5.0f, 0.0f);
-  BodyHandle sphere = world.createDynamicBody(
-      ShapeVariant{SphereShape{0.5f}}, sphereT, 1.0f, 0.5f, 0.3f, true);
+  BodyHandle sphere = world.createDynamicBody(ShapeVariant{SphereShape{0.5f}},
+                                              sphereT, 1.0f, 0.5f, 0.3f, true);
 
   const float dt = 1.0f / 120.0f;
   for (int i = 0; i < 600; i++) {

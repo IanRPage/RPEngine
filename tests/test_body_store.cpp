@@ -6,7 +6,7 @@ namespace {
 AABB makeAABB(float x) {
   return AABB(Vec3f(x, 0.0f, 0.0f), Vec3f(x + 1.0f, 1.0f, 1.0f));
 }
-} // namespace
+}  // namespace
 
 TEST(BodyStoreTest, AddBodyIsLiveAndReportsAABB) {
   BodyStore store;
@@ -57,9 +57,7 @@ TEST(BodyStoreTest, RemoveMiddleBodyKeepsOthersLiveViaSwapErase) {
   EXPECT_EQ(store.size(), 2u);
 
   // liveHandles() can't list removed handle
-  for (BodyHandle h : store.liveHandles()) {
-    EXPECT_FALSE(h == b);
-  }
+  for (BodyHandle h : store.liveHandles()) { EXPECT_FALSE(h == b); }
 }
 
 TEST(BodyStoreTest, SetAABBUpdatesLiveBody) {

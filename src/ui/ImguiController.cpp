@@ -124,11 +124,9 @@ void ImguiController::renderForces() {
 
     int curr = toInt(forceType_);
 
-    if (ImGui::RadioButton("None", &curr, toInt(ForceType::None))) {
-    }
+    if (ImGui::RadioButton("None", &curr, toInt(ForceType::None))) {}
     ImGui::SameLine();
-    if (ImGui::RadioButton("Radial", &curr, toInt(ForceType::Radial))) {
-    }
+    if (ImGui::RadioButton("Radial", &curr, toInt(ForceType::Radial))) {}
 
     forceType_ = fromInt<ForceType>(curr);
 
@@ -155,24 +153,19 @@ void ImguiController::renderSpawn() {
 
     int curr = toInt(spawnType_);
 
-    if (ImGui::RadioButton("None", &curr, toInt(SpawnType::None))) {
-    }
+    if (ImGui::RadioButton("None", &curr, toInt(SpawnType::None))) {}
     ImGui::SameLine();
 
-    if (ImGui::RadioButton("Manual", &curr, toInt(SpawnType::Manual))) {
-    }
+    if (ImGui::RadioButton("Manual", &curr, toInt(SpawnType::Manual))) {}
     ImGui::SameLine();
 
-    if (ImGui::RadioButton("Random", &curr, toInt(SpawnType::Random))) {
-    }
+    if (ImGui::RadioButton("Random", &curr, toInt(SpawnType::Random))) {}
     ImGui::SameLine();
 
-    if (ImGui::RadioButton("Stream", &curr, toInt(SpawnType::Stream))) {
-    }
+    if (ImGui::RadioButton("Stream", &curr, toInt(SpawnType::Stream))) {}
     ImGui::SameLine();
 
-    if (ImGui::RadioButton("Max", &curr, toInt(SpawnType::Max))) {
-    }
+    if (ImGui::RadioButton("Max", &curr, toInt(SpawnType::Max))) {}
 
     spawnType_ = fromInt<SpawnType>(curr);
 

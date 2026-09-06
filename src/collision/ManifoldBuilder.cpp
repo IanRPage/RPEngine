@@ -64,11 +64,11 @@ std::vector<Vec3f> shapeWorldPolygon2D(const ShapeVariant& shape,
   if (const auto* box = std::get_if<BoxShape>(&shape)) {
     float hx = box->halfExtents.x, hy = box->halfExtents.y;
     verts = {Vec3f(-hx, -hy, 0.0f), Vec3f(hx, -hy, 0.0f), Vec3f(hx, hy, 0.0f),
-            Vec3f(-hx, hy, 0.0f)};
+             Vec3f(-hx, hy, 0.0f)};
   } else if (const auto* hull = std::get_if<ConvexHullShape>(&shape)) {
     verts = hull->localVertices;
   }
-  for (Vec3f& v : verts) v = transformPoint(t, v);
+  for (Vec3f& v : verts) { v = transformPoint(t, v); }
   if (verts.size() >= 3 && signedArea2D(verts) < 0.0f) {
     std::reverse(verts.begin(), verts.end());
   }
@@ -84,7 +84,7 @@ Edge2D bestAlignedEdge2D(const std::vector<Vec3f>& poly,
     std::size_t j = (i + 1) % n;
     Vec3f e = poly[j] - poly[i];
     float len = glm::length(e);
-    if (len < VECTOR_LENGTH_EPSILON) continue;
+    if (len < VECTOR_LENGTH_EPSILON) { continue; }
     Vec3f normal(e.y / len, -e.x / len, 0.0f);
     float d = glm::dot(normal, targetDir);
     if (d > bestDot) {
@@ -95,15 +95,14 @@ Edge2D bestAlignedEdge2D(const std::vector<Vec3f>& poly,
   return best;
 }
 
-std::vector<Vec3f> clipSegmentAgainstPlane(Vec3f p0, Vec3f p1,
-                                           Vec3f planePoint,
+std::vector<Vec3f> clipSegmentAgainstPlane(Vec3f p0, Vec3f p1, Vec3f planePoint,
                                            Vec3f planeNormal) noexcept {
   float d0 = glm::dot(planeNormal, p0 - planePoint);
   float d1 = glm::dot(planeNormal, p1 - planePoint);
   bool in0 = d0 >= 0.0f;
   bool in1 = d1 >= 0.0f;
-  if (in0 && in1) return {p0, p1};
-  if (!in0 && !in1) return {};
+  if (in0 && in1) { return {p0, p1}; }
+  if (!in0 && !in1) { return {}; }
   float t = d0 / (d0 - d1);
   Vec3f intersection = p0 + t * (p1 - p0);
   return in0 ? std::vector<Vec3f>{p0, intersection}
@@ -115,7 +114,7 @@ std::vector<Vec3f> clipPolygonAgainstPlane(const std::vector<Vec3f>& poly,
                                            Vec3f planeNormal) noexcept {
   std::vector<Vec3f> out;
   std::size_t n = poly.size();
-  if (n == 0) return out;
+  if (n == 0) { return out; }
   for (std::size_t i = 0; i < n; ++i) {
     Vec3f cur = poly[i];
     Vec3f prev = poly[(i + n - 1) % n];
@@ -138,9 +137,9 @@ std::vector<Vec3f> clipPolygonAgainstPlane(const std::vector<Vec3f>& poly,
 }
 
 Manifold clip2D(const ShapeVariant& shapeA, const Transform& ta,
-               const ShapeVariant& shapeB, const Transform& tb,
-               BodyHandle bodyA, BodyHandle bodyB,
-               const EpaResult& epa) noexcept {
+                const ShapeVariant& shapeB, const Transform& tb,
+                BodyHandle bodyA, BodyHandle bodyB,
+                const EpaResult& epa) noexcept {
   std::vector<Vec3f> polyA = shapeWorldPolygon2D(shapeA, ta);
   std::vector<Vec3f> polyB = shapeWorldPolygon2D(shapeB, tb);
 
@@ -151,8 +150,8 @@ Manifold clip2D(const ShapeVariant& shapeA, const Transform& ta,
   Edge2D edgeA = bestAlignedEdge2D(polyA, epa.normal);
   Edge2D edgeB = bestAlignedEdge2D(polyB, -epa.normal);
 
-  bool aIsReference = glm::dot(edgeA.normal, epa.normal) >=
-                      glm::dot(edgeB.normal, -epa.normal);
+  bool aIsReference =
+      glm::dot(edgeA.normal, epa.normal) >= glm::dot(edgeB.normal, -epa.normal);
   const Edge2D& refEdge = aIsReference ? edgeA : edgeB;
   const Edge2D& incEdge = aIsReference ? edgeB : edgeA;
 
@@ -170,9 +169,9 @@ Manifold clip2D(const ShapeVariant& shapeA, const Transform& ta,
   m.normal = epa.normal;
 
   for (const Vec3f& p : clipped) {
-    if (m.pointCount >= m.points.size()) break;
+    if (m.pointCount >= m.points.size()) { break; }
     float penetration = glm::dot(refEdge.normal, refEdge.a - p);
-    if (penetration < -kPenetrationTolerance) continue;
+    if (penetration < -kPenetrationTolerance) { continue; }
     Vec3f projected = p + refEdge.normal * penetration;
     Vec3f worldOnRef = projected;
     Vec3f worldOnInc = p;
@@ -182,7 +181,9 @@ Manifold clip2D(const ShapeVariant& shapeA, const Transform& ta,
         makeManifoldPoint(ta, tb, worldOnA, worldOnB, penetration);
   }
 
-  if (m.pointCount == 0) return singlePointManifold(ta, tb, bodyA, bodyB, epa);
+  if (m.pointCount == 0) {
+    return singlePointManifold(ta, tb, bodyA, bodyB, epa);
+  }
   return m;
 }
 
@@ -199,29 +200,27 @@ std::array<Face3D, 6> boxWorldFaces(const BoxShape& box,
   auto worldPoint = [&](float sx, float sy, float sz) {
     return transformPoint(t, Vec3f(sx * h.x, sy * h.y, sz * h.z));
   };
-  auto worldDir = [&](Vec3f localN) {
-    return transformDirection(t, localN);
-  };
+  auto worldDir = [&](Vec3f localN) { return transformDirection(t, localN); };
 
   return std::array<Face3D, 6>{
-      Face3D{{worldPoint(1, -1, -1), worldPoint(1, 1, -1),
-             worldPoint(1, 1, 1), worldPoint(1, -1, 1)},
-            worldDir(Vec3f(1, 0, 0))},
+      Face3D{{worldPoint(1, -1, -1), worldPoint(1, 1, -1), worldPoint(1, 1, 1),
+              worldPoint(1, -1, 1)},
+             worldDir(Vec3f(1, 0, 0))},
       Face3D{{worldPoint(-1, -1, 1), worldPoint(-1, 1, 1),
-             worldPoint(-1, 1, -1), worldPoint(-1, -1, -1)},
-            worldDir(Vec3f(-1, 0, 0))},
-      Face3D{{worldPoint(-1, 1, -1), worldPoint(-1, 1, 1),
-             worldPoint(1, 1, 1), worldPoint(1, 1, -1)},
-            worldDir(Vec3f(0, 1, 0))},
+              worldPoint(-1, 1, -1), worldPoint(-1, -1, -1)},
+             worldDir(Vec3f(-1, 0, 0))},
+      Face3D{{worldPoint(-1, 1, -1), worldPoint(-1, 1, 1), worldPoint(1, 1, 1),
+              worldPoint(1, 1, -1)},
+             worldDir(Vec3f(0, 1, 0))},
       Face3D{{worldPoint(-1, -1, 1), worldPoint(-1, -1, -1),
-             worldPoint(1, -1, -1), worldPoint(1, -1, 1)},
-            worldDir(Vec3f(0, -1, 0))},
-      Face3D{{worldPoint(-1, -1, 1), worldPoint(1, -1, 1),
-             worldPoint(1, 1, 1), worldPoint(-1, 1, 1)},
-            worldDir(Vec3f(0, 0, 1))},
+              worldPoint(1, -1, -1), worldPoint(1, -1, 1)},
+             worldDir(Vec3f(0, -1, 0))},
+      Face3D{{worldPoint(-1, -1, 1), worldPoint(1, -1, 1), worldPoint(1, 1, 1),
+              worldPoint(-1, 1, 1)},
+             worldDir(Vec3f(0, 0, 1))},
       Face3D{{worldPoint(1, -1, -1), worldPoint(-1, -1, -1),
-             worldPoint(-1, 1, -1), worldPoint(1, 1, -1)},
-            worldDir(Vec3f(0, 0, -1))},
+              worldPoint(-1, 1, -1), worldPoint(1, 1, -1)},
+             worldDir(Vec3f(0, 0, -1))},
   };
 }
 
@@ -259,7 +258,7 @@ Manifold clip3DBox(const BoxShape& boxA, const Transform& ta,
     Vec3f edgeDir = refFace.verts[j] - refFace.verts[i];
     Vec3f inward = glm::cross(refFace.normal, edgeDir);
     poly = clipPolygonAgainstPlane(poly, refFace.verts[i], inward);
-    if (poly.empty()) break;
+    if (poly.empty()) { break; }
   }
 
   struct Candidate {
@@ -270,14 +269,14 @@ Manifold clip3DBox(const BoxShape& boxA, const Transform& ta,
   candidates.reserve(poly.size());
   for (const Vec3f& p : poly) {
     float penetration = glm::dot(refFace.normal, refFace.verts[0] - p);
-    if (penetration < -kPenetrationTolerance) continue;
+    if (penetration < -kPenetrationTolerance) { continue; }
     candidates.push_back({p, penetration});
   }
   if (candidates.size() > 4) {
     std::sort(candidates.begin(), candidates.end(),
-             [](const Candidate& lhs, const Candidate& rhs) {
-               return lhs.penetration > rhs.penetration;
-             });
+              [](const Candidate& lhs, const Candidate& rhs) {
+                return lhs.penetration > rhs.penetration;
+              });
     candidates.resize(4);
   }
 
@@ -294,7 +293,9 @@ Manifold clip3DBox(const BoxShape& boxA, const Transform& ta,
         makeManifoldPoint(ta, tb, worldOnA, worldOnB, c.penetration);
   }
 
-  if (m.pointCount == 0) return singlePointManifold(ta, tb, bodyA, bodyB, epa);
+  if (m.pointCount == 0) {
+    return singlePointManifold(ta, tb, bodyA, bodyB, epa);
+  }
   return m;
 }
 
@@ -309,10 +310,9 @@ Manifold buildManifold(const ShapeVariant& shapeA, const Transform& ta,
     return singlePointManifold(ta, tb, bodyA, bodyB, epa);
   }
 
-  bool is2D = isFlatPair(shapeA, ta, shapeB, tb) || terminalSimplex.simplexCount == 3;
-  if (is2D) {
-    return clip2D(shapeA, ta, shapeB, tb, bodyA, bodyB, epa);
-  }
+  bool is2D =
+      isFlatPair(shapeA, ta, shapeB, tb) || terminalSimplex.simplexCount == 3;
+  if (is2D) { return clip2D(shapeA, ta, shapeB, tb, bodyA, bodyB, epa); }
 
   if (isBox(shapeA) && isBox(shapeB)) {
     return clip3DBox(std::get<BoxShape>(shapeA), ta, std::get<BoxShape>(shapeB),

@@ -126,7 +126,7 @@ void Renderer::layoutUI() noexcept {
 
 void Renderer::handleMousePressed(
     const sf::Event::MouseButtonPressed& e) noexcept {
-  if (ImGui::GetIO().WantCaptureMouse) return;
+  if (ImGui::GetIO().WantCaptureMouse) { return; }
 
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
 
@@ -137,7 +137,7 @@ void Renderer::handleMousePressed(
     }  // TODO: add more forces
   } else if (e.button == sf::Mouse::Button::Right) {
     // TODO: find more intelligent and unified way to deal with manual spawn
-    if (ImGui::GetIO().WantCaptureMouse) return;
+    if (ImGui::GetIO().WantCaptureMouse) { return; }
     if (imguiCtrl_.spawnType() == SpawnType::Manual) {
       for (int i = 0; i < imguiCtrl_.objMultiple(); i++) {
         sim_.spawnParticle({m.x, m.y}, {0.0f, 0.0f},
@@ -151,11 +151,9 @@ void Renderer::handleMousePressed(
 void Renderer::handleMouseReleased() noexcept { applyingForce = false; }
 
 void Renderer::handleMouseMoved(const sf::Event::MouseMoved& e) noexcept {
-  if (ImGui::GetIO().WantCaptureMouse) return;
+  if (ImGui::GetIO().WantCaptureMouse) { return; }
   const auto m = window_.mapPixelToCoords(e.position, window_.getDefaultView());
-  if (applyingForce) {
-    pushOrigin_ = m;
-  }
+  if (applyingForce) { pushOrigin_ = m; }
 }
 
 void Renderer::handleKeyPressed(const sf::Event::KeyPressed& e) noexcept {
@@ -198,7 +196,7 @@ void Renderer::drawParticles() {
 }
 
 void Renderer::spawn() noexcept {
-  if (sim_.particles().size() >= sim_.capacity()) return;
+  if (sim_.particles().size() >= sim_.capacity()) { return; }
 
   const SpawnType mode = imguiCtrl_.spawnType();
 
@@ -218,7 +216,7 @@ void Renderer::spawn() noexcept {
     return;
   }
 
-  if (!imguiCtrl_.spawning()) return;
+  if (!imguiCtrl_.spawning()) { return; }
 
   const float interval = imguiCtrl_.spawnInterval();
 
@@ -226,7 +224,7 @@ void Renderer::spawn() noexcept {
   spawnAcc += frameClock_.getElapsedTime().asSeconds();
 
   int emitCount = static_cast<int>(spawnAcc / interval);
-  if (emitCount <= 0) return;
+  if (emitCount <= 0) { return; }
 
   spawnAcc -= emitCount * interval;
 
@@ -252,8 +250,8 @@ void Renderer::spawn() noexcept {
 }
 
 void Renderer::radialPush() {
-  if (!applyingForce) return;
-  if (imguiCtrl_.forceType() != ForceType::Radial) return;
+  if (!applyingForce) { return; }
+  if (imguiCtrl_.forceType() != ForceType::Radial) { return; }
 
   const float pDiam = imguiCtrl_.radialPushRadius() * 2;
   sim_.radialPush({pushOrigin_.x, pushOrigin_.y}, pDiam,

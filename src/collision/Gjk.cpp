@@ -19,24 +19,26 @@ Vec3f tripleCross(Vec3f a, Vec3f b, Vec3f c) noexcept {
 
 Vec3f arbitraryPerpendicular(Vec3f v) noexcept {
   Vec3f inPlane(-v.y, v.x, 0.0f);
-  if (glm::dot(inPlane, inPlane) > VECTOR_LENGTH_EPSILON) return inPlane;
+  if (glm::dot(inPlane, inPlane) > VECTOR_LENGTH_EPSILON) { return inPlane; }
   return glm::cross(v, Vec3f(1.0f, 0.0f, 0.0f));
 }
 
 Vec3f perpendicularTowards(Vec3f edge, Vec3f towards) noexcept {
   Vec3f d = tripleCross(edge, towards, edge);
-  if (glm::dot(d, d) < VECTOR_LENGTH_EPSILON) return arbitraryPerpendicular(edge);
+  if (glm::dot(d, d) < VECTOR_LENGTH_EPSILON) {
+    return arbitraryPerpendicular(edge);
+  }
   return d;
 }
 
 void setPoint(std::array<SupportPoint, 4>& s, const SupportPoint& a,
-             int& count) noexcept {
+              int& count) noexcept {
   s[0] = a;
   count = 1;
 }
 
 void setLine(std::array<SupportPoint, 4>& s, const SupportPoint& a,
-            const SupportPoint& b, int& count) noexcept {
+             const SupportPoint& b, int& count) noexcept {
   s[0] = a;
   s[1] = b;
   count = 2;
@@ -131,9 +133,9 @@ bool tetrahedronCase(std::array<SupportPoint, 4>& s, int& count,
   Vec3f acd = glm::cross(ac, ad);
   Vec3f adb = glm::cross(ad, ab);
 
-  if (glm::dot(abc, ad) > 0.0f) abc = -abc;
-  if (glm::dot(acd, ab) > 0.0f) acd = -acd;
-  if (glm::dot(adb, ac) > 0.0f) adb = -adb;
+  if (glm::dot(abc, ad) > 0.0f) { abc = -abc; }
+  if (glm::dot(acd, ab) > 0.0f) { acd = -acd; }
+  if (glm::dot(adb, ac) > 0.0f) { adb = -adb; }
 
   if (glm::dot(abc, ao) > 0.0f) {
     setTriangle(s, a, b, c, count);
@@ -157,7 +159,7 @@ bool isDuplicate(const std::array<SupportPoint, 4>& s, int count,
                  const Vec3f& diff) noexcept {
   for (int i = 0; i < count; ++i) {
     Vec3f delta = s[i].diff - diff;
-    if (glm::dot(delta, delta) < VECTOR_LENGTH_EPSILON) return true;
+    if (glm::dot(delta, delta) < VECTOR_LENGTH_EPSILON) { return true; }
   }
   return false;
 }
@@ -169,12 +171,16 @@ GjkResult gjkOverlap(const ShapeVariant& shapeA, const Transform& ta,
   GjkResult result;
 
   Vec3f dir = tb.position - ta.position;
-  if (glm::dot(dir, dir) < VECTOR_LENGTH_EPSILON) dir = Vec3f(1.0f, 0.0f, 0.0f);
+  if (glm::dot(dir, dir) < VECTOR_LENGTH_EPSILON) {
+    dir = Vec3f(1.0f, 0.0f, 0.0f);
+  }
 
   result.simplex[0] = minkowskiSupport(shapeA, ta, shapeB, tb, dir);
   result.simplexCount = 1;
   dir = -result.simplex[0].diff;
-  if (glm::dot(dir, dir) < VECTOR_LENGTH_EPSILON) dir = Vec3f(1.0f, 0.0f, 0.0f);
+  if (glm::dot(dir, dir) < VECTOR_LENGTH_EPSILON) {
+    dir = Vec3f(1.0f, 0.0f, 0.0f);
+  }
 
   constexpr int kMaxIterations = 32;
   for (int iter = 0; iter < kMaxIterations; ++iter) {

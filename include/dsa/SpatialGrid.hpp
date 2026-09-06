@@ -48,7 +48,7 @@ struct SpatialGrid {
         const int cn = cy * cols + cx;
         for (int idx = head[cn]; idx != -1; idx = next[idx]) {
           // prune redundant checks
-          if (idx <= static_cast<int>(objIdx)) continue;
+          if (idx <= static_cast<int>(objIdx)) { continue; }
           callback(idx);
         }
       }

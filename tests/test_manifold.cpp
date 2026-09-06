@@ -35,7 +35,8 @@ TEST(ManifoldTest, FlushBoxOnBoxProducesTwoPoints2D) {
 
   std::vector<float> ys;
   for (int i = 0; i < m.pointCount; ++i) {
-    Vec3f worldA = transformPoint(ta, m.points[static_cast<std::size_t>(i)].localAnchorA);
+    Vec3f worldA =
+        transformPoint(ta, m.points[static_cast<std::size_t>(i)].localAnchorA);
     ys.push_back(worldA.y);
   }
   std::sort(ys.begin(), ys.end());
@@ -74,9 +75,9 @@ TEST(ManifoldTest, FlushBoxOnBoxProducesFourPoints3D) {
 
 TEST(ManifoldTest, ClockwiseWoundHullClipsSameAsCounterclockwise) {
   std::vector<Vec3f> ccw{Vec3f(-1.0f, -1.0f, 0.0f), Vec3f(1.0f, -1.0f, 0.0f),
-                        Vec3f(1.0f, 1.0f, 0.0f), Vec3f(-1.0f, 1.0f, 0.0f)};
+                         Vec3f(1.0f, 1.0f, 0.0f), Vec3f(-1.0f, 1.0f, 0.0f)};
   std::vector<Vec3f> cw{Vec3f(-1.0f, -1.0f, 0.0f), Vec3f(-1.0f, 1.0f, 0.0f),
-                       Vec3f(1.0f, 1.0f, 0.0f), Vec3f(1.0f, -1.0f, 0.0f)};
+                        Vec3f(1.0f, 1.0f, 0.0f), Vec3f(1.0f, -1.0f, 0.0f)};
   ShapeVariant hullA{ConvexHullShape(ccw)};
   ShapeVariant hullB{ConvexHullShape(cw)};
   Transform ta = at(0.0f, 0.0f);
@@ -93,7 +94,8 @@ TEST(ManifoldTest, ClockwiseWoundHullClipsSameAsCounterclockwise) {
   ASSERT_EQ(m.pointCount, 2);
   std::vector<float> ys;
   for (int i = 0; i < m.pointCount; ++i) {
-    Vec3f worldA = transformPoint(ta, m.points[static_cast<std::size_t>(i)].localAnchorA);
+    Vec3f worldA =
+        transformPoint(ta, m.points[static_cast<std::size_t>(i)].localAnchorA);
     ys.push_back(worldA.y);
   }
   std::sort(ys.begin(), ys.end());

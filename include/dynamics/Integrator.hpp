@@ -13,7 +13,8 @@ class IIntegrator {
   virtual ~IIntegrator() = default;
   virtual void integrateVelocity(BodyStore& bodies, float dt,
                                  Vec3f gravity) const noexcept = 0;
-  virtual void integratePosition(BodyStore& bodies, float dt) const noexcept = 0;
+  virtual void integratePosition(BodyStore& bodies,
+                                 float dt) const noexcept = 0;
 };
 
 class SemiImplicitEulerIntegrator final : public IIntegrator {

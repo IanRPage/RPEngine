@@ -29,7 +29,7 @@ TEST(IntegratorTest, GravityAccumulatesLinearlyOverNSteps) {
   Vec3f gravity(0.0f, -9.81f, 0.0f);
   float dt = 1.0f / 60.0f;
 
-  for (int i = 0; i < 10; i++) integrateVelocity(store, dt, gravity);
+  for (int i = 0; i < 10; i++) { integrateVelocity(store, dt, gravity); }
 
   EXPECT_NEAR(store.linearVelocity(h).y, gravity.y * dt * 10, 1e-4f);
 }
@@ -90,5 +90,5 @@ TEST(IntegratorTest, SemiImplicitEulerIntegratorMatchesFreeFunctions) {
 
   EXPECT_FLOAT_EQ(viaInterface.position(a).y, viaFreeFunctions.position(b).y);
   EXPECT_FLOAT_EQ(viaInterface.linearVelocity(a).y,
-                 viaFreeFunctions.linearVelocity(b).y);
+                  viaFreeFunctions.linearVelocity(b).y);
 }

@@ -84,7 +84,7 @@ TEST(PairCacheTest, PerformanceAt100kBodiesBenchmark) {
     realAABBs.push_back(box);
   }
 
-  cache.update(tree, nodeIds); // prime cache w initial layout
+  cache.update(tree, nodeIds);  // prime cache w initial layout
 
   std::vector<int32_t> moved;
   for (uint32_t i = 0; i < kBodyCount; i++) {
@@ -92,8 +92,9 @@ TEST(PairCacheTest, PerformanceAt100kBodiesBenchmark) {
                      ? Vec3f(posDist(rng) * 0.01f, 0.0f, 0.0f)
                      : Vec3f(jitterDist(rng), jitterDist(rng), jitterDist(rng));
     realAABBs[i] = AABB(realAABBs[i].min + disp, realAABBs[i].max + disp);
-    if (tree.moveProxy(nodeIds[i], realAABBs[i], disp))
+    if (tree.moveProxy(nodeIds[i], realAABBs[i], disp)) {
       moved.push_back(nodeIds[i]);
+    }
   }
 
   auto start = std::chrono::steady_clock::now();

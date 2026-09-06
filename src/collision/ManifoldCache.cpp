@@ -43,7 +43,8 @@ void ManifoldCache::updateManifold(const Manifold& freshManifold,
 
   Manifold merged = freshManifold;
   for (std::uint8_t i = 0; i < merged.pointCount; ++i) {
-    Vec3f newAnchorWorld = transformPoint(transformA, merged.points[i].localAnchorA);
+    Vec3f newAnchorWorld =
+        transformPoint(transformA, merged.points[i].localAnchorA);
     float bestDist = matchThreshold;
     int bestJ = -1;
     for (std::uint8_t j = 0; j < oldSnapshot.pointCount; ++j) {

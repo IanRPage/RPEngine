@@ -42,8 +42,9 @@ Mat3f CapsuleShape::localInertiaTensor(float mass) const noexcept {
   // transverse (Ixx == Izz, about an axis through centroid perpendicular to Y).
   // combined cylinder-plus-offset-hemispheres term, parallel-axis shift folded
   // into formula
-  const float ixx = mc * (h * h / 3.0f + r * r / 4.0f) +
-                     ms * ((2.0f / 5.0f) * r * r + h * h + (3.0f / 4.0f) * h * r);
+  const float ixx =
+      mc * (h * h / 3.0f + r * r / 4.0f) +
+      ms * ((2.0f / 5.0f) * r * r + h * h + (3.0f / 4.0f) * h * r);
 
   return Mat3f(ixx, 0.0f, 0.0f, 0.0f, iyy, 0.0f, 0.0f, 0.0f, ixx);
 }
@@ -135,11 +136,14 @@ AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept {
         } else if constexpr (std::is_same_v<ShapeT, BoxShape>) {
           std::vector<Vec3f> corners;
           corners.reserve(8);
-          for (float sx : {-1.0f, 1.0f})
-            for (float sy : {-1.0f, 1.0f})
-              for (float sz : {-1.0f, 1.0f})
+          for (float sx : {-1.0f, 1.0f}) {
+            for (float sy : {-1.0f, 1.0f}) {
+              for (float sz : {-1.0f, 1.0f}) {
                 corners.emplace_back(sx * s.halfExtents.x, sy * s.halfExtents.y,
                                      sz * s.halfExtents.z);
+              }
+            }
+          }
           return transformedCorners(corners, t);
         } else {  // ConvexHullShape
           return transformedCorners(s.localVertices, t);
@@ -149,10 +153,10 @@ AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept {
 }
 
 bool isFlatPair(const ShapeVariant& shapeA, const Transform& ta,
-               const ShapeVariant& shapeB, const Transform& tb) noexcept {
+                const ShapeVariant& shapeB, const Transform& tb) noexcept {
   constexpr float kFlatEpsilon = 1e-5f;
   AABB aabbA = worldAABB(shapeA, ta);
   AABB aabbB = worldAABB(shapeB, tb);
   return (aabbA.max.z - aabbA.min.z) < kFlatEpsilon &&
-        (aabbB.max.z - aabbB.min.z) < kFlatEpsilon;
+         (aabbB.max.z - aabbB.min.z) < kFlatEpsilon;
 }

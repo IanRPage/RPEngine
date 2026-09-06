@@ -19,9 +19,7 @@ class InvInertiaWorldCache {
 
   const Mat3f& get(BodyHandle h) noexcept {
     auto [it, inserted] = cache_.try_emplace(h.index);
-    if (inserted) {
-      it->second = computeInvInertiaWorld(bodies_, h);
-    }
+    if (inserted) { it->second = computeInvInertiaWorld(bodies_, h); }
     return it->second;
   }
 
@@ -152,8 +150,7 @@ void solveVelocity(std::span<Manifold> manifolds, BodyStore& bodies,
         float angularTermTA = angularTerm(invIA, rA, tangent);
         float angularTermTB = angularTerm(invIB, rB, tangent);
         float denomT = invMassSum + angularTermTA + angularTermTB;
-        if (denomT <= 0.0f)
-          continue;
+        if (denomT <= 0.0f) { continue; }
 
         float effectiveMassT = 1.0f / denomT;
         float relVelTangent = glm::dot(relVel(), tangent);
@@ -193,8 +190,7 @@ void solvePosition(std::span<Manifold> manifolds, BodyStore& bodies,
       Vec3f worldAnchorB = transformPoint(tb, point.localAnchorB);
       float currentPenetration =
           glm::dot(worldAnchorB - worldAnchorA, m.normal);
-      if (currentPenetration <= config.slop)
-        continue;
+      if (currentPenetration <= config.slop) { continue; }
 
       Vec3f rA = transformDirection(ta, point.localAnchorA);
       Vec3f rB = transformDirection(tb, point.localAnchorB);
@@ -203,8 +199,7 @@ void solvePosition(std::span<Manifold> manifolds, BodyStore& bodies,
       float angularTermA = angularTerm(invIA, rA, m.normal);
       float angularTermB = angularTerm(invIB, rB, m.normal);
       float denom = invMassA + invMassB + angularTermA + angularTermB;
-      if (denom <= 0.0f)
-        continue;
+      if (denom <= 0.0f) { continue; }
 
       float correctionMagnitude = std::min(
           config.baumgartePositionFactor * (currentPenetration - config.slop),

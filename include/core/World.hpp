@@ -26,8 +26,8 @@ class World {
                               bool constrainTo2D = false) noexcept;
 
   void addWorldBoundaries(Vec3f worldMin, Vec3f worldMax, float thickness,
-                         float friction, float restitution,
-                         bool is2D) noexcept;
+                          float friction, float restitution,
+                          bool is2D) noexcept;
 
   void step(float dt) noexcept;
 
@@ -46,9 +46,9 @@ class World {
 
   using GjkFn = std::function<GjkResult(const ShapeVariant&, const Transform&,
                                         const ShapeVariant&, const Transform&)>;
-  using EpaFn = std::function<EpaResult(
-      const ShapeVariant&, const Transform&, const ShapeVariant&,
-      const Transform&, const GjkResult&)>;
+  using EpaFn = std::function<EpaResult(const ShapeVariant&, const Transform&,
+                                        const ShapeVariant&, const Transform&,
+                                        const GjkResult&)>;
   void setNarrowphaseFns(GjkFn gjkFn, EpaFn epaFn) noexcept {
     gjkFn_ = std::move(gjkFn);
     epaFn_ = std::move(epaFn);

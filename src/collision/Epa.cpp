@@ -16,8 +16,8 @@ Vec3f barycentricLerp(const Vec3f& a, const Vec3f& b, float t) noexcept {
   return a + t * (b - a);
 }
 
-void triangleBarycentric(Vec3f a, Vec3f b, Vec3f c, Vec3f p, float& u,
-                         float& v, float& w) noexcept {
+void triangleBarycentric(Vec3f a, Vec3f b, Vec3f c, Vec3f p, float& u, float& v,
+                         float& w) noexcept {
   Vec3f v0 = b - a, v1 = c - a, v2 = p - a;
   float d00 = glm::dot(v0, v0);
   float d01 = glm::dot(v0, v1);
@@ -44,8 +44,8 @@ EpaResult sphereVsSphere(const SphereShape& a, const Transform& ta,
                          const SphereShape& b, const Transform& tb) noexcept {
   Vec3f delta = tb.position - ta.position;
   float dist = glm::length(delta);
-  Vec3f normal = (dist > VECTOR_LENGTH_EPSILON) ? (delta / dist)
-                                                : Vec3f(1.0f, 0.0f, 0.0f);
+  Vec3f normal =
+      (dist > VECTOR_LENGTH_EPSILON) ? (delta / dist) : Vec3f(1.0f, 0.0f, 0.0f);
   EpaResult result;
   result.normal = normal;
   result.penetrationDepth = a.radius + b.radius - dist;
@@ -79,21 +79,21 @@ ClosestEdge findClosestEdge2D(const std::vector<SupportPoint>& poly) noexcept {
     std::size_t j = (i + 1) % n;
     Vec3f e = poly[j].diff - poly[i].diff;
     float len = glm::length(e);
-    if (len < VECTOR_LENGTH_EPSILON) continue;
+    if (len < VECTOR_LENGTH_EPSILON) { continue; }
     Vec3f normal(e.y / len, -e.x / len, 0.0f);  // CCW-winding outward normal
     float distance = glm::dot(normal, poly[i].diff);
-    if (distance < best.distance) best = {i, j, normal, distance};
+    if (distance < best.distance) { best = {i, j, normal, distance}; }
   }
   return best;
 }
 
 EpaResult epa2D(const ShapeVariant& shapeA, const Transform& ta,
-               const ShapeVariant& shapeB, const Transform& tb,
-               const GjkResult& terminalSimplex) noexcept {
+                const ShapeVariant& shapeB, const Transform& tb,
+                const GjkResult& terminalSimplex) noexcept {
   std::vector<SupportPoint> poly(
       terminalSimplex.simplex.begin(),
       terminalSimplex.simplex.begin() + terminalSimplex.simplexCount);
-  if (signedArea2D(poly) < 0.0f) std::reverse(poly.begin(), poly.end());
+  if (signedArea2D(poly) < 0.0f) { std::reverse(poly.begin(), poly.end()); }
 
   ClosestEdge edge = findClosestEdge2D(poly);
   for (int iter = 0; iter < kMaxIterations; ++iter) {
@@ -101,7 +101,7 @@ EpaResult epa2D(const ShapeVariant& shapeA, const Transform& ta,
         minkowskiSupport(shapeA, ta, shapeB, tb, edge.normal);
     float newDistance = glm::dot(edge.normal, support.diff);
 
-    if (newDistance - edge.distance < kEpaEpsilon) break;
+    if (newDistance - edge.distance < kEpaEpsilon) { break; }
 
     poly.insert(poly.begin() + static_cast<long>(edge.i1), support);
     edge = findClosestEdge2D(poly);
@@ -134,14 +134,14 @@ struct Face {
 };
 
 Face makeFace(const std::vector<SupportPoint>& verts, int ia, int ib, int ic,
-             Vec3f centroid) noexcept {
+              Vec3f centroid) noexcept {
   Vec3f A = verts[static_cast<std::size_t>(ia)].diff;
   Vec3f B = verts[static_cast<std::size_t>(ib)].diff;
   Vec3f C = verts[static_cast<std::size_t>(ic)].diff;
   Vec3f normal = glm::cross(B - A, C - A);
   float len = glm::length(normal);
-  if (len > VECTOR_LENGTH_EPSILON) normal /= len;
-  if (glm::dot(normal, A - centroid) < 0.0f) normal = -normal;
+  if (len > VECTOR_LENGTH_EPSILON) { normal /= len; }
+  if (glm::dot(normal, A - centroid) < 0.0f) { normal = -normal; }
   return Face{ia, ib, ic, normal, glm::dot(normal, A)};
 }
 
@@ -157,12 +157,12 @@ void addUniqueEdge(std::vector<std::pair<int, int>>& edges, int a,
 }
 
 EpaResult epa3D(const ShapeVariant& shapeA, const Transform& ta,
-               const ShapeVariant& shapeB, const Transform& tb,
-               const GjkResult& terminalSimplex) noexcept {
+                const ShapeVariant& shapeB, const Transform& tb,
+                const GjkResult& terminalSimplex) noexcept {
   std::vector<SupportPoint> verts(terminalSimplex.simplex.begin(),
                                   terminalSimplex.simplex.begin() + 4);
   Vec3f centroid(0.0f);
-  for (const SupportPoint& v : verts) centroid += v.diff;
+  for (const SupportPoint& v : verts) { centroid += v.diff; }
   centroid *= 0.25f;
 
   std::vector<Face> faces{
@@ -173,7 +173,7 @@ EpaResult epa3D(const ShapeVariant& shapeA, const Transform& ta,
   for (int iter = 0; iter < kMaxIterations; ++iter) {
     std::size_t closestIdx = 0;
     for (std::size_t i = 1; i < faces.size(); ++i) {
-      if (faces[i].distance < faces[closestIdx].distance) closestIdx = i;
+      if (faces[i].distance < faces[closestIdx].distance) { closestIdx = i; }
     }
     closest = faces[closestIdx];
 
@@ -181,7 +181,7 @@ EpaResult epa3D(const ShapeVariant& shapeA, const Transform& ta,
         minkowskiSupport(shapeA, ta, shapeB, tb, closest.normal);
     float newDistance = glm::dot(closest.normal, support.diff);
 
-    if (newDistance - closest.distance < kEpaEpsilon) break;
+    if (newDistance - closest.distance < kEpaEpsilon) { break; }
 
     int newIdx = static_cast<int>(verts.size());
     verts.push_back(support);
@@ -205,7 +205,7 @@ EpaResult epa3D(const ShapeVariant& shapeA, const Transform& ta,
     }
 
     assert(!faces.empty() && "EPA polytope expansion produced no faces");
-    if (faces.empty()) break;
+    if (faces.empty()) { break; }
   }
 
   const Vec3f& A = verts[static_cast<std::size_t>(closest.a)].diff;
@@ -239,10 +239,10 @@ EpaResult epaPenetration(const ShapeVariant& shapeA, const Transform& ta,
   }
 
   assert(terminalSimplex.overlapping &&
-        "epaPenetration requires an overlapping GjkResult");
+         "epaPenetration requires an overlapping GjkResult");
   assert((terminalSimplex.simplexCount == 3 ||
-         terminalSimplex.simplexCount == 4) &&
-        "EPA requires GJK's 3- or 4-point terminal simplex");
+          terminalSimplex.simplexCount == 4) &&
+         "EPA requires GJK's 3- or 4-point terminal simplex");
 
   bool flat = isFlatPair(shapeA, ta, shapeB, tb);
   if (flat || terminalSimplex.simplexCount == 3) {

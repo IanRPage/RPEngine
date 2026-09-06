@@ -49,7 +49,7 @@ TEST(SolverTest, WarmStartReducesSecondFrameFirstIterationDeltaImpulse) {
   float before1 = manifolds[0].points[0].normalImpulse;
   solveVelocity(manifolds, store, bias1);
   float firstDelta = manifolds[0].points[0].normalImpulse - before1;
-  for (int i = 1; i < 8; i++) solveVelocity(manifolds, store, bias1);
+  for (int i = 1; i < 8; i++) { solveVelocity(manifolds, store, bias1); }
 
   store.linearVelocity(b) = closingVelocity;
   std::vector<float> bias2 = prepareRestitutionBias(manifolds, store);
@@ -68,8 +68,8 @@ TEST(SolverTest, RestitutionProducesExpectedBounceHeight) {
   Transform groundT;
   groundT.position = Vec3f(0.0f, -0.5f, 0.0f);
   world.createStaticBody(ShapeVariant{BoxShape{Vec3f(20.0f, 0.5f, 0.0f)}},
-                        groundT, /*friction=*/0.0f, /*restitution=*/0.0f,
-                        /*constrainTo2D=*/true);
+                         groundT, /*friction=*/0.0f, /*restitution=*/0.0f,
+                         /*constrainTo2D=*/true);
 
   const float restitution = 0.8f;
   const float h0 = 5.0f;
@@ -92,10 +92,10 @@ TEST(SolverTest, RestitutionProducesExpectedBounceHeight) {
     float vy = world.bodies().linearVelocity(sphere).y;
 
     if (!bounced) {
-      if (wasFalling && vy > 0.0f) bounced = true;
+      if (wasFalling && vy > 0.0f) { bounced = true; }
       wasFalling = vy < 0.0f;
     } else {
-      if (vy <= 0.0f) break;
+      if (vy <= 0.0f) { break; }
       apexY = std::max(apexY, y);
     }
   }
@@ -104,7 +104,7 @@ TEST(SolverTest, RestitutionProducesExpectedBounceHeight) {
   float bounceHeight = apexY - restY;
   float expectedBounceHeight = restitution * restitution * h0;
   EXPECT_NEAR(bounceHeight, expectedBounceHeight,
-             expectedBounceHeight * 0.3f + 0.1f);
+              expectedBounceHeight * 0.3f + 0.1f);
 }
 
 namespace {
@@ -116,8 +116,8 @@ float finalTangentialSpeed(float friction, float inclineRadians) {
   Transform rampT;
   rampT.orientation = rampOrientation;
   world.createStaticBody(ShapeVariant{BoxShape{Vec3f(20.0f, 0.5f, 0.0f)}},
-                        rampT, friction, /*restitution=*/0.0f,
-                        /*constrainTo2D=*/true);
+                         rampT, friction, /*restitution=*/0.0f,
+                         /*constrainTo2D=*/true);
 
   Vec3f localOffset(0.0f, 0.99f, 0.0f);
   Vec3f worldOffset = rampOrientation * localOffset;
@@ -130,7 +130,7 @@ float finalTangentialSpeed(float friction, float inclineRadians) {
 
   Vec3f tangent(std::cos(inclineRadians), std::sin(inclineRadians), 0.0f);
   const float dt = 1.0f / 120.0f;
-  for (int i = 0; i < 600; i++) world.step(dt);
+  for (int i = 0; i < 600; i++) { world.step(dt); }
 
   return glm::dot(world.bodies().linearVelocity(box), tangent);
 }
@@ -155,15 +155,16 @@ TEST(SolverTest, StackOfBoxesRemainsStable) {
   Transform groundT;
   groundT.position = Vec3f(0.0f, -0.5f, 0.0f);
   world.createStaticBody(ShapeVariant{BoxShape{Vec3f(20.0f, 0.5f, 0.0f)}},
-                        groundT, /*friction=*/0.8f, /*restitution=*/0.0f,
-                        /*constrainTo2D=*/true);
+                         groundT, /*friction=*/0.8f, /*restitution=*/0.0f,
+                         /*constrainTo2D=*/true);
 
   constexpr int kBoxCount = 5;
   constexpr float kHalfExtent = 0.5f;
   std::array<BodyHandle, kBoxCount> boxes{};
   for (int i = 0; i < kBoxCount; i++) {
     Transform t;
-    t.position = Vec3f(0.0f, kHalfExtent + i * (2.0f * kHalfExtent - 0.002f), 0.0f);
+    t.position =
+        Vec3f(0.0f, kHalfExtent + i * (2.0f * kHalfExtent - 0.002f), 0.0f);
     boxes[i] = world.createDynamicBody(
         ShapeVariant{BoxShape{Vec3f(kHalfExtent, kHalfExtent, 0.0f)}}, t,
         /*mass=*/1.0f, /*friction=*/0.8f, /*restitution=*/0.0f,
@@ -171,7 +172,7 @@ TEST(SolverTest, StackOfBoxesRemainsStable) {
   }
 
   const float dt = 1.0f / 120.0f;
-  for (int i = 0; i < 300; i++) world.step(dt);
+  for (int i = 0; i < 300; i++) { world.step(dt); }
 
   for (int i = 0; i < kBoxCount; i++) {
     Vec3f pos = world.bodies().position(boxes[i]);

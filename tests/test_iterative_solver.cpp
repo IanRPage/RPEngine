@@ -1,9 +1,9 @@
+#include <gtest/gtest.h>
 #include <Simulator.hpp>
 #include <cmath>
-#include <gtest/gtest.h>
 
 class IterativeSolverTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     sim = std::make_unique<Simulator>(
         Vec2f(800.0f, 600.0f), 20.0f, 9.81f, 0.5f, 1.0f / 60.0f, 10000,
@@ -17,11 +17,9 @@ TEST_F(IterativeSolverTest, MultipleOverlappingBodiesConverge) {
     sim->spawnParticle({400.0f + i * 5.0f, 300.0f}, {0.0f, 0.0f}, 10.0f, 1.0f);
   }
 
-  for (int frame = 0; frame < 200; frame++) {
-    sim->update();
-  }
+  for (int frame = 0; frame < 200; frame++) { sim->update(); }
 
-  const auto &particles = sim->particles();
+  const auto& particles = sim->particles();
   for (size_t i = 0; i < particles.size(); i++) {
     for (size_t j = i + 1; j < particles.size(); j++) {
       float dx = particles[j].position.x - particles[i].position.x;
@@ -40,12 +38,10 @@ TEST_F(IterativeSolverTest, StackedParticlesStable) {
     sim->spawnParticle({400.0f, 590.0f - i * 2.0f * r}, {0.0f, 0.0f}, r, 1.0f);
   }
 
-  for (int frame = 0; frame < 500; frame++) {
-    sim->update();
-  }
+  for (int frame = 0; frame < 500; frame++) { sim->update(); }
 
-  const auto &particles = sim->particles();
-  for (const auto &p : particles) {
+  const auto& particles = sim->particles();
+  for (const auto& p : particles) {
     EXPECT_FALSE(std::isnan(p.position.x));
     EXPECT_FALSE(std::isnan(p.position.y));
     EXPECT_GE(p.position.y, p.radius);
@@ -72,7 +68,7 @@ TEST_F(IterativeSolverTest, NoEnergyExplosion) {
   float maxSpeed = 0.0f;
   for (int frame = 0; frame < 500; frame++) {
     sim->update();
-    for (const auto &p : sim->particles()) {
+    for (const auto& p : sim->particles()) {
       Vec2f v = p.position - p.prevPosition;
       float speed = std::sqrt(v.x * v.x + v.y * v.y);
       maxSpeed = std::max(maxSpeed, speed);
@@ -91,10 +87,8 @@ TEST_F(IterativeSolverTest, WorksWithAllBroadphases) {
     for (int i = 0; i < 8; i++) {
       s->spawnParticle({200.0f + i * 3.0f, 200.0f}, {0.0f, 0.0f}, 5.0f, 1.0f);
     }
-    for (int frame = 0; frame < 100; frame++) {
-      s->update();
-    }
-    for (const auto &p : s->particles()) {
+    for (int frame = 0; frame < 100; frame++) { s->update(); }
+    for (const auto& p : s->particles()) {
       EXPECT_FALSE(std::isnan(p.position.x));
       EXPECT_FALSE(std::isnan(p.position.y));
       EXPECT_GE(p.position.x, p.radius - 0.5f);
@@ -116,11 +110,9 @@ TEST_F(IterativeSolverTest, EulerIterativeSolverWorks) {
                             1.0f);
   }
 
-  for (int frame = 0; frame < 200; frame++) {
-    eulerSim->update();
-  }
+  for (int frame = 0; frame < 200; frame++) { eulerSim->update(); }
 
-  const auto &particles = eulerSim->particles();
+  const auto& particles = eulerSim->particles();
   for (size_t i = 0; i < particles.size(); i++) {
     for (size_t j = i + 1; j < particles.size(); j++) {
       float dx = particles[j].position.x - particles[i].position.x;

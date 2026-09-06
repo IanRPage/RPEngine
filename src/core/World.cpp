@@ -49,8 +49,8 @@ BodyHandle World::createStaticBody(const ShapeVariant& shape,
 }
 
 void World::addWorldBoundaries(Vec3f worldMin, Vec3f worldMax, float thickness,
-                              float friction, float restitution,
-                              bool is2D) noexcept {
+                               float friction, float restitution,
+                               bool is2D) noexcept {
   Vec3f center = (worldMin + worldMax) * 0.5f;
   Vec3f halfSize = (worldMax - worldMin) * 0.5f;
   float zHalf = is2D ? 0.0f : halfSize.z + thickness;
@@ -100,7 +100,7 @@ void World::step(float dt) noexcept {
     Transform tb = bodies_.transform(b);
 
     GjkResult gjk = gjkFn_(shapeA, ta, shapeB, tb);
-    if (!gjk.overlapping) continue;
+    if (!gjk.overlapping) { continue; }
 
     EpaResult epa = epaFn_(shapeA, ta, shapeB, tb, gjk);
     Manifold fresh = buildManifold(shapeA, ta, shapeB, tb, a, b, gjk, epa);

@@ -90,8 +90,7 @@ std::span<const std::pair<BodyHandle, BodyHandle>> GridBroadphase::computePairs(
           int cell = (cz * rows_ + cy) * cols_ + cx;
           for (int32_t j = head_[static_cast<size_t>(cell)]; j != -1;
                j = next_[static_cast<size_t>(j)]) {
-            if (j <= static_cast<int32_t>(i))
-              continue;  // prune self & redundant checks
+            if (j <= static_cast<int32_t>(i)) { continue; }
             pairs_.emplace_back(handles[i], handles[static_cast<size_t>(j)]);
           }
         }

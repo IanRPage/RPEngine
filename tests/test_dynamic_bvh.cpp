@@ -7,7 +7,7 @@
 
 namespace {
 
-AABB randomAABB(std::mt19937 &rng, float worldSize, float maxHalfExtent) {
+AABB randomAABB(std::mt19937& rng, float worldSize, float maxHalfExtent) {
   std::uniform_real_distribution<float> posDist(0.0f, worldSize);
   std::uniform_real_distribution<float> extDist(0.5f, maxHalfExtent);
   Vec3f center(posDist(rng), posDist(rng), posDist(rng));
@@ -15,18 +15,18 @@ AABB randomAABB(std::mt19937 &rng, float worldSize, float maxHalfExtent) {
   return AABB(center - half, center + half);
 }
 
-bool overlaps(const AABB &a, const AABB &b) {
+bool overlaps(const AABB& a, const AABB& b) {
   return a.min.x <= b.max.x && a.max.x >= b.min.x && a.min.y <= b.max.y &&
          a.max.y >= b.min.y && a.min.z <= b.max.z && a.max.z >= b.min.z;
 }
 
-bool contains(const AABB &outer, const AABB &inner) {
+bool contains(const AABB& outer, const AABB& inner) {
   return outer.min.x <= inner.min.x && outer.max.x >= inner.max.x &&
          outer.min.y <= inner.min.y && outer.max.y >= inner.max.y &&
          outer.min.z <= inner.min.z && outer.max.z >= inner.max.z;
 }
 
-} // namespace
+}  // namespace
 
 TEST(DynamicBVHTest, MatchesBruteForceOnRandomPoints) {
   for (uint32_t seed : {1u, 2u, 3u, 4u}) {
@@ -52,9 +52,8 @@ TEST(DynamicBVHTest, MatchesBruteForceOnRandomPoints) {
       });
 
       std::set<uint32_t> bruteResult;
-      for (const auto &[handle, fatAABB] : fattened) {
-        if (overlaps(query, fatAABB))
-          bruteResult.insert(handle.index);
+      for (const auto& [handle, fatAABB] : fattened) {
+        if (overlaps(query, fatAABB)) { bruteResult.insert(handle.index); }
       }
 
       EXPECT_EQ(treeResult, bruteResult) << "seed=" << seed << " query=" << q;
@@ -88,7 +87,7 @@ TEST(DynamicBVHTest, LargeMoveTriggersReinsertion) {
   bool moved = tree.moveProxy(nodeId, farAway, Vec3f(1.0f, 0.0f, 0.0f));
 
   ASSERT_TRUE(moved);
-  const AABB &newFat = tree.node(nodeId).fatAABB;
+  const AABB& newFat = tree.node(nodeId).fatAABB;
   EXPECT_TRUE(contains(newFat, farAway))
       << "the rebuilt fat AABB must actually contain the new real AABB (with "
          "margin)";
@@ -115,8 +114,7 @@ TEST(DynamicBVHTest, RemoveAndReinsertKeepsTreeValid) {
   }
 
   std::set<uint32_t> expected;
-  for (const auto &[handle, nodeId] : live)
-    expected.insert(handle.index);
+  for (const auto& [handle, nodeId] : live) { expected.insert(handle.index); }
 
   AABB covering(Vec3f(-1000.0f), Vec3f(1000.0f));
   std::set<uint32_t> actual;

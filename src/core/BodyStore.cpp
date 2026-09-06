@@ -14,7 +14,7 @@ uint32_t BodyStore::allocateSlot() noexcept {
   slot.alive = true;
 
   BodyHandle handle{index, slot.generation};
-  if (liveIndex_.size() <= index) liveIndex_.resize(index + 1);
+  if (liveIndex_.size() <= index) { liveIndex_.resize(index + 1); }
   liveIndex_[index] = liveHandles_.size();
   liveHandles_.push_back(handle);
 
@@ -49,7 +49,7 @@ BodyHandle BodyStore::addBody(const BodyDesc& desc) noexcept {
 }
 
 void BodyStore::removeBody(BodyHandle handle) noexcept {
-  if (!isLive(handle)) return;
+  if (!isLive(handle)) { return; }
 
   Slot& slot = slots_[handle.index];
   slot.alive = false;
@@ -68,7 +68,7 @@ void BodyStore::removeBody(BodyHandle handle) noexcept {
 
 void BodyStore::setAABB(BodyHandle handle, const AABB& realAABB,
                         Vec3f displacement) noexcept {
-  if (!isLive(handle)) return;
+  if (!isLive(handle)) { return; }
   Slot& slot = slots_[handle.index];
   slot.aabb = realAABB;
   slot.displacement = displacement;
