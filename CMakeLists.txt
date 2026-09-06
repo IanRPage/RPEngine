@@ -11,7 +11,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # set default build type to Debug if not specified
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING
         "Choose the type of build (Debug or Release)" FORCE)
 endif()
 
@@ -105,19 +105,37 @@ set(SOURCES
     src/broadphase/NaiveBroadphase.cpp
     src/broadphase/GridBroadphase.cpp
     src/broadphase/DynamicBVHBroadphase.cpp
+    src/render/Window.cpp
+    src/render/ShaderProgram.cpp
+    src/render/Mesh.cpp
+    src/render/MeshLibrary.cpp
+    src/render/InstancedBatch.cpp
+    src/render/Camera.cpp
+    src/render/RenderableStore.cpp
+    src/render/HullMeshCache.cpp
+    src/render/ImguiController.cpp
+    src/render/Renderer.cpp
+)
+
+# shaders read directly from source tree at runtime
+configure_file(
+    ${CMAKE_SOURCE_DIR}/include/render/AssetPaths.hpp.in
+    ${CMAKE_BINARY_DIR}/generated/include/render/AssetPaths.hpp
+    @ONLY
 )
 
 add_executable(${EXE_NAME} ${SOURCES})
 target_compile_features(${EXE_NAME} PRIVATE cxx_std_20)
-target_include_directories(${EXE_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(${EXE_NAME} PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_BINARY_DIR}/generated/include
+)
 target_compile_options(${EXE_NAME} PRIVATE
     -Wall -Wextra
     $<$<CONFIG:Debug>:-O0 -g -DDEBUG>
     $<$<CONFIG:Release>:-O3 -DNDEBUG>
 )
 target_link_libraries(${EXE_NAME} PRIVATE glfw glad_gl_core_41 glm::glm imgui)
-
-# file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 
 add_custom_target(debug
     COMMAND "${CMAKE_COMMAND}" -DCMAKE_BUILD_TYPE=Debug -S "${CMAKE_SOURCE_DIR}" -B "${CMAKE_BINARY_DIR}"
@@ -134,6 +152,6 @@ add_custom_target(release
 )
 
 if(BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(tests)
+  enable_testing()
+  add_subdirectory(tests)
 endif()
