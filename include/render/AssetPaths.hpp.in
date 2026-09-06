@@ -1,0 +1,10 @@
+#ifndef RPENGINE_RENDER_ASSETPATHS_HPP
+#define RPENGINE_RENDER_ASSETPATHS_HPP
+
+namespace render {
+
+inline constexpr const char* kAssetsDir = "@CMAKE_SOURCE_DIR@/assets";
+
+}  // namespace render
+
+#endif
