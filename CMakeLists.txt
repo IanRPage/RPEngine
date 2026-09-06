@@ -95,6 +95,10 @@ set(SOURCES
     src/collision/ManifoldBuilder.cpp
     src/collision/ManifoldCache.cpp
     src/core/BodyStore.cpp
+    src/core/World.cpp
+    src/dynamics/Integrator.cpp
+    src/dynamics/Friction.cpp
+    src/dynamics/Solver.cpp
     src/broadphase/DynamicBVH.cpp
     src/broadphase/PairCache.cpp
     src/broadphase/NaiveBroadphase.cpp
