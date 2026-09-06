@@ -96,6 +96,7 @@ set(SOURCES
     src/collision/ManifoldCache.cpp
     src/core/BodyStore.cpp
     src/core/World.cpp
+    src/sim/Simulator.cpp
     src/dynamics/Integrator.cpp
     src/dynamics/Friction.cpp
     src/dynamics/Solver.cpp
