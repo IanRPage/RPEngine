@@ -101,4 +101,7 @@ Vec3f worldSupport(const ShapeVariant& shape, const Transform& t,
 
 AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept;
 
+bool isFlatPair(const ShapeVariant& shapeA, const Transform& ta,
+                const ShapeVariant& shapeB, const Transform& tb) noexcept;
+
 #endif

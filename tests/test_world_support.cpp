@@ -39,3 +39,30 @@ TEST(WorldSupportTest, TranslationDoesNotAffectDirectionRotation) {
   EXPECT_NEAR(delta.y, b.position.y - a.position.y, 1e-4f);
   EXPECT_NEAR(delta.z, b.position.z - a.position.z, 1e-4f);
 }
+
+TEST(IsFlatPairTest, TwoZeroThicknessBoxesAreFlat) {
+  ShapeVariant a{BoxShape{Vec3f(1.0f, 1.0f, 0.0f)}};
+  ShapeVariant b{BoxShape{Vec3f(1.0f, 1.0f, 0.0f)}};
+  Transform ta, tb;
+  tb.position = Vec3f(1.5f, 0.0f, 0.0f);
+
+  EXPECT_TRUE(isFlatPair(a, ta, b, tb));
+}
+
+TEST(IsFlatPairTest, RealDepthBoxIsNotFlat) {
+  ShapeVariant a{BoxShape{Vec3f(1.0f, 1.0f, 0.0f)}};
+  ShapeVariant b{BoxShape{Vec3f(1.0f, 1.0f, 1.0f)}};
+  Transform ta, tb;
+  tb.position = Vec3f(1.5f, 0.0f, 0.0f);
+
+  EXPECT_FALSE(isFlatPair(a, ta, b, tb));
+}
+
+TEST(IsFlatPairTest, CapsuleIsNeverFlat) {
+  ShapeVariant a{BoxShape{Vec3f(1.0f, 1.0f, 0.0f)}};
+  ShapeVariant b{CapsuleShape{0.5f, 1.0f}};
+  Transform ta, tb;
+  tb.position = Vec3f(1.5f, 0.0f, 0.0f);
+
+  EXPECT_FALSE(isFlatPair(a, ta, b, tb));
+}
