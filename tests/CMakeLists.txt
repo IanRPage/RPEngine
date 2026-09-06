@@ -13,6 +13,8 @@ list(FILTER ENGINE_SOURCES EXCLUDE REGEX "main\\.cpp$")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/src/ui/")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/src/render/")
 
+list(APPEND ENGINE_SOURCES ${CMAKE_SOURCE_DIR}/src/render/RenderableStore.cpp)
+
 add_executable(rp_tests
     test_math_types.cpp
     test_transform.cpp
@@ -35,6 +37,7 @@ add_executable(rp_tests
     test_solver.cpp
     test_world.cpp
     test_fixed_timestep.cpp
+    test_renderable_store.cpp
     ${ENGINE_SOURCES}
 )
 
