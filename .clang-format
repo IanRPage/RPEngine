@@ -62,6 +62,7 @@ ObjCSpaceBeforeProtocolList: true
 PointerAlignment: Left
 ReflowComments: false
 # SeparateDefinitionBlocks: Always   # Only support since clang-format 14
+SortIncludes: false # breaks ordering needed for GLFW/glfw3.h vs glad/gl.h
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: true
