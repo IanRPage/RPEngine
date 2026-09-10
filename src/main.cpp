@@ -21,23 +21,39 @@ Vec4f randomColor() noexcept {
 void buildDemoScene(Simulator& sim, render::RenderableStore& renderables) {
   World& world = sim.world();
 
-  // 2D-constrained box arena, visible from the default orthographic view.
-  world.addWorldBoundaries(Vec3f(-8.0f, -6.0f, -1.0f), Vec3f(8.0f, 6.0f, 1.0f),
-                           0.5f, 0.5f, 0.3f, /*is2D=*/true);
+  // platform 1
+  world.createStaticBody(
+      BoxShape{Vec3f(13.5f, 0.5f, 13.5f)},
+      Transform{Vec3f(0.0f, -0.5f, 0.0f), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 0.5f,
+      0.3f);
 
-  for (int i = 0; i < 12; ++i) {
-    float x = static_cast<float>(i % 6) * 2.0f - 5.0f;
-    float y = 2.0f + static_cast<float>(i / 6) * 2.0f;
+  // platform 2
+  BodyHandle platform2 = world.createStaticBody(
+      BoxShape{Vec3f(27.0f, 0.5f, 27.0f)},
+      Transform{Vec3f(0.0f, -5.0f, 0.0f), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 0.5f,
+      0.3f);
+  renderables.setColor(platform2, Vec4f(0.35f, 0.35f, 0.35f, 1.0f));
+
+  for (int i = 0; i < 300; ++i) {
+    float x = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float z = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float y = 7.0f + static_cast<float>(i) * 0.5f;
+    Transform t{Vec3f(x, y, z), Quatf(1.0f, 0.0f, 0.0f, 0.0f)};
+
     BodyHandle handle;
-    if (i % 2 == 0) {
-      handle = world.createDynamicBody(
-          SphereShape{0.5f}, Transform{Vec3f(x, y, 0.0f), Quatf(1, 0, 0, 0)},
-          1.0f, 0.5f, 0.6f, /*constrainTo2D=*/true);
-    } else {
-      handle = world.createDynamicBody(
-          BoxShape{Vec3f(0.5f, 0.5f, 0.5f)},
-          Transform{Vec3f(x, y, 0.0f), Quatf(1, 0, 0, 0)}, 1.0f, 0.5f, 0.4f,
-          /*constrainTo2D=*/true);
+    switch (i % 3) {
+      case 0:
+        handle =
+            world.createDynamicBody(SphereShape{0.5f}, t, 1.0f, 0.5f, 0.5f);
+        break;
+      case 1:
+        handle = world.createDynamicBody(BoxShape{Vec3f(0.5f, 0.5f, 0.5f)}, t,
+                                         1.0f, 0.5f, 0.3f);
+        break;
+      default:
+        handle = world.createDynamicBody(CapsuleShape{0.35f, 0.45f}, t, 1.0f,
+                                         0.5f, 0.4f);
+        break;
     }
     renderables.setColor(handle, randomColor());
   }

@@ -34,7 +34,7 @@ class ImguiController {
   void renderSpawnControls();
   void renderScreenshotControls();
 
-  CameraMode cameraMode_ = CameraMode::Orthographic2D;
+  CameraMode cameraMode_ = CameraMode::Perspective3D;
   bool spawnSphereRequested_ = false;
   bool spawnBoxRequested_ = false;
   bool spawnCapsuleRequested_ = false;

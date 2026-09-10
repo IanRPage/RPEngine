@@ -139,32 +139,35 @@ void Renderer::handlePendingSpawnRequests() {
   World& world = sim_.world();
 
   if (imguiCtrl_.consumeSpawnSphereRequest()) {
-    float x = static_cast<float>(std::rand() % 800 - 400) / 100.0f;
-    float y = static_cast<float>(std::rand() % 300) / 100.0f + 6.0f;
+    float x = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float z = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float y = static_cast<float>(std::rand() % 300) / 100.0f + 7.0f;
     BodyHandle handle = world.createDynamicBody(
         SphereShape{0.5f},
-        Transform{Vec3f(x, y, 0.0f), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 1.0f, 0.5f,
-        0.6f, true);
+        Transform{Vec3f(x, y, z), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 1.0f, 0.5f,
+        0.6f);
     renderables_.setColor(handle, randomColor());
   }
 
   if (imguiCtrl_.consumeSpawnBoxRequest()) {
-    float x = static_cast<float>(std::rand() % 800 - 400) / 100.0f;
-    float y = static_cast<float>(std::rand() % 300) / 100.0f + 6.0f;
+    float x = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float z = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float y = static_cast<float>(std::rand() % 300) / 100.0f + 7.0f;
     BodyHandle handle = world.createDynamicBody(
         BoxShape{Vec3f(0.5f, 0.5f, 0.5f)},
-        Transform{Vec3f(x, y, 0.0f), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 1.0f, 0.5f,
-        0.4f, true);
+        Transform{Vec3f(x, y, z), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 1.0f, 0.5f,
+        0.4f);
     renderables_.setColor(handle, randomColor());
   }
 
   if (imguiCtrl_.consumeSpawnCapsuleRequest()) {
-    float x = static_cast<float>(std::rand() % 800 - 400) / 100.0f;
-    float y = static_cast<float>(std::rand() % 300) / 100.0f + 6.0f;
+    float x = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float z = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float y = static_cast<float>(std::rand() % 300) / 100.0f + 7.0f;
     BodyHandle handle = world.createDynamicBody(
         CapsuleShape{0.4f, 0.5f},
-        Transform{Vec3f(x, y, 0.0f), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 1.0f, 0.5f,
-        0.5f, true);
+        Transform{Vec3f(x, y, z), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 1.0f, 0.5f,
+        0.5f);
     renderables_.setColor(handle, randomColor());
   }
 

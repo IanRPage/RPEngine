@@ -46,9 +46,9 @@ class FreeFlyCameraController {
   Vec3f forward() const noexcept;
   Vec3f right() const noexcept;
 
-  Vec3f position_{0.0f, 4.0f, 18.0f};
-  float yaw_ = 0.0f;  // 0 faces -Z
-  float pitch_ = 0.0f;
+  Vec3f position_{0.0f, 14.0f, 10.0f};
+  float yaw_ = 0.0f;
+  float pitch_ = -0.8f;
 
   static constexpr float kMinPitch = -1.5f;
   static constexpr float kMaxPitch = 1.5f;
