@@ -95,7 +95,9 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
 
   if (!mouseCaptured_) { return; }
 
-  Vec2f mousePos(io.MousePos.x, io.MousePos.y);
+  double rawX = 0.0, rawY = 0.0;
+  glfwGetCursorPos(handle, &rawX, &rawY);
+  Vec2f mousePos(static_cast<float>(rawX), static_cast<float>(rawY));
   if (hasLastMouseLookPos_) {
     flyCamera_.onMouseLook(mousePos - lastMouseLookPos_);
   }
