@@ -52,12 +52,14 @@ class Renderer {
   Mesh capsuleMesh_;
   Mesh quadMesh_;
   Mesh circleMesh_;
+  Mesh stadiumMesh_;
 
   InstancedBatch sphereBatch_;
   InstancedBatch boxBatch_;
   InstancedBatch capsuleBatch_;
   InstancedBatch quadBatch_;
   InstancedBatch circleBatch_;
+  InstancedBatch stadiumBatch_;
   InstancedBatch hullBatch_;
   HullMeshCache hullMeshCache_;
 

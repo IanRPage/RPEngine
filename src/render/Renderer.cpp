@@ -41,7 +41,8 @@ Renderer::Renderer(Simulator& sim, RenderableStore& renderables,
       boxMesh_(buildUnitBox()),
       capsuleMesh_(buildUnitCapsule()),
       quadMesh_(buildUnitQuad()),
-      circleMesh_(buildUnitCircle()) {
+      circleMesh_(buildUnitCircle()),
+      stadiumMesh_(buildUnitStadium()) {
   glEnable(GL_DEPTH_TEST);
   lastFrameTimestamp_ = glfwGetTime();
   lastAdvanceTimestamp_ = lastFrameTimestamp_;
@@ -149,6 +150,16 @@ void Renderer::handlePendingSpawnRequests() {
     renderables_.setColor(handle, randomColor());
   }
 
+  if (imguiCtrl_.consumeSpawnCapsuleRequest()) {
+    float x = static_cast<float>(std::rand() % 800 - 400) / 100.0f;
+    float y = static_cast<float>(std::rand() % 300) / 100.0f + 6.0f;
+    BodyHandle handle = world.createDynamicBody(
+        CapsuleShape{0.4f, 0.5f},
+        Transform{Vec3f(x, y, 0.0f), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 1.0f, 0.5f,
+        0.5f, true);
+    renderables_.setColor(handle, randomColor());
+  }
+
   if (imguiCtrl_.consumeResetRequest()) {
     BodyStore& store = world.bodies();
     std::vector<BodyHandle> dynamicHandles;
@@ -165,6 +176,7 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
   capsuleBatch_.begin();
   quadBatch_.begin();
   circleBatch_.begin();
+  stadiumBatch_.begin();
 
   const BodyStore& bodies = sim_.world().bodies();
   bool is2D = imguiCtrl_.cameraMode() == CameraMode::Orthographic2D;
@@ -198,7 +210,7 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
             (is2D ? quadBatch_ : boxBatch_).add(instance);
           } else if constexpr (std::is_same_v<T, CapsuleShape>) {
             instance.scale = Vec3f(s.radius, s.halfHeight, s.radius);
-            capsuleBatch_.add(instance);
+            (is2D ? stadiumBatch_ : capsuleBatch_).add(instance);
           }
         },
         shape);
@@ -209,6 +221,7 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
   capsuleBatch_.render(capsuleMesh_, shader_, viewProjection);
   quadBatch_.render(quadMesh_, shader_, viewProjection);
   circleBatch_.render(circleMesh_, shader_, viewProjection);
+  stadiumBatch_.render(stadiumMesh_, shader_, viewProjection);
 }
 
 void Renderer::drawHullBodies(float alpha, const Mat4f& viewProjection) {

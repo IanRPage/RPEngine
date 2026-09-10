@@ -12,6 +12,8 @@ MeshData buildUnitIcosphere(int subdivisions = 2) noexcept;
 MeshData buildUnitBox() noexcept;
 MeshData buildUnitCapsule(int radialSegments = 16, int capRings = 8) noexcept;
 
+MeshData buildUnitStadium(int capSegments = 16) noexcept;
+
 MeshData triangulateConvexHull(const ConvexHullShape& hull) noexcept;
 
 }  // namespace render

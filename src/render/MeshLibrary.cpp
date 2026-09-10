@@ -53,6 +53,33 @@ MeshData buildUnitCircle(int segments) noexcept {
   return mesh;
 }
 
+MeshData buildUnitStadium(int capSegments) noexcept {
+  MeshData mesh;
+  mesh.vertices.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}});
+
+  for (int i = 0; i <= capSegments; ++i) {
+    float theta = kPi * static_cast<float>(i) / static_cast<float>(capSegments);
+    mesh.vertices.push_back(
+        {{std::cos(theta), 1.0f + std::sin(theta), 0.0f}, {0.0f, 0.0f, 1.0f}});
+  }
+  for (int i = 0; i <= capSegments; ++i) {
+    float theta =
+        kPi + kPi * static_cast<float>(i) / static_cast<float>(capSegments);
+    mesh.vertices.push_back(
+        {{std::cos(theta), -1.0f + std::sin(theta), 0.0f}, {0.0f, 0.0f, 1.0f}});
+  }
+
+  uint32_t ringCount = static_cast<uint32_t>(mesh.vertices.size()) - 1;
+  for (uint32_t i = 0; i < ringCount; ++i) {
+    uint32_t curr = 1 + i;
+    uint32_t next = 1 + (i + 1) % ringCount;
+    mesh.indices.push_back(0);
+    mesh.indices.push_back(curr);
+    mesh.indices.push_back(next);
+  }
+  return mesh;
+}
+
 MeshData buildUnitIcosphere(int subdivisions) noexcept {
   const float t = (1.0f + std::sqrt(5.0f)) / 2.0f;
 

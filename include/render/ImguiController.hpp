@@ -19,6 +19,7 @@ class ImguiController {
 
   bool consumeSpawnSphereRequest() noexcept;
   bool consumeSpawnBoxRequest() noexcept;
+  bool consumeSpawnCapsuleRequest() noexcept;
   bool consumeResetRequest() noexcept;
 
  private:
@@ -29,6 +30,7 @@ class ImguiController {
   CameraMode cameraMode_ = CameraMode::Orthographic2D;
   bool spawnSphereRequested_ = false;
   bool spawnBoxRequested_ = false;
+  bool spawnCapsuleRequested_ = false;
   bool resetRequested_ = false;
 };
 
