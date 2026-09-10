@@ -39,7 +39,9 @@ class Renderer {
   void drawShapeBodies(float alpha, const Mat4f& viewProjection);
   void drawHullBodies(float alpha, const Mat4f& viewProjection);
   void handlePendingSpawnRequests();
-  void captureDebugScreenshot();
+  void handleScreenshotRequest();
+  void captureScreenshot();
+  bool writeFramebufferToPng(const std::string& path) const;
 
   Simulator& sim_;
   RenderableStore& renderables_;
@@ -71,6 +73,9 @@ class Renderer {
   bool hasLastMouseLookPos_ = false;
   Vec2f lastMouseLookPos_{0.0f, 0.0f};
   bool mouseCaptured_ = false;
+
+  bool screenshotPending_ = false;
+  std::string pendingScreenshotPath_;
 
   double lastFrameTimestamp_ = 0.0;
   double lastAdvanceTimestamp_ = 0.0;

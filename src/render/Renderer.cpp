@@ -5,13 +5,13 @@
 #include <render/MeshLibrary.hpp>
 
 #include <imgui.h>
+#include <stb_image_write.h>
 
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -25,6 +25,14 @@ Vec4f randomColor() noexcept {
     return static_cast<float>(std::rand() % 156 + 100) / 255.0f;
   };
   return Vec4f(channel(), channel(), channel(), 1.0f);
+}
+
+std::string expandTilde(const std::string& path) {
+  if (path.empty() || path[0] != '~') { return path; }
+  if (path.size() > 1 && path[1] != '/') { return path; }
+  const char* home = std::getenv("HOME");
+  if (home == nullptr) { return path; }
+  return std::string(home) + path.substr(1);
 }
 
 }  // namespace
@@ -247,16 +255,7 @@ void Renderer::drawHullBodies(float alpha, const Mat4f& viewProjection) {
   hullMeshCache_.pruneDead(bodies);
 }
 
-void Renderer::captureDebugScreenshot() {
-  static const char* afterEnv = std::getenv("RPENGINE_SCREENSHOT_AFTER");
-  static const char* pathEnv = std::getenv("RPENGINE_SCREENSHOT_PATH");
-  if (afterEnv == nullptr || pathEnv == nullptr) { return; }
-
-  static int targetFrame = std::atoi(afterEnv);
-  static int frameCounter = 0;
-  ++frameCounter;
-  if (frameCounter != targetFrame) { return; }
-
+bool Renderer::writeFramebufferToPng(const std::string& path) const {
   int width = window_.framebufferWidth();
   int height = window_.framebufferHeight();
   std::vector<unsigned char> pixels(static_cast<size_t>(width) * height * 3);
@@ -271,14 +270,42 @@ void Renderer::captureDebugScreenshot() {
                 rowBytes);
   }
 
-  std::ofstream out(pathEnv, std::ios::binary);
-  if (out) {
-    out << "P6\n" << width << ' ' << height << "\n255\n";
-    out.write(reinterpret_cast<const char*>(flipped.data()),
-              static_cast<std::streamsize>(flipped.size()));
-    out.close();
-    std::fprintf(stderr, "[RPEngine] wrote debug screenshot to %s\n", pathEnv);
+  return stbi_write_png(path.c_str(), width, height, 3, flipped.data(),
+                        static_cast<int>(rowBytes)) != 0;
+}
+
+void Renderer::handleScreenshotRequest() {
+  if (screenshotPending_) {
+    screenshotPending_ = false;
+    std::string resolvedPath = expandTilde(pendingScreenshotPath_);
+    bool ok = writeFramebufferToPng(resolvedPath);
+    imguiCtrl_.setLastScreenshotStatus(ok ? ("Saved to " + resolvedPath)
+                                          : ("Failed to save to " + resolvedPath));
+    std::fprintf(stderr, "[RPEngine] %s screenshot %s\n",
+                ok ? "wrote" : "FAILED to write", resolvedPath.c_str());
   }
+
+  std::string path;
+  if (imguiCtrl_.consumeScreenshotRequest(path)) {
+    pendingScreenshotPath_ = path;
+    screenshotPending_ = true;
+  }
+}
+
+void Renderer::captureScreenshot() {
+  static const char* afterEnv = std::getenv("RPENGINE_SCREENSHOT_AFTER");
+  static const char* pathEnv = std::getenv("RPENGINE_SCREENSHOT_PATH");
+  if (afterEnv == nullptr || pathEnv == nullptr) { return; }
+
+  static int targetFrame = std::atoi(afterEnv);
+  static int frameCounter = 0;
+  ++frameCounter;
+  if (frameCounter != targetFrame) { return; }
+
+  std::string resolvedPath = expandTilde(pathEnv);
+  bool ok = writeFramebufferToPng(resolvedPath);
+  std::fprintf(stderr, "[RPEngine] %s debug screenshot %s\n",
+              ok ? "wrote" : "FAILED to write", resolvedPath.c_str());
   std::exit(0);
 }
 
@@ -321,7 +348,8 @@ void Renderer::drawFrame() {
   imguiCtrl_.renderPanels(frameTimeMs, sim_.world().bodies().size());
   imguiCtrl_.endFrame();
 
-  captureDebugScreenshot();
+  handleScreenshotRequest();
+  captureScreenshot();
   window_.swapBuffers();
 }
 

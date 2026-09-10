@@ -67,6 +67,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
+FetchContent_Declare(
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG 2c980bb59875b0d32144a71867fbdebb2f77cd20
+    GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(stb)
+
 add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -115,6 +123,7 @@ set(SOURCES
     src/render/HullMeshCache.cpp
     src/render/ImguiController.cpp
     src/render/Renderer.cpp
+    src/render/StbImageWriteImpl.cpp
 )
 
 # shaders read directly from source tree at runtime
@@ -129,6 +138,7 @@ target_compile_features(${EXE_NAME} PRIVATE cxx_std_20)
 target_include_directories(${EXE_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/generated/include
+    ${stb_SOURCE_DIR}
 )
 target_compile_options(${EXE_NAME} PRIVATE
     -Wall -Wextra
