@@ -54,6 +54,7 @@ Window::Window(int width, int height, const std::string& title)
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
   ImGui_ImplGlfw_InitForOpenGL(window_, true);
   ImGui_ImplOpenGL3_Init("#version 410 core");
 }
