@@ -103,6 +103,10 @@ Vec3f BodyStore::position(BodyHandle handle) const noexcept {
   return slots_[handle.index].position;
 }
 
+Vec3f& BodyStore::prevPosition(BodyHandle handle) noexcept {
+  return slots_[handle.index].prevPosition;
+}
+
 Vec3f BodyStore::prevPosition(BodyHandle handle) const noexcept {
   return slots_[handle.index].prevPosition;
 }
@@ -113,6 +117,10 @@ Quatf& BodyStore::orientation(BodyHandle handle) noexcept {
 
 Quatf BodyStore::orientation(BodyHandle handle) const noexcept {
   return slots_[handle.index].orientation;
+}
+
+Quatf& BodyStore::prevOrientation(BodyHandle handle) noexcept {
+  return slots_[handle.index].prevOrientation;
 }
 
 Quatf BodyStore::prevOrientation(BodyHandle handle) const noexcept {

@@ -31,6 +31,8 @@ class World {
 
   void step(float dt) noexcept;
 
+  void snapshotPrevState() noexcept;
+
   BodyStore& bodies() noexcept { return bodies_; }
   const BodyStore& bodies() const noexcept { return bodies_; }
 

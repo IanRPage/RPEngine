@@ -14,14 +14,6 @@ list(FILTER ENGINE_SOURCES EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/src/ui/")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX "^${CMAKE_SOURCE_DIR}/src/render/")
 
 add_executable(rp_tests
-    test_vec2.cpp
-    test_aabb.cpp
-    test_particle.cpp
-    test_spatial_grid.cpp
-    test_simulator.cpp
-    test_iterative_solver.cpp
-    test_constraints.cpp
-    test_collision_math.cpp
     test_math_types.cpp
     test_transform.cpp
     test_rotation.cpp
@@ -42,6 +34,7 @@ add_executable(rp_tests
     test_friction.cpp
     test_solver.cpp
     test_world.cpp
+    test_fixed_timestep.cpp
     ${ENGINE_SOURCES}
 )
 

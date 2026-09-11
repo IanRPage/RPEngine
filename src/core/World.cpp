@@ -90,6 +90,13 @@ void World::addWorldBoundaries(Vec3f worldMin, Vec3f worldMax, float thickness,
   }
 }
 
+void World::snapshotPrevState() noexcept {
+  for (BodyHandle h : bodies_.liveHandles()) {
+    bodies_.prevPosition(h) = bodies_.position(h);
+    bodies_.prevOrientation(h) = bodies_.orientation(h);
+  }
+}
+
 void World::step(float dt) noexcept {
   integrateVelocity(bodies_, dt, gravity_);
 

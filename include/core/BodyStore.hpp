@@ -38,10 +38,12 @@ class BodyStore {
 
   Vec3f& position(BodyHandle handle) noexcept;
   Vec3f position(BodyHandle handle) const noexcept;
+  Vec3f& prevPosition(BodyHandle handle) noexcept;
   Vec3f prevPosition(BodyHandle handle) const noexcept;
 
   Quatf& orientation(BodyHandle handle) noexcept;
   Quatf orientation(BodyHandle handle) const noexcept;
+  Quatf& prevOrientation(BodyHandle handle) noexcept;
   Quatf prevOrientation(BodyHandle handle) const noexcept;
 
   Vec3f& linearVelocity(BodyHandle handle) noexcept;
