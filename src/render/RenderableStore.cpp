@@ -2,7 +2,7 @@
 
 namespace render {
 
-void RenderableStore::setColor(BodyHandle handle, Vec4f color) noexcept {
+void RenderableStore::setColor(BodyHandle handle, Vec4f color) {
   if (entries_.size() <= handle.index) {
     entries_.resize(static_cast<size_t>(handle.index) + 1);
   }

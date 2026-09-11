@@ -198,6 +198,7 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
 
     Vec3f position =
         glm::mix(bodies.prevPosition(handle), bodies.position(handle), alpha);
+    if (is2D) { position.z = 0.0f; }
     Quatf orientation = nlerp(bodies.prevOrientation(handle),
                               bodies.orientation(handle), alpha);
     Vec4f color = renderables_.colorOr(handle);
@@ -309,7 +310,7 @@ void Renderer::captureScreenshot() {
   bool ok = writeFramebufferToPng(resolvedPath);
   std::fprintf(stderr, "[RPEngine] %s debug screenshot %s\n",
               ok ? "wrote" : "FAILED to write", resolvedPath.c_str());
-  std::exit(0);
+  std::exit(ok ? 0 : 1);
 }
 
 void Renderer::drawFrame() {

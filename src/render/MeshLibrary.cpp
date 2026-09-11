@@ -27,14 +27,14 @@ void addFace(MeshData& mesh, Vec3f a, Vec3f b, Vec3f c, Vec3f d, Vec3f normal) {
 
 }  // namespace
 
-MeshData buildUnitQuad() noexcept {
+MeshData buildUnitQuad() {
   MeshData mesh;
   addFace(mesh, {-1.0f, -1.0f, 0.0f}, {1.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 0.0f},
           {-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
   return mesh;
 }
 
-MeshData buildUnitCircle(int segments) noexcept {
+MeshData buildUnitCircle(int segments) {
   MeshData mesh;
   mesh.vertices.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}});
   for (int i = 0; i < segments; ++i) {
@@ -53,7 +53,7 @@ MeshData buildUnitCircle(int segments) noexcept {
   return mesh;
 }
 
-MeshData buildUnitStadium(int capSegments) noexcept {
+MeshData buildUnitStadium(int capSegments) {
   MeshData mesh;
   mesh.vertices.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}});
 
@@ -80,7 +80,7 @@ MeshData buildUnitStadium(int capSegments) noexcept {
   return mesh;
 }
 
-MeshData buildUnitIcosphere(int subdivisions) noexcept {
+MeshData buildUnitIcosphere(int subdivisions) {
   const float t = (1.0f + std::sqrt(5.0f)) / 2.0f;
 
   std::vector<Vec3f> positions = {
@@ -138,7 +138,7 @@ MeshData buildUnitIcosphere(int subdivisions) noexcept {
   return mesh;
 }
 
-MeshData buildUnitBox() noexcept {
+MeshData buildUnitBox() {
   MeshData mesh;
   // +X, -X, +Y, -Y, +Z, -Z faces, each wound CCW when viewed from outside
   addFace(mesh, {1, -1, -1}, {1, 1, -1}, {1, 1, 1}, {1, -1, 1}, {1, 0, 0});
@@ -150,7 +150,7 @@ MeshData buildUnitBox() noexcept {
   return mesh;
 }
 
-MeshData buildUnitCapsule(int radialSegments, int capRings) noexcept {
+MeshData buildUnitCapsule(int radialSegments, int capRings) {
   MeshData mesh;
 
   auto ringVertex = [&](float theta, float y, float radius, Vec3f normal) {
@@ -230,13 +230,20 @@ MeshData buildUnitCapsule(int radialSegments, int capRings) noexcept {
   return mesh;
 }
 
-MeshData triangulateConvexHull(const ConvexHullShape& hull) noexcept {
+MeshData triangulateConvexHull(const ConvexHullShape& hull) {
   MeshData mesh;
   const auto& verts = hull.localVertices;
   if (verts.size() < 3) { return mesh; }
 
-  Vec3f normal =
-      glm::normalize(glm::cross(verts[1] - verts[0], verts[2] - verts[0]));
+  constexpr float kMinCrossLengthSq = 1e-12f;
+  Vec3f cross{0.0f, 0.0f, 0.0f};
+  for (size_t i = 1; i + 1 < verts.size(); ++i) {
+    cross = glm::cross(verts[i] - verts[0], verts[i + 1] - verts[0]);
+    if (glm::dot(cross, cross) > kMinCrossLengthSq) { break; }
+  }
+  if (glm::dot(cross, cross) <= kMinCrossLengthSq) { return mesh; }
+  Vec3f normal = glm::normalize(cross);
+
   for (const Vec3f& v : verts) { mesh.vertices.push_back({v, normal}); }
   for (size_t i = 1; i + 1 < verts.size(); ++i) {
     mesh.indices.push_back(0);

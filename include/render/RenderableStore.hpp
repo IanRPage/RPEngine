@@ -13,7 +13,7 @@ class RenderableStore {
  public:
   static constexpr Vec4f kDefaultColor{0.8f, 0.8f, 0.8f, 1.0f};
 
-  void setColor(BodyHandle handle, Vec4f color) noexcept;
+  void setColor(BodyHandle handle, Vec4f color);
   Vec4f colorOr(BodyHandle handle,
                 Vec4f fallback = kDefaultColor) const noexcept;
   bool hasColor(BodyHandle handle) const noexcept;

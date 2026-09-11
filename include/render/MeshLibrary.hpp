@@ -6,15 +6,15 @@
 
 namespace render {
 
-MeshData buildUnitQuad() noexcept;
-MeshData buildUnitCircle(int segments = 32) noexcept;
-MeshData buildUnitIcosphere(int subdivisions = 2) noexcept;
-MeshData buildUnitBox() noexcept;
-MeshData buildUnitCapsule(int radialSegments = 16, int capRings = 8) noexcept;
+MeshData buildUnitQuad();
+MeshData buildUnitCircle(int segments = 32);
+MeshData buildUnitIcosphere(int subdivisions = 2);
+MeshData buildUnitBox();
+MeshData buildUnitCapsule(int radialSegments = 16, int capRings = 8);
 
-MeshData buildUnitStadium(int capSegments = 16) noexcept;
+MeshData buildUnitStadium(int capSegments = 16);
 
-MeshData triangulateConvexHull(const ConvexHullShape& hull) noexcept;
+MeshData triangulateConvexHull(const ConvexHullShape& hull);
 
 }  // namespace render
 

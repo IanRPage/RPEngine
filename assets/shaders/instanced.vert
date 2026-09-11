@@ -29,7 +29,7 @@ mat3 quatToMat3(vec4 q) {
 void main() {
   mat3 rotation = quatToMat3(iOrientation);
   vec3 worldPos = rotation * (aPosition * iScale) + iPosition;
-  vWorldNormal = rotation * aNormal;
+  vWorldNormal = rotation * (aNormal / iScale);
   vColor = iColor;
   gl_Position = uViewProjection * vec4(worldPos, 1.0);
 }
