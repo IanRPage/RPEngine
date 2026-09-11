@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 #include <core/BodyStore.hpp>
 #include <dynamics/Integrator.hpp>
 
@@ -94,4 +96,24 @@ TEST(IntegratorTest, SemiImplicitEulerIntegratorMatchesFreeFunctions) {
   EXPECT_FLOAT_EQ(viaInterface.position(a).y, viaFreeFunctions.position(b).y);
   EXPECT_FLOAT_EQ(viaInterface.linearVelocity(a).y,
                   viaFreeFunctions.linearVelocity(b).y);
+}
+
+TEST(IntegratorTest,
+     ConstantAngularVelocityFreeRotationConservesOrientationRate) {
+  BodyStore store;
+  BodyHandle h = addDynamicBody(store, Vec3f(0.0f));
+  const Vec3f omega(0.0f, 0.0f, 1.5f);
+  store.angularVelocity(h) = omega;
+
+  const float dt = 1.0f / 240.0f;
+  const int steps = 2400;
+  for (int i = 0; i < steps; i++) { integratePosition(store, dt); }
+
+  EXPECT_NEAR(glm::length(store.angularVelocity(h)), glm::length(omega), 1e-6f)
+      << "nothing in this scenario applies torque, so angular speed must be "
+         "unchanged to float precision";
+
+  float theta = omega.z * steps * dt;
+  Quatf expected{std::cos(theta * 0.5f), 0.0f, 0.0f, std::sin(theta * 0.5f)};
+  EXPECT_NEAR(std::abs(glm::dot(store.orientation(h), expected)), 1.0f, 1e-4f);
 }

@@ -40,6 +40,11 @@ TEST(SphereShapeTest, InertiaMatchesTextbookFormula) {
   EXPECT_NEAR(i[2][2], 8.0f, 1e-4f);
 }
 
+TEST(SphereShapeTest, ExactRadiusMatchesConstructorArgument) {
+  SphereShape sphere{3.7f};
+  EXPECT_FLOAT_EQ(sphere.boundingRadius(), 3.7f);
+}
+
 TEST(CapsuleShapeTest, InertiaMatchesReferenceValue) {
   // mass=10, radius=1, halfHeight=2:
   //   Vcyl = pi*r^2*2h = 4pi, Vcaps = (4/3)*pi*r^3 = (4/3)pi
