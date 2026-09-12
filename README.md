@@ -56,7 +56,8 @@ cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug    # or Release
 cmake --build build -j
 ```
 
-There's also two convenience targets do the configure+build step for you:
+After the initial configure step above, these targets reconfigure and build:
+
 
 ```
 cmake --build build --target debug    # configures Debug, then builds
@@ -112,6 +113,8 @@ world.createStaticBody(
     /*friction=*/0.5f,
     /*restitution=*/0.3f);
 
+Transform transform{Vec3f(0, 1, 0)};
+
 world.createDynamicBody(
     SphereShape{0.5f}, transform,
     /*mass=*/1.0f,
@@ -149,7 +152,7 @@ everything it currently exposes:
 
 **Spawn** — "Spawn Sphere"/"Spawn Box"/"Spawn Capsule" each drop one body of
 that shape at a randomized position above the scene. "Reset Scene" removes every
-dynamic body, leaving statics (platforms/boundaries) in place.
+dynamic body, leaving statics in place.
 
 **Screenshot** — "Take Screenshot" opens a path prompt and writes the current
 framebuffer to a PNG (this is how the screenshot above was captured).
