@@ -1,33 +1,32 @@
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <array>
 #include <cmath>
+#include <string>
+#include <vector>
+
 #include <core/World.hpp>
 #include <dynamics/Solver.hpp>
+
+#include "test_helpers.hpp"
+
+using test_helpers::buildManifoldBetween;
+using test_helpers::rotationAboutAxis;
 
 namespace {
 
 BodyHandle addSphere(BodyStore& store, Vec3f position, float invMass,
                      float radius = 1.0f) {
-  BodyDesc desc;
-  desc.shape = ShapeVariant{SphereShape{radius}};
-  desc.transform.position = position;
-  desc.invMass = invMass;
-  desc.constrainTo2D = true;
-  return store.addBody(desc);
+  return test_helpers::spawnSphere(store, position, invMass, radius,
+                                   Vec3f(0.0f), /*constrainTo2D=*/true);
 }
 
 Manifold buildSphereManifold(BodyStore& store, BodyHandle a, BodyHandle b) {
-  Transform ta = store.transform(a);
-  Transform tb = store.transform(b);
-  GjkResult gjk = gjkOverlap(store.shape(a), ta, store.shape(b), tb);
-  EpaResult epa = epaPenetration(store.shape(a), ta, store.shape(b), tb, gjk);
-  return buildManifold(store.shape(a), ta, store.shape(b), tb, a, b, gjk, epa);
+  return buildManifoldBetween(store, a, b);
 }
 
 Quatf rotationAboutZ(float radians) {
-  return Quatf(std::cos(radians * 0.5f), 0.0f, 0.0f, std::sin(radians * 0.5f));
+  return rotationAboutAxis(Vec3f(0.0f, 0.0f, 1.0f), radians);
 }
 
 }  // namespace
@@ -78,50 +77,39 @@ TEST(SolverTest, SolvePositionSeparatesADeeplyPenetratingPair) {
   EXPECT_GT(xAfter, xBefore + 0.01f);
 }
 
-TEST(SolverTest, RestitutionProducesExpectedBounceHeight) {
-  World world;
-  world.setGravity(Vec3f(0.0f, -9.81f, 0.0f));
+TEST(SolverTest, SolveVelocityUsesManifoldNormalNotRawPositionDelta) {
+  BodyStore store;
+  BodyHandle a = addSphere(store, Vec3f(0.0f), 0.0f);               // static
+  BodyHandle b = addSphere(store, Vec3f(10.0f, 0.0f, 0.0f), 1.0f);  // dynamic
 
-  Transform groundT;
-  groundT.position = Vec3f(0.0f, -0.5f, 0.0f);
-  world.createStaticBody(ShapeVariant{BoxShape{Vec3f(20.0f, 0.5f, 0.0f)}},
-                         groundT, /*friction=*/0.0f, /*restitution=*/0.0f,
-                         /*constrainTo2D=*/true);
+  store.linearVelocity(b) = Vec3f(0.0f, -3.0f, 0.0f);
 
-  const float restitution = 0.8f;
-  const float h0 = 5.0f;
-  const float sphereRadius = 0.5f;
-  Transform sphereT;
-  sphereT.position = Vec3f(0.0f, sphereRadius + h0, 0.0f);
-  BodyHandle sphere = world.createDynamicBody(
-      ShapeVariant{SphereShape{sphereRadius}}, sphereT, /*mass=*/1.0f,
-      /*friction=*/0.0f, restitution, /*constrainTo2D=*/true);
+  Manifold manifold;
+  manifold.bodyA = a;
+  manifold.bodyB = b;
+  manifold.normal = Vec3f(0.0f, 1.0f, 0.0f);
+  manifold.pointCount = 1;
+  manifold.points[0] = ManifoldPoint{
+      .localAnchorA = Vec3f(0.0f, 0.0f, 0.0f),
+      .localAnchorB = Vec3f(0.0f, -0.1f, 0.0f),
+      .penetration = 0.1f,
+  };
+  std::array<Manifold, 1> manifolds{manifold};
 
-  const float dt = 1.0f / 240.0f;
-  const float restY = sphereRadius;
-  bool wasFalling = false;
-  bool bounced = false;
-  float apexY = restY;
+  std::vector<float> bias = prepareRestitutionBias(manifolds, store);
+  warmStart(manifolds, store);  // no-op, impulses start at 0
+  solveVelocity(manifolds, store, bias);
 
-  for (int i = 0; i < 240 * 6; i++) {
-    world.step(dt);
-    float y = world.bodies().position(sphere).y;
-    float vy = world.bodies().linearVelocity(sphere).y;
+  EXPECT_NEAR(store.linearVelocity(b).x, 0.0f, 1e-4f);
+  EXPECT_NEAR(store.linearVelocity(b).y, 0.0f, 1e-4f);
+  EXPECT_NEAR(store.linearVelocity(b).z, 0.0f, 1e-4f);
 
-    if (!bounced) {
-      if (wasFalling && vy > 0.0f) { bounced = true; }
-      wasFalling = vy < 0.0f;
-    } else {
-      if (vy <= 0.0f) { break; }
-      apexY = std::max(apexY, y);
-    }
-  }
+  float xBefore = store.position(b).x;
+  SolverConfig config;
+  solvePosition(manifolds, store, config);
 
-  ASSERT_TRUE(bounced);
-  float bounceHeight = apexY - restY;
-  float expectedBounceHeight = restitution * restitution * h0;
-  EXPECT_NEAR(bounceHeight, expectedBounceHeight,
-              expectedBounceHeight * 0.3f + 0.1f);
+  EXPECT_NEAR(store.position(b).x, xBefore, 1e-5f);
+  EXPECT_GT(store.position(b).y, 0.01f);
 }
 
 namespace {
@@ -136,14 +124,16 @@ float finalTangentialSpeed(float friction, float inclineRadians) {
                          rampT, friction, /*restitution=*/0.0f,
                          /*constrainTo2D=*/true);
 
-  Vec3f localOffset(0.0f, 0.99f, 0.0f);
+  constexpr float kHalfWidth = 1.0f;
+  constexpr float kHalfHeight = 0.2f;
+  Vec3f localOffset(0.0f, 0.5f + kHalfHeight, 0.0f);
   Vec3f worldOffset = rampOrientation * localOffset;
   Transform boxT;
   boxT.position = worldOffset;
   boxT.orientation = rampOrientation;
   BodyHandle box = world.createDynamicBody(
-      ShapeVariant{BoxShape{Vec3f(0.5f, 0.5f, 0.0f)}}, boxT, /*mass=*/1.0f,
-      friction, /*restitution=*/0.0f, /*constrainTo2D=*/true);
+      ShapeVariant{BoxShape{Vec3f(kHalfWidth, kHalfHeight, 0.0f)}}, boxT,
+      /*mass=*/1.0f, friction, /*restitution=*/0.0f, /*constrainTo2D=*/true);
 
   Vec3f tangent(std::cos(inclineRadians), std::sin(inclineRadians), 0.0f);
   const float dt = 1.0f / 120.0f;
@@ -153,16 +143,28 @@ float finalTangentialSpeed(float friction, float inclineRadians) {
 }
 }  // namespace
 
-TEST(SolverTest, FrictionStopsSlidingAboveCriticalCoefficient) {
-  const float inclineRadians = 0.4636f;  // ~26.57 deg, tan == 0.5
-  float speedWithHighFriction = finalTangentialSpeed(1.0f, inclineRadians);
-  EXPECT_NEAR(speedWithHighFriction, 0.0f, 0.5f);
-}
+TEST(SolverTest, FrictionConeBoundaryMatchesAnalyticSlopeAngle) {
+  const float g = 9.81f;
+  const float durationSeconds = 600.0f * (1.0f / 120.0f);
 
-TEST(SolverTest, ZeroFrictionKeepsAcceleratingDownTheSlope) {
-  const float inclineRadians = 0.4636f;
-  float speedWithNoFriction = finalTangentialSpeed(0.0f, inclineRadians);
-  EXPECT_LT(speedWithNoFriction, -1.0f);
+  for (float mu : {0.5f, 1.0f}) {
+    float criticalAngle = std::atan(mu);
+
+    {
+      SCOPED_TRACE("mu=" + std::to_string(mu) + " just below critical");
+      float angle = criticalAngle - 0.05f;
+      float speed = finalTangentialSpeed(mu, angle);
+      EXPECT_NEAR(speed, 0.0f, 0.05f);
+    }
+    {
+      SCOPED_TRACE("mu=" + std::to_string(mu) + " just above critical");
+      float angle = criticalAngle + 0.05f;
+      float speed = finalTangentialSpeed(mu, angle);
+      float expectedSpeed =
+          -g * (std::sin(angle) - mu * std::cos(angle)) * durationSeconds;
+      EXPECT_NEAR(speed, expectedSpeed, 0.1f * std::abs(expectedSpeed));
+    }
+  }
 }
 
 TEST(SolverTest, StackOfBoxesRemainsStable) {
@@ -202,4 +204,103 @@ TEST(SolverTest, StackOfBoxesRemainsStable) {
     Quatf orientation = world.bodies().orientation(boxes[i]);
     EXPECT_GT(std::abs(orientation.w), 0.97f) << "box " << i << " tipped over";
   }
+}
+
+TEST(SolverTest, StaticEquilibriumHasZeroDrift) {
+  World world;
+  world.setGravity(Vec3f(0.0f, -9.81f, 0.0f));
+
+  Transform groundT;
+  groundT.position = Vec3f(0.0f, -0.5f, 0.0f);
+  world.createStaticBody(ShapeVariant{BoxShape{Vec3f(20.0f, 0.5f, 0.0f)}},
+                         groundT, /*friction=*/0.8f, /*restitution=*/0.0f,
+                         /*constrainTo2D=*/true);
+
+  constexpr float kHalfExtent = 0.5f;
+  Transform boxT;
+  boxT.position = Vec3f(0.0f, kHalfExtent + 0.1f, 0.0f);
+  BodyHandle box = world.createDynamicBody(
+      ShapeVariant{BoxShape{Vec3f(kHalfExtent, kHalfExtent, 0.0f)}}, boxT,
+      /*mass=*/1.0f, /*friction=*/0.8f, /*restitution=*/0.0f,
+      /*constrainTo2D=*/true);
+
+  const float dt = 1.0f / 120.0f;
+  constexpr int kSettleSteps = 2000;
+  constexpr int kMeasureSteps = 500;
+  for (int i = 0; i < kSettleSteps; i++) { world.step(dt); }
+
+  std::vector<double> ys;
+  ys.reserve(kMeasureSteps);
+  for (int i = 0; i < kMeasureSteps; i++) {
+    world.step(dt);
+    ys.push_back(static_cast<double>(world.bodies().position(box).y));
+  }
+
+  double mean = 0.0;
+  for (double y : ys) { mean += y; }
+  mean /= static_cast<double>(ys.size());
+
+  double variance = 0.0;
+  for (double y : ys) { variance += (y - mean) * (y - mean); }
+  variance /= static_cast<double>(ys.size());
+
+  EXPECT_LT(variance, 1e-9);
+}
+
+TEST(SolverTest, InertiaTensorMatchesParallelAxisTheorem) {
+  const float r = 0.1f;
+  const float pointMass = 1.0f;
+  const float d = 2.0f;
+  SphereShape sphere{r};
+  Mat3f localInertia = sphere.localInertiaTensor(pointMass);
+
+  Mat3f inertia(0.0f);
+  inertia[0][0] = 2.0f * localInertia[0][0];
+  inertia[1][1] = 2.0f * (localInertia[1][1] + pointMass * d * d);
+  inertia[2][2] = 2.0f * (localInertia[2][2] + pointMass * d * d);
+  Mat3f invInertia = glm::inverse(inertia);
+
+  BodyStore store;
+  BodyDesc staticDesc;
+  staticDesc.shape = ShapeVariant{SphereShape{0.1f}};
+  BodyHandle a = store.addBody(staticDesc);
+
+  BodyDesc dumbbellDesc;
+  dumbbellDesc.shape = ShapeVariant{SphereShape{r}};
+  dumbbellDesc.invMass = 1.0f / (2.0f * pointMass);
+  dumbbellDesc.invInertiaBody = invInertia;
+  BodyHandle b = store.addBody(dumbbellDesc);
+
+  Mat3f roundTrip = store.invInertiaBody(b);
+  for (int col = 0; col < 3; col++) {
+    for (int row = 0; row < 3; row++) {
+      EXPECT_NEAR(roundTrip[col][row], invInertia[col][row], 1e-6f);
+    }
+  }
+
+  store.linearVelocity(b) = Vec3f(-2.0f, 0.0f, 0.0f);
+
+  Manifold manifold;
+  manifold.bodyA = a;
+  manifold.bodyB = b;
+  manifold.normal = Vec3f(1.0f, 0.0f, 0.0f);
+  manifold.pointCount = 1;
+  manifold.points[0] = ManifoldPoint{
+      .localAnchorA = Vec3f(0.0f, 0.0f, 0.0f),
+      .localAnchorB = Vec3f(0.0f, 1.0f, 0.0f),
+      .penetration = 0.1f,
+  };
+  std::array<Manifold, 1> manifolds{manifold};
+
+  std::vector<float> bias = prepareRestitutionBias(manifolds, store);
+  solveVelocity(manifolds, store, bias);
+
+  float appliedNormalImpulse = manifolds[0].points[0].normalImpulse;
+  Vec3f impulseVec = manifolds[0].normal * appliedNormalImpulse;
+  Vec3f rB = manifolds[0].points[0].localAnchorB;
+  Vec3f expectedDeltaOmega = invInertia * glm::cross(rB, impulseVec);
+
+  EXPECT_NEAR(store.angularVelocity(b).x, expectedDeltaOmega.x, 1e-4f);
+  EXPECT_NEAR(store.angularVelocity(b).y, expectedDeltaOmega.y, 1e-4f);
+  EXPECT_NEAR(store.angularVelocity(b).z, expectedDeltaOmega.z, 1e-4f);
 }
