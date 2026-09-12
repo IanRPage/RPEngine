@@ -12,10 +12,7 @@ this just felt like a fun project to make.
 
 **Prerequisites:**
 
-- A C++20 compiler, CMake 3.28+, and `git` — CMake's `FetchContent` clones
-  every third-party dependency (GLFW, GLAD, GLM, ImGui, GoogleTest, stb) via
-  `git` on first configure, so `git` has to be on `PATH` too, not just a
-  compiler/CMake.
+- A C++20 compiler, CMake 3.28+, and `git`.
 - `pkg-config`.
 - A Python 3 interpreter on `PATH` (`python3 --version`) **with the `jinja2`
   package installed** (`python3 -c "import jinja2"` to check). CMake configure
