@@ -82,11 +82,10 @@ TEST(ConservationTest, AngularMomentumConservedForIsolatedSystem) {
 
   Vec3f before =
       totalAngularMomentumAboutPoint(world.bodies(), bodies, referencePoint);
-  Quatf orientationBeforeA = world.bodies().orientation(a);
 
   stepWorld(world, 450, kDt);
 
-  ASSERT_NE(world.bodies().orientation(a), orientationBeforeA)
+  ASSERT_GT(glm::length(world.bodies().angularVelocity(a)), 1e-3f)
       << "body A never rotated -- scenario didn't actually exercise spin";
 
   Vec3f after =

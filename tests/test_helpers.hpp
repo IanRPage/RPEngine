@@ -115,8 +115,10 @@ inline Vec3f systemCenterOfMass(const BodyStore& store,
 }
 
 inline Mat3f inertiaWorld(const BodyStore& store, BodyHandle h) {
+  const Mat3f& invInertiaBody = store.invInertiaBody(h);
+  if (invInertiaBody == Mat3f(0.0f)) { return Mat3f(0.0f); }
   Mat3f r = glm::mat3_cast(store.orientation(h));
-  Mat3f invInertiaWorld = r * store.invInertiaBody(h) * glm::transpose(r);
+  Mat3f invInertiaWorld = r * invInertiaBody * glm::transpose(r);
   return glm::inverse(invInertiaWorld);
 }
 
