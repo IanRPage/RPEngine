@@ -171,6 +171,7 @@ GPU-instanced OpenGL pipeline. A proper Debug/Release benchmark against the
 
 - [ ] add multithreading (broadphase makes a flat pair/manifold list per fixed
   step, can parallelize here)
+- [ ] add a "Take Screen Recording" button
 - [ ] add zoom control to orthographic camera
 - [ ] implement hot-reloading for quicker debugging
 - [ ] add some kind of profiler that runs a simulation without UI
