@@ -59,7 +59,7 @@ TEST(ManifoldCacheTest, WarmStartAccumulatorCarriesForward) {
 
   ManifoldCache cache;
   cache.beginFrame();
-  cache.updateManifold(first, ta, 0.2f);
+  cache.updateManifold(first, 0.2f);
   cache.endFrame();
 
   Manifold& cached = cache.getOrCreate(a, b);
@@ -73,7 +73,7 @@ TEST(ManifoldCacheTest, WarmStartAccumulatorCarriesForward) {
   Manifold second = buildManifold(boxA, ta, boxB, tbNudged, a, b, gjk2, epa2);
 
   cache.beginFrame();
-  cache.updateManifold(second, ta, 0.2f);
+  cache.updateManifold(second, 0.2f);
   cache.endFrame();
 
   Manifold& updated = cache.getOrCreate(a, b);

@@ -3,7 +3,6 @@
 
 #include <collision/Manifold.hpp>
 #include <core/BodyHandle.hpp>
-#include <math/Transform.hpp>
 #include <span>
 #include <unordered_map>
 #include <utility>
@@ -14,7 +13,6 @@ class ManifoldCache {
   Manifold& getOrCreate(BodyHandle a, BodyHandle b) noexcept;
 
   void updateManifold(const Manifold& freshManifold,
-                      const Transform& transformA,
                       float matchThreshold) noexcept;
 
   void beginFrame() noexcept;  // mark all entries unvisited

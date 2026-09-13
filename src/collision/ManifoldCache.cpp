@@ -36,21 +36,17 @@ Manifold& ManifoldCache::getOrCreate(BodyHandle a, BodyHandle b) noexcept {
 }
 
 void ManifoldCache::updateManifold(const Manifold& freshManifold,
-                                   const Transform& transformA,
                                    float matchThreshold) noexcept {
   Manifold& cached = getOrCreate(freshManifold.bodyA, freshManifold.bodyB);
   Manifold oldSnapshot = cached;
 
   Manifold merged = freshManifold;
   for (std::uint8_t i = 0; i < merged.pointCount; ++i) {
-    Vec3f newAnchorWorld =
-        transformPoint(transformA, merged.points[i].localAnchorA);
+    const Vec3f& newAnchor = merged.points[i].localAnchorA;
     float bestDist = matchThreshold;
     int bestJ = -1;
     for (std::uint8_t j = 0; j < oldSnapshot.pointCount; ++j) {
-      Vec3f oldAnchorWorld =
-          transformPoint(transformA, oldSnapshot.points[j].localAnchorA);
-      float d = glm::length(oldAnchorWorld - newAnchorWorld);
+      float d = glm::length(oldSnapshot.points[j].localAnchorA - newAnchor);
       if (d < bestDist) {
         bestDist = d;
         bestJ = static_cast<int>(j);
