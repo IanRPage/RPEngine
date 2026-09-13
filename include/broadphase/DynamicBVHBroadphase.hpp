@@ -23,7 +23,7 @@ class DynamicBVHBroadphase final : public IBroadphase {
   static constexpr int32_t kInvalidNode = -1;
   std::vector<int32_t> nodeByBodyIndex_;
   std::vector<BodyHandle> trackedHandles_;
-
+  std::vector<uint32_t> trackedIndices_;
   std::vector<int32_t> movedNodeIds_;
 };
 

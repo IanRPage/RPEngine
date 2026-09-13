@@ -15,14 +15,15 @@ DynamicBVHBroadphase::computePairs(const BodyStore& bodies) {
     trackedHandles_.resize(maxIndex + 1);
   }
 
-  std::vector<bool> seen(nodeByBodyIndex_.size(), false);
-
   for (BodyHandle h : liveHandles) {
-    seen[h.index] = true;
     int32_t& nodeId = nodeByBodyIndex_[h.index];
 
     if (nodeId == kInvalidNode || !(trackedHandles_[h.index] == h)) {
-      if (nodeId != kInvalidNode) { tree_.remove(nodeId); }
+      if (nodeId != kInvalidNode) {
+        tree_.remove(nodeId);
+      } else {
+        trackedIndices_.push_back(h.index);  // first time tracking this slot
+      }
       nodeId = tree_.insert(h, bodies.aabb(h));
       trackedHandles_[h.index] = h;
       movedNodeIds_.push_back(nodeId);  // newly inserted counts as moved
@@ -33,12 +34,17 @@ DynamicBVHBroadphase::computePairs(const BodyStore& bodies) {
     }
   }
 
-  for (uint32_t i = 0; i < nodeByBodyIndex_.size(); i++) {
-    if (!seen[i] && nodeByBodyIndex_[i] != kInvalidNode) {
-      tree_.remove(nodeByBodyIndex_[i]);
-      nodeByBodyIndex_[i] = kInvalidNode;
+  size_t writeIdx = 0;
+  for (size_t readIdx = 0; readIdx < trackedIndices_.size(); readIdx++) {
+    uint32_t idx = trackedIndices_[readIdx];
+    if (bodies.isLive(trackedHandles_[idx])) {
+      trackedIndices_[writeIdx++] = idx;
+    } else {
+      tree_.remove(nodeByBodyIndex_[idx]);
+      nodeByBodyIndex_[idx] = kInvalidNode;
     }
   }
+  trackedIndices_.resize(writeIdx);
 
   pairCache_.update(tree_, movedNodeIds_);
   return pairCache_.pairs();
