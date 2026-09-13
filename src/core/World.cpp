@@ -125,7 +125,7 @@ void World::step(float dt) noexcept {
     float matchThreshold =
         kManifoldMatchFactor *
         std::min(boundingRadiusOf(shapeA), boundingRadiusOf(shapeB));
-    manifoldCache_.updateManifold(fresh, ta, matchThreshold);
+    manifoldCache_.updateManifold(fresh, matchThreshold);
   }
   manifoldCache_.endFrame();
 
@@ -134,9 +134,10 @@ void World::step(float dt) noexcept {
   std::vector<float> restitutionBias =
       prepareRestitutionBias(activeManifolds, bodies_);
 
-  warmStart(activeManifolds, bodies_);
+  InvInertiaWorldCache invInertiaCache(bodies_);
+  warmStart(activeManifolds, bodies_, invInertiaCache);
   for (int i = 0; i < config_.velocityIterations; i++) {
-    solveVelocity(activeManifolds, bodies_, restitutionBias);
+    solveVelocity(activeManifolds, bodies_, restitutionBias, invInertiaCache);
   }
 
   integratePosition(bodies_, dt);

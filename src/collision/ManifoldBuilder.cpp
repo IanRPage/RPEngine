@@ -286,6 +286,7 @@ Manifold clip3DBox(const BoxShape& boxA, const Transform& ta,
   m.normal = epa.normal;
 
   for (const Candidate& c : candidates) {
+    if (m.pointCount >= m.points.size()) { break; }
     Vec3f projected = c.point + refFace.normal * c.penetration;
     Vec3f worldOnA = aIsReference ? projected : c.point;
     Vec3f worldOnB = aIsReference ? c.point : projected;
