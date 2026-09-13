@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# put all built executables in <build-dir>/bin, regardless of source
-# subdirectory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # set default build type to Debug if not specified
@@ -23,6 +21,21 @@ option(BUILD_TESTS "Build unit tests" ON)
 
 # -------- fetch content stuff --------
 include(FetchContent)
+
+# --- for docker ---
+# let fetched-dependency cache live outside build dir so wiped/reconfig build
+# tree doesn't force a re-fetch
+if(DEFINED ENV{FETCHCONTENT_BASE_DIR})
+    set(FETCHCONTENT_BASE_DIR $ENV{FETCHCONTENT_BASE_DIR} CACHE PATH "" FORCE)
+endif()
+
+# once deps are vendored, don't let FetchContent touch network again on
+# reconfigure
+if(DEFINED ENV{FETCHCONTENT_FULLY_DISCONNECTED})
+    set(FETCHCONTENT_FULLY_DISCONNECTED $ENV{FETCHCONTENT_FULLY_DISCONNECTED}
+        CACHE BOOL "" FORCE)
+endif()
+# -----------------
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
