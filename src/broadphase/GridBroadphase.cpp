@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <broadphase/GridBroadphase.hpp>
 #include <core/BodyStore.hpp>
+#include <utility>
 
 GridBroadphase::GridBroadphase(float cellSize) noexcept : cellSize_(cellSize) {}
 
@@ -91,7 +92,10 @@ std::span<const std::pair<BodyHandle, BodyHandle>> GridBroadphase::computePairs(
           for (int32_t j = head_[static_cast<size_t>(cell)]; j != -1;
                j = next_[static_cast<size_t>(j)]) {
             if (j <= static_cast<int32_t>(i)) { continue; }
-            pairs_.emplace_back(handles[i], handles[static_cast<size_t>(j)]);
+            BodyHandle a = handles[i];
+            BodyHandle b = handles[static_cast<size_t>(j)];
+            if (b < a) { std::swap(a, b); }
+            pairs_.emplace_back(a, b);
           }
         }
       }
