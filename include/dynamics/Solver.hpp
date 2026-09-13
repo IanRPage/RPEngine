@@ -4,6 +4,7 @@
 #include <collision/Manifold.hpp>
 #include <core/BodyStore.hpp>
 #include <span>
+#include <unordered_map>
 #include <vector>
 
 struct SolverConfig {
@@ -14,11 +15,29 @@ struct SolverConfig {
   float baumgartePositionFactor = 0.2f;
 };
 
+class InvInertiaWorldCache {
+ public:
+  explicit InvInertiaWorldCache(const BodyStore& bodies) noexcept
+      : bodies_(&bodies) {}
+
+  const Mat3f& get(BodyHandle h) noexcept;
+  void invalidate(BodyHandle h) noexcept;
+
+ private:
+  const BodyStore* bodies_;
+  std::unordered_map<uint32_t, Mat3f> cache_;
+};
+
 std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
                                           const BodyStore& bodies) noexcept;
 
+void warmStart(std::span<Manifold> manifolds, BodyStore& bodies,
+               InvInertiaWorldCache& invInertiaCache) noexcept;
 void warmStart(std::span<Manifold> manifolds, BodyStore& bodies) noexcept;
 
+void solveVelocity(std::span<Manifold> manifolds, BodyStore& bodies,
+                   std::span<const float> restitutionBias,
+                   InvInertiaWorldCache& invInertiaCache) noexcept;
 void solveVelocity(std::span<Manifold> manifolds, BodyStore& bodies,
                    std::span<const float> restitutionBias) noexcept;
 

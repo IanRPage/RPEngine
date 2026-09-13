@@ -4,7 +4,6 @@
 #include <cmath>
 #include <dynamics/Friction.hpp>
 #include <math/Rotation.hpp>
-#include <unordered_map>
 
 namespace {
 
@@ -13,26 +12,30 @@ Mat3f computeInvInertiaWorld(const BodyStore& bodies, BodyHandle h) noexcept {
   return r * bodies.invInertiaBody(h) * glm::transpose(r);
 }
 
-class InvInertiaWorldCache {
- public:
-  explicit InvInertiaWorldCache(const BodyStore& bodies) : bodies_(bodies) {}
-
-  const Mat3f& get(BodyHandle h) noexcept {
-    auto [it, inserted] = cache_.try_emplace(h.index);
-    if (inserted) { it->second = computeInvInertiaWorld(bodies_, h); }
-    return it->second;
-  }
-
- private:
-  const BodyStore& bodies_;
-  std::unordered_map<uint32_t, Mat3f> cache_;
-};
-
 float angularTerm(const Mat3f& invInertiaWorld, Vec3f r, Vec3f axis) noexcept {
   return glm::dot(glm::cross(invInertiaWorld * glm::cross(r, axis), r), axis);
 }
 
+void reclamp2D(BodyStore& bodies, BodyHandle h) noexcept {
+  if (!bodies.constrainTo2D(h)) { return; }
+  bodies.position(h).z = 0.0f;
+  Quatf& q = bodies.orientation(h);
+  q.x = 0.0f;
+  q.y = 0.0f;
+  q = glm::normalize(q);
+}
+
 }  // namespace
+
+const Mat3f& InvInertiaWorldCache::get(BodyHandle h) noexcept {
+  auto [it, inserted] = cache_.try_emplace(h.index);
+  if (inserted) { it->second = computeInvInertiaWorld(*bodies_, h); }
+  return it->second;
+}
+
+void InvInertiaWorldCache::invalidate(BodyHandle h) noexcept {
+  cache_.erase(h.index);
+}
 
 std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
                                           const BodyStore& bodies) noexcept {
@@ -60,9 +63,8 @@ std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
   return bias;
 }
 
-void warmStart(std::span<Manifold> manifolds, BodyStore& bodies) noexcept {
-  InvInertiaWorldCache invInertiaCache(bodies);
-
+void warmStart(std::span<Manifold> manifolds, BodyStore& bodies,
+               InvInertiaWorldCache& invInertiaCache) noexcept {
   for (Manifold& m : manifolds) {
     BodyHandle a = m.bodyA;
     BodyHandle b = m.bodyB;
@@ -91,9 +93,14 @@ void warmStart(std::span<Manifold> manifolds, BodyStore& bodies) noexcept {
   }
 }
 
+void warmStart(std::span<Manifold> manifolds, BodyStore& bodies) noexcept {
+  InvInertiaWorldCache cache(bodies);
+  warmStart(manifolds, bodies, cache);
+}
+
 void solveVelocity(std::span<Manifold> manifolds, BodyStore& bodies,
-                   std::span<const float> restitutionBias) noexcept {
-  InvInertiaWorldCache invInertiaCache(bodies);
+                   std::span<const float> restitutionBias,
+                   InvInertiaWorldCache& invInertiaCache) noexcept {
   size_t biasIndex = 0;
 
   for (Manifold& m : manifolds) {
@@ -173,8 +180,16 @@ void solveVelocity(std::span<Manifold> manifolds, BodyStore& bodies,
   }
 }
 
+void solveVelocity(std::span<Manifold> manifolds, BodyStore& bodies,
+                   std::span<const float> restitutionBias) noexcept {
+  InvInertiaWorldCache cache(bodies);
+  solveVelocity(manifolds, bodies, restitutionBias, cache);
+}
+
 void solvePosition(std::span<Manifold> manifolds, BodyStore& bodies,
                    const SolverConfig& config) noexcept {
+  InvInertiaWorldCache invInertiaCache(bodies);
+
   for (Manifold& m : manifolds) {
     BodyHandle a = m.bodyA;
     BodyHandle b = m.bodyB;
@@ -194,8 +209,8 @@ void solvePosition(std::span<Manifold> manifolds, BodyStore& bodies,
 
       Vec3f rA = transformDirection(ta, point.localAnchorA);
       Vec3f rB = transformDirection(tb, point.localAnchorB);
-      Mat3f invIA = computeInvInertiaWorld(bodies, a);
-      Mat3f invIB = computeInvInertiaWorld(bodies, b);
+      const Mat3f& invIA = invInertiaCache.get(a);
+      const Mat3f& invIB = invInertiaCache.get(b);
       float angularTermA = angularTerm(invIA, rA, m.normal);
       float angularTermB = angularTerm(invIB, rB, m.normal);
       float denom = invMassA + invMassB + angularTermA + angularTermB;
@@ -213,6 +228,12 @@ void solvePosition(std::span<Manifold> manifolds, BodyStore& bodies,
           bodies.orientation(a), -(invIA * glm::cross(rA, correction)), 1.0f);
       bodies.orientation(b) = integrateOrientation(
           bodies.orientation(b), invIB * glm::cross(rB, correction), 1.0f);
+
+      invInertiaCache.invalidate(a);
+      invInertiaCache.invalidate(b);
+
+      reclamp2D(bodies, a);
+      reclamp2D(bodies, b);
     }
   }
 }
