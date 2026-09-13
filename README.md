@@ -1,109 +1,85 @@
 # RPEngine
 
-This is my attempt at building a particle simulator. I made this to practice
-applying physics to code and to practice algorithms. But probably most of all
-this just felt like a fun project to make. My goal is to be able to run the 2D
-simulation with 100k particles at 60 fps.
-
-I will eventually add a 3D mode to the simulation and GUI portion for cooler
-stuff.
+This is my attempt at building a rigid-body physics engine. I made this to
+practice implementing physics in code and to practice algorithms. But mainly
+this just felt like a fun project to make.
 
 ## Examples
 
-![demo1](images/demo1.gif?raw=true)
-
-![demo2](images/demo2.gif?raw=true)
+![RPEngine demo scene](images/demo-perspective3d.png?raw=true)
 
 ## Building
 
-The UI uses SFML 3.0.1, so make sure you have all the dependencies installed:
+**Prerequisites:**
+
+- A C++20 compiler, CMake 3.28+, and `git`.
+- `pkg-config`.
+- A Python 3 interpreter on `PATH` (`python3 --version`) **with the `jinja2`
+  package installed** (`python3 -c "import jinja2"` to check). CMake configure
+  runs GLAD's code generator, which is a Python script templated with Jinja2.
 
 ### Debian/Ubuntu:
 
 ```
 sudo apt update
-sudo apt install \
-    libxrandr-dev \
-    libxcursor-dev \
-    libxi-dev \
-    libudev-dev \
-    libfreetype-dev \
-    libflac-dev \
-    libvorbis-dev \
-    libgl1-mesa-dev \
-    libegl1-mesa-dev \
-    libfreetype-dev
+sudo apt install build-essential cmake git python3 python3-jinja2 pkg-config \
+    libwayland-dev libxkbcommon-dev \
+    libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+    libgl1-mesa-dev
 ```
 
 ### Fedora:
 
 ```
-sudo dnf update
-sudo dnf install \
-    libXrandr-devel \
-    libXcursor-devel \
-    libXi-devel \
-    systemd-devel \
-    freetype-devel \
-    flac-devel \
-    libvorbis-devel \
-    mesa-libGL-devel \
-    mesa-libEGL-devel
+sudo dnf install gcc-c++ cmake git python3 python3-jinja2 pkgconf-pkg-config \
+    wayland-devel libxkbcommon-devel \
+    libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel libXext-devel \
+    mesa-libGL-devel
 ```
 
 ### Arch:
 
 ```
-sudo pacman -Sy
-sudo pacman -S \
-    libxrandr \
-    libxcursor \
-    libxi \
-    systemd \
-    freetype2 \
-    flac \
-    libvorbis \
+sudo pacman -S base-devel cmake git python python-jinja pkgconf \
+    wayland libxkbcommon \
+    libx11 libxrandr libxinerama libxcursor libxi libxext \
     mesa
 ```
 
-After all dependencies are installed, just configure the project as normal:
+After dependencies are installed, configure and build normally:
 
 ```
-cmake -B build .  # from project root
-cmake ..          # from build/
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug    # or Release
+cmake --build build -j
 ```
 
-From here you can either build the debug (`RPEngineDebug`) or release
-(`RPEngine`) executables:
+After the initial configure step above, these targets reconfigure and build:
+
 
 ```
-# from project root
-make -C build release  (configure for release and build)
-make -C build debug    (configure for debug and build)
-
-# from build/
-make release
-make debug
+cmake --build build --target debug    # configures Debug, then builds
+cmake --build build --target release  # configures Release, then builds
 ```
 
-**FOR WINDOWS USERS**: I got it running on my windows system, but I had already
-gone through getting SFML to work prior. Tbh, I don't remember what I did. That
-said, I got the simulation running on windows. You're on your own here. Feel
-free to find out and open a PR making changes to these instructions.
+**FOR WINDOWS USERS**: Untested since the refactor. GLFW itself supports Windows
+fine; you're on your own for the exact dependency setup. Feel free to find out
+and open a PR making changes to these instructions.
 
-**FOR MACOS USERS**: I don't have access to a mac, so idk what is needed to get
-it running. That said, macOS is close to unix so I'd imagine the same commands
-for getting it running on Ubuntu/Debian would be nearly the same. Feel free to
-find out and open a PR making changes to these instructions.
+**FOR MACOS USERS**: The renderer targets OpenGL 4.1 core instead of a newer
+version because Apple's OpenGL implementation has been frozen at 4.1. That said,
+it hasn't been built/tested on macOS yet since the rewrite. If you're on macOS,
+feel free to find out and open a PR making changes to these instructions.
 
 ## Testing
 
-Unit tests live in `tests/` and cover simulation logic using GoogleTest.
+Unit tests live in `tests/` and cover everything outside `src/render/` (math,
+shapes/collision, broadphase, narrowphase/GJK/EPA, solver/dynamics, fixed
+timestep) with GoogleTest.
 
 Configure and build the test binary:
 
 ```
-cmake -B build .          # from project root
+cmake -B build -S .
 cmake --build build --target rp_tests -j
 ```
 
@@ -119,131 +95,94 @@ or through ctest, for per-case pass/fail output:
 ctest --test-dir build --output-on-failure
 ```
 
-Tests are built by default. To skip them (to avoid the GoogleTest fetch/build),
+Tests are built by default. To skip them (avoid GoogleTest fetch/build),
 configure with `-DBUILD_TESTS=OFF`.
 
 ## Tuning the Simulation
 
-In `main.cpp`, you'll find the initialization of the simulator. Here is an
-explanation of each parameter:
-
 ```cpp
-Simulator sim(
-  {0.0f, 0.0f},                     // container dimensions
-  50.0f,                            // maximum particle radius
-  0.0f,                             // magnitude of gravity
-  0.0f,                             // magnitude of coefficient of restitution
-  0.0f,                             // delta time step for simulation
-  14000,                            // max amount of particles allowed in the
-                                    // simulator
-  IntegrationType::Verlet,          // integration type
-  BroadphaseType::SpatialGrid,      // broadphase type
-);
+Simulator sim;                              // SimConfig{fixedDt = 1/60, maxStepsPerFrame = 5}
+World& world = sim.world();                 // world.gravity() defaults to (0, -9.81, 0)
+
+world.createStaticBody(
+    BoxShape{Vec3f(13.5f, 0.5f, 13.5f)},    // half-extents
+    Transform{Vec3f(0, -0.5f, 0)},          // position, identity orientation
+    /*friction=*/0.5f,
+    /*restitution=*/0.3f);
+
+Transform transform{Vec3f(0, 1, 0)};
+
+world.createDynamicBody(
+    SphereShape{0.5f}, transform,
+    /*mass=*/1.0f,
+    /*friction=*/0.5f,
+    /*restitution=*/0.5f,
+    /*constrainTo2D=*/false);
 ```
 
-Again, these are the initialization parameters for the `Simulator` class. The
-reason I leave these parameters is because eventually I will enable running the
-simulation without the GUI, it will take in particle data and it will stream
-particle data out to different files. That will take some time but yeah.
+Other knobs set in code today (none exposed in ImGui panels yet, look at
+[TODO](#todo)):
 
-The reason that a bunch of these parameters are set to garbage values in
-`main.cpp` is because the `Renderer` ends up manipulating them upon
-initialization.
-
-- NOTE: only `maxParticleRadius` and `maxParticles` don't get changed by the
-  `Renderer`. So you do need to think about these ones.
-
-You can further tune the simulation at runtime by using the panel below:
-
-![panel1](images/panel1.png?raw=true)
+- `World::setGravity(Vec3f)`: per-axis gravity vector.
+- `World::addWorldBoundaries(worldMin, worldMax, thickness, friction,
+  restitution, is2D)`: builds a box of static `BoxShape` walls.
+- `World::setBroadphase(std::unique_ptr<IBroadphase>)`: swap
+  `NaiveBroadphase`/`GridBroadphase`/`DynamicBVHBroadphase` (default) at
+  runtime.
+- `World::config()` returns a mutable `SolverConfig`: velocity/position solver
+  iteration counts, allowed penetration slop, max per-iteration position
+  correction, and the Baumgarte stabilization factor.
+- `Simulator`'s `SimConfig`: `fixedDt` (physics step size) and
+  `maxStepsPerFrame` (runaway-accumulator clamp).
 
 ## Controls
 
-To apply a force:
+The sidebar panel (`ImguiController`) is organized by section, and this is
+everything it currently exposes:
 
-1. Select the force you want.
+**Camera** — switch between:
+- **Orthographic (2D)**: Left-drag the world view to pan. No zoom control
+  yet.
+- **Perspective (3D)**: Click the world view to capture the mouse, then look
+  around with the mouse and move with W/A/S/D (Space/Ctrl for up/down), all
+  usable together. Esc releases the cursor.
 
-2. Left-click to apply it; the force will be applied for as long as you hold
-   down the left mouse.
+**Spawn** — "Spawn Sphere"/"Spawn Box"/"Spawn Capsule" each drop one body of
+that shape at a randomized position above the scene. "Reset Scene" removes every
+dynamic body, leaving statics in place.
 
-To spawn particles:
+**Screenshot** — "Take Screenshot" opens a path prompt and writes the current
+framebuffer to a PNG (this is how the screenshot above was captured).
 
-1. Select the spawning method.
-
-2. If you selected **Manual** spawn, you right-click to activate it. For all
-   other spawning methods, press \<Space\> to toggle it on/off.
-
-If you forget these instructions, the Help dropdown in the panel will tell you:
-
-![panel2](images/panel2.png?raw=true)
+There's currently no force-application tool and no runtime
+gravity/restitution/broadphase/ narrowphase controls, but will be added in the
+future.
 
 ## State of Simulation Performance
 
-My laptop is an Asus VivoBook with AMD Ryzen 5800HS processor (integrated
-graphics), 12 GB RAM. Currently
-
-- w/ Verlet Integration:
-  - Debug: 14k particles at 60 fps.
-  - Release: 55k particles at 60 fps. 100k at ~31 fps.
-
-- w/ Euler Integration:
-  - Debug: 14k particles at 60 fps.
-  - Release: 49k particle at 60 fps. 100k at ~28 fps
+Haven't yet re-benchmarked. The old numbers are irrelevant now that there's a
+GPU-instanced OpenGL pipeline. A proper Debug/Release benchmark against the
+100k-body target still needs to be done.
 
 ## TODO
 
-- [ ] look into forward declarations for certain classes that rely on others
-- [ ] make a callback system for event handling. right now `Renderer::drawFrame`
-      is responsible for executing events
-- [ ] see about optimizing `Renderer::drawParticles`
-- [ ] rearchitect the codebase (cuz why not)
-- [ ] make transition between integration types clean. simulation crashes from
-      Euler -> Verlet
-- [ ] improve `Simulator::radialPush` to work with any broadphase
+- [ ] add multithreading (broadphase makes a flat pair/manifold list per fixed
+  step, can parallelize here)
+- [ ] add a "Take Screen Recording" button
+- [ ] add zoom control to orthographic camera
 - [ ] implement hot-reloading for quicker debugging
-- [ ] add 3D particle simulation
-- [ ] MAYBE add orbiting
-- [ ] add multithreading
-- [ ] add rigidbody mechanics
-- [ ] MAYBE improve wall collision code by only checking particles along the
-      walls or something
 - [ ] add some kind of profiler that runs a simulation without UI
-- [ ] optimize spatial grid broadphase
-  - [ ] do a different broadphase for differently sized particles
-  - [x] fix particle collision instability; they violate particle bounds A LOT
-  - [x] fix massive performance degradation in `SpatialGrid` when lots of small
-        particles but large cell size
-  - [x] fix particle rightward drift during `SpatialGrid` broadphase when
-        tightly packed
-- [ ] use ImGui to enable simulation configuration
-  - [ ] figure out why we can't press None radio button in Spawn dropdown when
-        Forces dropdown is also open
-  - [x] make the panel cleaner looking
-  - [x] explain all controls in GUI once ImGui controls implemented
-  - [x] add spawning methods to ImGui
-  - [x] add forces options
-  - [x] add magnitude param for `radialPush`
-  - [x] make it so that forces activated on mouse click don't get applied when
-        hovering over the ImGui menu
-  - [x] add radius param for `radialPush`
-  - [x] add particle radius field
-  - [x] add a UI option for toggling between Euler-Impulse and Verlet-Position
-        based collisions
-  - [x] add a UI option for toggling between broad phase methods for collision
-        detection
-- [x] add `gtest` testing suite to ensure physical accuracy
-- [x] fix the downsizing radius issue
-- [x] fix particles exploding when compacted w/ Verlet integration
-- [x] change particle drawing to vertex-based
-- [x] implement SpatialGrid class and move some stuff out of
-      `Simulator::spatialGridBroadphase()`
-- [x] add debug and release builds
-- [x] implement spatial grid broad-phase
-- [x] add a Verlet integration based resolver to `Simulator`
-- [x] implement proper resizing
-- [x] move UI stuff into its own rendering engine class
-- [x] decouple simulation code from UI code
-- [x] optimize number capacity of `QuadTree` partition
-- [x] change implementation `QuadTree` to use `AABB` instead of SFML `FloatRect`
-- [x] make custom `AABB` struct independent of SFML
-- [x] implement working `QuadTree`
+- [ ] wire `World::addWorldBoundaries` into `src/main.cpp`'s demo scene, so
+  shipped demo actually shows a bounded volume
+- [ ] add ImGui controls for gravity and restitution
+- [ ] add broadphase comparison toggle (Naive/Grid/DynamicBVH) to the panel.
+  `World::setBroadphase` can swap it at runtime, just needs the UI
+- [ ] add a narrowphase comparison toggle 
+  - [ ] add more narrowphase algorithms
+- [ ] add manual click-to-spawn in the 2D orthographic view 
+- [ ] update README with an current demo gif
+- [ ] re-benchmark simulation performance
+- [ ] refactor
+  - [ ] turn physics code into a separate library
+  - [ ] turn rendering code into a separate library
+  - [ ] rebuild RPEngine using this library approach
