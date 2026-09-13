@@ -26,22 +26,23 @@ class DynamicBVH {
   bool moveProxy(int32_t nodeId, const AABB& realAABB, Vec3f displacement);
 
   // callback invoked as cb(int32_t nodeId, BodyHandle body) for each leaf whose
-  // fatAABB overlaps queryAABB
+  // fatAABB overlaps queryAABB. uses a shared scratch buffer, so `cb` CANNOT
+  // call query() itself
   template <typename Callback>
   void query(const AABB& queryAABB, Callback&& cb) const {
     if (root_ == -1) { return; }
-    std::vector<int32_t> stack;
-    stack.push_back(root_);
-    while (!stack.empty()) {
-      int32_t nodeId = stack.back();
-      stack.pop_back();
+    queryStack_.clear();
+    queryStack_.push_back(root_);
+    while (!queryStack_.empty()) {
+      int32_t nodeId = queryStack_.back();
+      queryStack_.pop_back();
       const BVHNode& node = nodes_[nodeId];
       if (!overlaps(queryAABB, node.fatAABB)) { continue; }
       if (node.isLeaf()) {
         cb(nodeId, node.body);
       } else {
-        stack.push_back(node.child1);
-        stack.push_back(node.child2);
+        queryStack_.push_back(node.child1);
+        queryStack_.push_back(node.child2);
       }
     }
   }
@@ -76,6 +77,7 @@ class DynamicBVH {
   int32_t root_ = -1;
   int32_t freeList_ = -1;
   uint64_t mutationCount_ = 0;
+  mutable std::vector<int32_t> queryStack_;
 };
 
 #endif
