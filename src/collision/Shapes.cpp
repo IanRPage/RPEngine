@@ -119,7 +119,7 @@ AABB transformedCorners(const std::vector<Vec3f>& localPoints,
 
 Vec3f worldSupport(const ShapeVariant& shape, const Transform& t,
                    Vec3f worldDir) noexcept {
-  const Vec3f localDir = glm::inverse(t.orientation) * worldDir;
+  const Vec3f localDir = glm::conjugate(t.orientation) * worldDir;
   const Vec3f localPoint =
       std::visit([&](const auto& s) { return s.support(localDir); }, shape);
   return t.position + (t.orientation * localPoint);
@@ -129,10 +129,14 @@ AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept {
   return std::visit(
       [&](const auto& s) -> AABB {
         using ShapeT = std::decay_t<decltype(s)>;
-        if constexpr (std::is_same_v<ShapeT, SphereShape> ||
-                      std::is_same_v<ShapeT, CapsuleShape>) {
+        if constexpr (std::is_same_v<ShapeT, SphereShape>) {
           Vec3f r(s.boundingRadius());
           return AABB(t.position - r, t.position + r);
+        } else if constexpr (std::is_same_v<ShapeT, CapsuleShape>) {
+          Vec3f axisWorld =
+              glm::abs(transformDirection(t, Vec3f(0.0f, 1.0f, 0.0f)));
+          Vec3f extent = s.halfHeight * axisWorld + Vec3f(s.radius);
+          return AABB(t.position - extent, t.position + extent);
         } else if constexpr (std::is_same_v<ShapeT, BoxShape>) {
           std::vector<Vec3f> corners;
           corners.reserve(8);
