@@ -127,10 +127,10 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
   if (glfwGetKey(handle, GLFW_KEY_A) == GLFW_PRESS) {
     flyCamera_.moveRight(-step);
   }
-  if (glfwGetKey(handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
+  if (glfwGetKey(handle, GLFW_KEY_E) == GLFW_PRESS) {
     flyCamera_.moveUp(step);
   }
-  if (glfwGetKey(handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+  if (glfwGetKey(handle, GLFW_KEY_Q) == GLFW_PRESS) {
     flyCamera_.moveUp(-step);
   }
 }

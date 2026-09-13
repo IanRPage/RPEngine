@@ -63,9 +63,8 @@ void ImguiController::renderCameraControls() {
     ImGui::TextWrapped("Left-drag the world view to pan.");
   } else {
     ImGui::TextWrapped(
-        "Click the world view to capture the mouse: look around, W/A/S/D "
-        "to move, Space/Ctrl for up/down, all together. Esc releases the "
-        "cursor.");
+        "Click the world view to capture the mouse: look around, W/A/S/D to "
+        "move, E/Q for up/down, all together. Esc releases the cursor.");
   }
 }
 
@@ -78,21 +77,20 @@ void ImguiController::renderSpawnControls() {
 }
 
 void ImguiController::renderScreenshotControls() {
-  if (ImGui::Button("Take Screenshot")) {
-    ImGui::OpenPopup("Save Screenshot");
-  }
+  if (ImGui::Button("Take Screenshot")) { ImGui::OpenPopup("Save Screenshot"); }
 
   const ImGuiIO& io = ImGui::GetIO();
   ImGui::SetNextWindowPos(
       ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
       ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
   if (ImGui::BeginPopupModal("Save Screenshot", nullptr,
-                            ImGuiWindowFlags_AlwaysAutoResize)) {
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::Text("Save screenshot to:");
     ImGui::InputText("##ScreenshotPath", screenshotPathBuffer_,
                      sizeof(screenshotPathBuffer_));
-    ImGui::TextDisabled("Relative paths are relative to the working "
-                        "directory RPEngine was launched from.");
+    ImGui::TextDisabled(
+        "Relative paths are relative to the working "
+        "directory RPEngine was launched from.");
     ImGui::Separator();
 
     if (ImGui::Button("Save", ImVec2(120, 0))) {

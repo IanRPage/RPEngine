@@ -12,11 +12,9 @@ this just felt like a fun project to make.
 
 **Prerequisites:**
 
-- A C++20 compiler, CMake 3.28+, and `git`.
-- `pkg-config`.
-- A Python 3 interpreter on `PATH` (`python3 --version`) **with the `jinja2`
-  package installed** (`python3 -c "import jinja2"` to check). CMake configure
-  runs GLAD's code generator, which is a Python script templated with Jinja2.
+- C++20 compiler, CMake 3.28+, and `git`
+- `pkg-config`
+- Python 3 with `jinja2` installed (`python3 -c "import jinja2"` to check)
 
 ### Debian/Ubuntu:
 
@@ -89,7 +87,7 @@ Then run the tests, either directly:
 ./build/bin/rp_tests
 ```
 
-or through ctest, for per-case pass/fail output:
+or using ctest for per-case pass/fail output:
 
 ```
 ctest --test-dir build --output-on-failure
@@ -120,54 +118,36 @@ world.createDynamicBody(
     /*constrainTo2D=*/false);
 ```
 
-Other knobs set in code today (none exposed in ImGui panels yet, look at
-[TODO](#todo)):
-
-- `World::setGravity(Vec3f)`: per-axis gravity vector.
-- `World::addWorldBoundaries(worldMin, worldMax, thickness, friction,
-  restitution, is2D)`: builds a box of static `BoxShape` walls.
-- `World::setBroadphase(std::unique_ptr<IBroadphase>)`: swap
-  `NaiveBroadphase`/`GridBroadphase`/`DynamicBVHBroadphase` (default) at
-  runtime.
-- `World::config()` returns a mutable `SolverConfig`: velocity/position solver
-  iteration counts, allowed penetration slop, max per-iteration position
-  correction, and the Baumgarte stabilization factor.
-- `Simulator`'s `SimConfig`: `fixedDt` (physics step size) and
-  `maxStepsPerFrame` (runaway-accumulator clamp).
-
 ## Controls
 
 The sidebar panel (`ImguiController`) is organized by section, and this is
 everything it currently exposes:
 
-**Camera** — switch between:
+**Camera**:
 - **Orthographic (2D)**: Left-drag the world view to pan. No zoom control
   yet.
 - **Perspective (3D)**: Click the world view to capture the mouse, then look
-  around with the mouse and move with W/A/S/D (Space/Ctrl for up/down), all
-  usable together. Esc releases the cursor.
+  around with the mouse and move with W/A/S/D (Q/E for up/down), Esc releases
+  the cursor.
 
-**Spawn** — "Spawn Sphere"/"Spawn Box"/"Spawn Capsule" each drop one body of
+**Spawn**: "Spawn Sphere"/"Spawn Box"/"Spawn Capsule" each drop one body of
 that shape at a randomized position above the scene. "Reset Scene" removes every
 dynamic body, leaving statics in place.
 
-**Screenshot** — "Take Screenshot" opens a path prompt and writes the current
+**Screenshot**: "Take Screenshot" opens a path prompt and writes the current
 framebuffer to a PNG (this is how the screenshot above was captured).
-
-There's currently no force-application tool and no runtime
-gravity/restitution/broadphase/ narrowphase controls, but will be added in the
-future.
 
 ## State of Simulation Performance
 
-Haven't yet re-benchmarked. The old numbers are irrelevant now that there's a
-GPU-instanced OpenGL pipeline. A proper Debug/Release benchmark against the
-100k-body target still needs to be done.
+Haven't yet re-benchmarked. Debug/Release benchmark against 100k-body target
+still needs to be done.
 
 ## TODO
 
 - [ ] add multithreading (broadphase makes a flat pair/manifold list per fixed
   step, can parallelize here)
+- [ ] stabilize FPS reading to make it actually readable
+- [ ] fix combination of Q/E up/down movement when looking around
 - [ ] add a "Take Screen Recording" button
 - [ ] add zoom control to orthographic camera
 - [ ] implement hot-reloading for quicker debugging
