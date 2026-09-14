@@ -43,7 +43,7 @@ these are great starting points.
 
 ## Rendering
 
-`src/render/*`
+`rpe-render/src/render/*` and `rpengine/src/gui/*`
 
 - [learnopengl.com](https://learnopengl.com/)
 - [Anton Gerdelan's free OpenGL tutorials](https://antongerdelan.net/opengl/)
