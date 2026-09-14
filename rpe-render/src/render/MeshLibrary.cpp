@@ -230,27 +230,4 @@ MeshData buildUnitCapsule(int radialSegments, int capRings) {
   return mesh;
 }
 
-MeshData triangulateConvexHull(const ConvexHullShape& hull) {
-  MeshData mesh;
-  const auto& verts = hull.localVertices;
-  if (verts.size() < 3) { return mesh; }
-
-  constexpr float kMinCrossLengthSq = 1e-12f;
-  Vec3f cross{0.0f, 0.0f, 0.0f};
-  for (size_t i = 1; i + 1 < verts.size(); ++i) {
-    cross = glm::cross(verts[i] - verts[0], verts[i + 1] - verts[0]);
-    if (glm::dot(cross, cross) > kMinCrossLengthSq) { break; }
-  }
-  if (glm::dot(cross, cross) <= kMinCrossLengthSq) { return mesh; }
-  Vec3f normal = glm::normalize(cross);
-
-  for (const Vec3f& v : verts) { mesh.vertices.push_back({v, normal}); }
-  for (size_t i = 1; i + 1 < verts.size(); ++i) {
-    mesh.indices.push_back(0);
-    mesh.indices.push_back(static_cast<uint32_t>(i));
-    mesh.indices.push_back(static_cast<uint32_t>(i + 1));
-  }
-  return mesh;
-}
-
 }  // namespace render

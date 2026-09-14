@@ -1,7 +1,7 @@
 #ifndef RPENGINE_RENDER_CAMERA_HPP
 #define RPENGINE_RENDER_CAMERA_HPP
 
-#include <math/Types.hpp>
+#include <render/Types.hpp>
 
 namespace render {
 

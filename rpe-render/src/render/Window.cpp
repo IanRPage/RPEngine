@@ -1,9 +1,5 @@
 #include <render/Window.hpp>
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-
 #include <cstdio>
 #include <stdexcept>
 
@@ -51,39 +47,9 @@ Window::Window(int width, int height, const std::string& title)
   glfwGetWindowSize(window_, &width_, &height_);
 
   glViewport(0, 0, fbWidth_, fbHeight_);
-
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
-
-  bool glfwBackendReady = false;
-  bool openglBackendReady = false;
-  try {
-    if (!ImGui_ImplGlfw_InitForOpenGL(window_, true)) {
-      throw std::runtime_error(
-          "Window: ImGui_ImplGlfw_InitForOpenGL() failed");
-    }
-    glfwBackendReady = true;
-
-    if (!ImGui_ImplOpenGL3_Init("#version 410 core")) {
-      throw std::runtime_error("Window: ImGui_ImplOpenGL3_Init() failed");
-    }
-    openglBackendReady = true;
-  } catch (...) {
-    if (openglBackendReady) { ImGui_ImplOpenGL3_Shutdown(); }
-    if (glfwBackendReady) { ImGui_ImplGlfw_Shutdown(); }
-    ImGui::DestroyContext();
-    glfwDestroyWindow(window_);
-    glfwTerminate();
-    throw;
-  }
 }
 
 Window::~Window() {
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-
   if (window_ != nullptr) { glfwDestroyWindow(window_); }
   glfwTerminate();
 }

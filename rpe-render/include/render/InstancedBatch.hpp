@@ -2,9 +2,9 @@
 #define RPENGINE_RENDER_INSTANCEDBATCH_HPP
 
 #include <glad/gl.h>
-#include <math/Types.hpp>
 #include <render/Mesh.hpp>
 #include <render/ShaderProgram.hpp>
+#include <render/Types.hpp>
 
 #ifdef GLM_FORCE_QUAT_DATA_WXYZ
 #error \
