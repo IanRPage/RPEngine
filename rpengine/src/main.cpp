@@ -1,8 +1,8 @@
 #include <collision/Shapes.hpp>
 #include <core/World.hpp>
+#include <gui/RenderableStore.hpp>
+#include <gui/Renderer.hpp>
 #include <math/Transform.hpp>
-#include <render/RenderableStore.hpp>
-#include <render/Renderer.hpp>
 #include <sim/Simulator.hpp>
 
 #include <cstdlib>
@@ -18,7 +18,7 @@ Vec4f randomColor() noexcept {
   return Vec4f(channel(), channel(), channel(), 1.0f);
 }
 
-void buildDemoScene(Simulator& sim, render::RenderableStore& renderables) {
+void buildDemoScene(Simulator& sim, gui::RenderableStore& renderables) {
   World& world = sim.world();
 
   // platform 1
@@ -66,10 +66,10 @@ int main() {
 
   try {
     Simulator sim;
-    render::RenderableStore renderables;
+    gui::RenderableStore renderables;
     buildDemoScene(sim, renderables);
 
-    render::Renderer renderer(sim, renderables);
+    gui::Renderer renderer(sim, renderables);
     renderer.mainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Fatal error: " << e.what() << std::endl;

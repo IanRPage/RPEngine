@@ -1,7 +1,7 @@
-#include <render/Renderer.hpp>
+#include <gui/Renderer.hpp>
 
 #include <math/Rotation.hpp>
-#include <render/AssetPaths.hpp>
+#include <gui/AssetPaths.hpp>
 #include <render/MeshLibrary.hpp>
 
 #include <imgui.h>
@@ -16,7 +16,7 @@
 #include <variant>
 #include <vector>
 
-namespace render {
+namespace gui {
 
 namespace {
 
@@ -42,15 +42,16 @@ Renderer::Renderer(Simulator& sim, RenderableStore& renderables,
     : sim_(sim),
       renderables_(renderables),
       window_(options.width, options.height, options.title),
-      shader_(ShaderProgram::fromFiles(
+      shader_(render::ShaderProgram::fromFiles(
           std::filesystem::path(kAssetsDir) / "shaders" / "instanced.vert",
           std::filesystem::path(kAssetsDir) / "shaders" / "instanced.frag")),
-      sphereMesh_(buildUnitIcosphere()),
-      boxMesh_(buildUnitBox()),
-      capsuleMesh_(buildUnitCapsule()),
-      quadMesh_(buildUnitQuad()),
-      circleMesh_(buildUnitCircle()),
-      stadiumMesh_(buildUnitStadium()) {
+      sphereMesh_(render::buildUnitIcosphere()),
+      boxMesh_(render::buildUnitBox()),
+      capsuleMesh_(render::buildUnitCapsule()),
+      quadMesh_(render::buildUnitQuad()),
+      circleMesh_(render::buildUnitCircle()),
+      stadiumMesh_(render::buildUnitStadium()),
+      imguiCtrl_(window_.handle()) {
   glEnable(GL_DEPTH_TEST);
   lastFrameTimestamp_ = glfwGetTime();
   lastAdvanceTimestamp_ = lastFrameTimestamp_;
@@ -203,7 +204,7 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
                               bodies.orientation(handle), alpha);
     Vec4f color = renderables_.colorOr(handle);
 
-    InstanceData instance{position, orientation, Vec3f(1.0f), color};
+    render::InstanceData instance{position, orientation, Vec3f(1.0f), color};
 
     std::visit(
         [&](const auto& s) {
@@ -250,9 +251,10 @@ void Renderer::drawHullBodies(float alpha, const Mat4f& viewProjection) {
                               bodies.orientation(handle), alpha);
     Vec4f color = renderables_.colorOr(handle);
 
-    const Mesh& mesh = hullMeshCache_.getOrBuild(handle, *hull);
+    const render::Mesh& mesh = hullMeshCache_.getOrBuild(handle, *hull);
     hullBatch_.begin();
-    hullBatch_.add(InstanceData{position, orientation, Vec3f(1.0f), color});
+    hullBatch_.add(
+        render::InstanceData{position, orientation, Vec3f(1.0f), color});
     hullBatch_.render(mesh, shader_, viewProjection);
   }
 
@@ -370,4 +372,4 @@ void Renderer::mainLoop() {
   }
 }
 
-}  // namespace render
+}  // namespace gui
