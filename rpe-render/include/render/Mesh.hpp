@@ -2,7 +2,7 @@
 #define RPENGINE_RENDER_MESH_HPP
 
 #include <glad/gl.h>
-#include <math/Types.hpp>
+#include <render/Types.hpp>
 
 #include <cstdint>
 #include <span>

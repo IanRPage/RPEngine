@@ -4,13 +4,21 @@
 #include <cstddef>
 #include <string>
 
-namespace render {
+struct GLFWwindow;
+
+namespace gui {
 
 enum class CameraMode { Orthographic2D, Perspective3D };
 
 class ImguiController {
  public:
   static constexpr float kSidebarWidth = 340.0f;
+
+  explicit ImguiController(GLFWwindow* window);
+  ~ImguiController();
+
+  ImguiController(const ImguiController&) = delete;
+  ImguiController& operator=(const ImguiController&) = delete;
 
   void beginFrame() noexcept;
   void renderPanels(float frameTimeMs, size_t liveBodyCount);
@@ -46,6 +54,6 @@ class ImguiController {
   std::string lastScreenshotStatus_;
 };
 
-}  // namespace render
+}  // namespace gui
 
 #endif

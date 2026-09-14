@@ -8,18 +8,19 @@
 
 #include <unordered_map>
 
-namespace render {
+namespace gui {
 
 class HullMeshCache {
  public:
-  const Mesh& getOrBuild(BodyHandle handle, const ConvexHullShape& hull);
+  const render::Mesh& getOrBuild(BodyHandle handle,
+                                 const ConvexHullShape& hull);
   void pruneDead(const BodyStore& bodies);
   size_t size() const noexcept { return meshes_.size(); }
 
  private:
-  std::unordered_map<BodyHandle, Mesh, BodyHandleHash> meshes_;
+  std::unordered_map<BodyHandle, render::Mesh, BodyHandleHash> meshes_;
 };
 
-}  // namespace render
+}  // namespace gui
 
 #endif

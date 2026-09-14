@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace render {
+namespace gui {
 
 class RenderableStore {
  public:
@@ -29,6 +29,6 @@ class RenderableStore {
   std::vector<Entry> entries_;
 };
 
-}  // namespace render
+}  // namespace gui
 
 #endif

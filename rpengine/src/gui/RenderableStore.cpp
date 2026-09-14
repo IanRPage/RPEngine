@@ -1,6 +1,6 @@
-#include <render/RenderableStore.hpp>
+#include <gui/RenderableStore.hpp>
 
-namespace render {
+namespace gui {
 
 void RenderableStore::setColor(BodyHandle handle, Vec4f color) {
   if (entries_.size() <= handle.index) {
@@ -26,4 +26,4 @@ bool RenderableStore::hasColor(BodyHandle handle) const noexcept {
 
 void RenderableStore::clear() noexcept { entries_.clear(); }
 
-}  // namespace render
+}  // namespace gui

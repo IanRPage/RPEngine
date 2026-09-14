@@ -1,10 +1,42 @@
-#include <render/ImguiController.hpp>
+#include <gui/ImguiController.hpp>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-namespace render {
+#include <stdexcept>
+
+namespace gui {
+
+ImguiController::ImguiController(GLFWwindow* window) {
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
+  bool glfwBackendReady = false;
+  try {
+    if (!ImGui_ImplGlfw_InitForOpenGL(window, true)) {
+      throw std::runtime_error(
+          "ImguiController: ImGui_ImplGlfw_InitForOpenGL() failed");
+    }
+    glfwBackendReady = true;
+
+    if (!ImGui_ImplOpenGL3_Init("#version 410 core")) {
+      throw std::runtime_error(
+          "ImguiController: ImGui_ImplOpenGL3_Init() failed");
+    }
+  } catch (...) {
+    if (glfwBackendReady) { ImGui_ImplGlfw_Shutdown(); }
+    ImGui::DestroyContext();
+    throw;
+  }
+}
+
+ImguiController::~ImguiController() {
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+}
 
 void ImguiController::beginFrame() noexcept {
   ImGui_ImplOpenGL3_NewFrame();
@@ -140,4 +172,4 @@ bool ImguiController::consumeScreenshotRequest(std::string& path) {
   return true;
 }
 
-}  // namespace render
+}  // namespace gui

@@ -4,6 +4,15 @@ This is my attempt at building a rigid-body physics engine. I made this to
 practice implementing physics in code and to practice algorithms. But mainly
 this just felt like a fun project to make.
 
+## Project Structure
+
+The project is split into four top-level modules:
+
+- `rpe-physics`: rigid-body simulation, collision detection, and broadphase
+- `rpe-render`: reusable OpenGL window, camera, shader, mesh, and batching code
+- `rpengine`: simulation loop and application-specific physics/render glue
+- `tests`: unit tests linked against the module libraries
+
 ## Examples
 
 ![RPEngine demo scene](images/demo-perspective3d.png?raw=true)
@@ -59,6 +68,16 @@ cmake --build build --target debug    # configures Debug, then builds
 cmake --build build --target release  # configures Release, then builds
 ```
 
+The libraries can also be configured and built independently:
+
+```sh
+cmake -S rpe-physics -B build-physics
+cmake --build build-physics -j
+
+cmake -S rpe-render -B build-render
+cmake --build build-render -j
+```
+
 **FOR WINDOWS USERS**: Untested since the refactor. GLFW itself supports Windows
 fine; you're on your own for the exact dependency setup. Feel free to find out
 and open a PR making changes to these instructions.
@@ -70,9 +89,9 @@ feel free to find out and open a PR making changes to these instructions.
 
 ## Testing
 
-Unit tests live in `tests/` and cover everything outside `src/render/` (math,
-shapes/collision, broadphase, narrowphase/GJK/EPA, solver/dynamics, fixed
-timestep) with GoogleTest.
+Unit tests live in `tests/` and link the module libraries directly. They cover
+math, shapes/collision, broadphase, narrowphase/GJK/EPA, solver/dynamics, the
+fixed timestep, and engine renderable state with GoogleTest.
 
 Configure and build the test binary:
 
@@ -163,6 +182,6 @@ still needs to be done.
 - [ ] update README with an current demo gif
 - [ ] re-benchmark simulation performance
 - [ ] refactor
-  - [ ] turn physics code into a separate library
-  - [ ] turn rendering code into a separate library
-  - [ ] rebuild RPEngine using this library approach
+  - [x] turn physics code into a separate library
+  - [x] turn rendering code into a separate library
+  - [x] rebuild RPEngine using this library approach

@@ -2,7 +2,7 @@
 #define RPENGINE_RENDER_SHADERPROGRAM_HPP
 
 #include <glad/gl.h>
-#include <math/Types.hpp>
+#include <render/Types.hpp>
 
 #include <filesystem>
 #include <string>
