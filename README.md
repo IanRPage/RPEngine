@@ -181,7 +181,7 @@ still needs to be done.
 - [ ] add manual click-to-spawn in the 2D orthographic view 
 - [ ] update README with an current demo gif
 - [ ] re-benchmark simulation performance
-- [ ] refactor
+- [x] refactor
   - [x] turn physics code into a separate library
   - [x] turn rendering code into a separate library
   - [x] rebuild RPEngine using this library approach
