@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <optional>
 #include <random>
 #include <string>
 
@@ -77,19 +78,24 @@ void runScene(benchmark::State& state, const Build& build) {
   size_t bodies = 0;
 
   for (auto _ : state) {
-    World world;
-    world.setGravity(Vec3f(0.0f, -9.81f, 0.0f));
-    build(world);
-    bodies = world.bodies().size();
+    state.PauseTiming();
+    std::optional<World> world(std::in_place);
+    world->setGravity(Vec3f(0.0f, -9.81f, 0.0f));
+    build(*world);
+    bodies = world->bodies().size();
+    state.ResumeTiming();
 
     const auto t0 = std::chrono::steady_clock::now();
-    for (int i = 0; i < kSteps; i++) { world.step(kDt); }
+    for (int i = 0; i < kSteps; i++) { world->step(kDt); }
     const auto t1 = std::chrono::steady_clock::now();
 
+    state.PauseTiming();
+    world.reset();
     const double seconds = std::chrono::duration<double>(t1 - t0).count();
     state.SetIterationTime(seconds);
     steppingSeconds += seconds;
     steps += kSteps;
+    state.ResumeTiming();
   }
 
   state.counters["bodies"] = static_cast<double>(bodies);

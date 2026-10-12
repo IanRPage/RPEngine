@@ -65,8 +65,8 @@ repetitions take ~10-15 min (`--rpe_large` much longer).
 
 ## Metrics
 
-One iteration = build scene, 600 × `world.step(1/60)`. Only stepping is
-timed, meaning setup and teardown are excluded. It measures
+One iteration = build scene, 600 × `world.step(1/60)`. Only stepping is timed
+(in both `Time` and `CPU`), meaning setup and teardown are excluded. It measures
 
 - `Time`: one 600-step run
 - `ms_per_step`: mean wall-clock time of one `World::step`
