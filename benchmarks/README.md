@@ -1,49 +1,58 @@
 # RPEngine headless benchmarks (`rp_bench`)
 
-Timing-only performance suite for `rpe-physics`, built on
-[Google Benchmark](https://github.com/google/benchmark). Links **only**
-`rpe-physics` (no GLFW, OpenGL or ImGui). Everything is in
-[`bench_physics.cpp`](bench_physics.cpp).
-
-The physics correctness checks for the same scenes (bounce matches restitution,
-stacks settle, piles stay inside their walls) are regular tests in
-[`tests/test_scenarios.cpp`](../tests/test_scenarios.cpp).
+This is the performance suite for `rpe-physics` that's built with
+[Google Benchmark](https://github.com/google/benchmark).
 
 ## Build
 
-From the root project:
+Do the following to build the project with the benchmarking suite (from root):
 
 ```bash
-cmake -S . -B build -DBUILD_BENCHMARKS=ON   # Release is the default
+cmake -S . -B build -DBUILD_BENCHMARKS=ON
 cmake --build build --target rp_bench
 ```
 
-Or standalone (fetches only GLM + Google Benchmark):
+Could also just build the standalone benchmark without RPEngine itself:
 
 ```bash
 cmake -S benchmarks -B build/bench
 cmake --build build/bench
 ```
 
-Timings are only meaningful in `Release` / `RelWithDebInfo`.
+> It's pretty obvious but the results of the benchmark are only meaningful in
+> `Release` mode.
 
 ## Run
 
+Use the `rp_bench` CLI tool to run the benchmark.
+
 ```bash
 build/bin/rp_bench                                   # default suite
-build/bin/rp_bench --benchmark_filter='MixedShapes'  # one scene
-build/bin/rp_bench --rpe_large                       # + 100k-body cases
+build/bin/rp_bench --benchmark_filter='MixedShapes'  # specific scene
+build/bin/rp_bench --rpe_large                       # 100k-body big dawg
 build/bin/rp_bench --benchmark_out=results.json --benchmark_out_format=json
 ```
 
-Compare two runs (e.g. before/after an engine change):
+Then to compare two runs, say, before and after a change to the engine, do this:
 
 ```bash
 python3 build/_deps/googlebenchmark-src/tools/compare.py benchmarks before.json after.json
 ```
 
-> For numbers you'll compare across runs, set the CPU governor to
-> `performance` and pass `--benchmark_repetitions=5`.
+> For numbers you'll compare across runs, I recommend setting the CPU governor
+> to `performance` and pass `--benchmark_repetitions=5`.
+
+```bash
+sudo cpupower frequency-set -g performance   # restore this after
+lscpu -e=CPU,MAXMHZ                          # pick a P-core if u have a hybrid cpu (higher MAXMHZ)
+taskset -c 2 build/bin/rp_bench --benchmark_repetitions=5 \
+  --benchmark_report_aggregates_only=true --benchmark_out=before.json
+```
+
+Rerun if any `_cv` row is above ~3%. At least for laptops, disabling turbo
+(`echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo`) trades
+speed for repeatability. Either way, use the same setup for both runs. Five
+repetitions take ~10-15 min (`--rpe_large` much longer).
 
 ## Cases
 
@@ -54,15 +63,10 @@ python3 build/_deps/googlebenchmark-src/tools/compare.py benchmarks before.json 
 | `SpherePile/n:10000` | same container, spheres only | broadphase + solver without GJK/EPA box/capsule cost |
 | `--rpe_large`: `{MixedShapes,SpherePile}/n:100000` | as above | scaling |
 
-All scenes use the default `World` (BVH broadphase, default `SolverConfig`),
-`dt = 1/60`, and are deterministic for a given standard library.
+## Metrics
 
-## What's measured
-
-One iteration = build the scene, then 600 × `world.step(1/60)` (10 s
-simulated). **Only the stepping is timed** (manual timing around the step
-loop), so setup and teardown are excluded and `rpe-physics` needs no
-instrumentation.
+One iteration = build scene, 600 × `world.step(1/60)`. Only stepping is
+timed, meaning setup and teardown are excluded. It measures
 
 - `Time`: one 600-step run
 - `ms_per_step`: mean wall-clock time of one `World::step`
