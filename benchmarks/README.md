@@ -58,16 +58,17 @@ repetitions take ~10-15 min (`--rpe_large` much longer).
 
 | Case | Scene | Stresses |
 |---|---|---|
-| `BoxStack/h:20` | 20 unit boxes stacked on a ground box | solver (contact-heavy, few bodies) |
-| `MixedShapes/n:{1000,10000}` | boxes / spheres / capsules (random orientations) on a jittered grid inside `addWorldBoundaries` walls | everything, incl. GJK/EPA |
+| `BoxStack/h:5` | 5 unit boxes stacked on a ground box | solver (contact-heavy, few bodies) |
+| `MixedShapes/n:{1000,10000}` | random boxes / spheres / capsules (random orientations) on a jittered grid inside `addWorldBoundaries` walls | everything, incl. GJK/EPA |
 | `SpherePile/n:10000` | same container, spheres only | broadphase + solver without GJK/EPA box/capsule cost |
 | `--rpe_large`: `{MixedShapes,SpherePile}/n:100000` | as above | scaling |
 
 ## Metrics
 
-One iteration = build scene, 600 × `world.step(1/60)`. Only stepping is timed
-(in both `Time` and `CPU`), meaning setup and teardown are excluded. It measures
+One iteration builds the scene, 300 untimed `world.step(1/60)` to let the drop
+settle, then 300 steps timed in both `Time` and `CPU`. A run where any body
+leaves its scene (toppled, escaped, NaN) is reported as an error. Scenes live in
+[`scenes.hpp`](scenes.hpp), shared with `tests/test_scenarios.cpp`. It measures
 
-- `Time`: one 600-step run
-- `ms_per_step`: mean wall-clock time of one `World::step`
+- `Time`: 300 steady-state steps (divide by 300 for per-step cost)
 - `bodies`: total bodies, including static ground/walls

@@ -2,12 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
-#include <random>
 #include <string>
 #include <vector>
 
 #include <core/World.hpp>
 
+#include "../benchmarks/scenes.hpp"
 #include "test_helpers.hpp"
 
 using test_helpers::totalKineticEnergy;
@@ -24,17 +24,6 @@ World makeWorld() {
   return world;
 }
 
-void addGround(World& world, float friction) {
-  Transform t;
-  t.position = Vec3f(0.0f, -0.5f, 0.0f);
-  world.createStaticBody(ShapeVariant{BoxShape{Vec3f(50.0f, 0.5f, 50.0f)}}, t,
-                         friction, /*restitution=*/0.0f);
-}
-
-bool isFinite(Vec3f v) {
-  return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
-}
-
 std::string at(int step) {
   return "t=" + std::to_string(static_cast<float>(step) * kDt) + "s";
 }
@@ -44,7 +33,7 @@ std::string at(int step) {
 float sphereBounceHeight(float restitution, float h0) {
   constexpr float kRadius = 0.5f;
   World world = makeWorld();
-  addGround(world, /*friction=*/0.0f);
+  scenes::addGround(world, /*friction=*/0.0f);
   Transform t;
   t.position = Vec3f(0.0f, kRadius + h0, 0.0f);
   BodyHandle sphere = world.createDynamicBody(
@@ -75,15 +64,8 @@ void expectBoxStackSettles(int height) {
   constexpr float kHalf = 0.5f;
   constexpr int kSettleSteps = 300;
   World world = makeWorld();
-  addGround(world, /*friction=*/0.5f);
-  std::vector<BodyHandle> boxes;
-  for (int i = 0; i < height; i++) {
-    Transform t;
-    t.position = Vec3f(0.0f, kHalf + static_cast<float>(i) * 1.01f, 0.0f);
-    boxes.push_back(world.createDynamicBody(
-        ShapeVariant{BoxShape{Vec3f(kHalf)}}, t, /*mass=*/1.0f,
-        /*friction=*/0.5f, /*restitution=*/0.0f));
-  }
+  const std::vector<BodyHandle> boxes =
+      scenes::buildBoxStack(world, height).bodies;
   const BodyStore& bodies = world.bodies();
   const Vec3f topStart = bodies.position(boxes.back());
   const float idealTopY = 2.0f * kHalf * static_cast<float>(height) - kHalf;
@@ -108,60 +90,10 @@ void expectBoxStackSettles(int height) {
   }
 }
 
-// same as buildPile in benchmarks/bench_physics.cpp. `n` bodies on a jittered,
-// layered grid inside addWorldBoundaries walls
-struct Pile {
-  std::vector<BodyHandle> bodies;
-  Vec3f min{0.0f};
-  Vec3f max{0.0f};
-};
-
-Pile buildPile(World& world, bool mixed, int n) {
-  const float cell = mixed ? 1.5f : 1.2f;
-  const int layers =
-      std::max(1, static_cast<int>(std::lround(std::cbrt(n) / 2.0)));
-  const int k = static_cast<int>(std::ceil(std::sqrt(double(n) / layers)));
-  const int usedLayers = (n + k * k - 1) / (k * k);
-  const float halfWidth = 0.5f * (static_cast<float>(k) * cell + 0.5f);
-  const float height = static_cast<float>(usedLayers) * cell + 1.5f;
-
-  Pile pile;
-  pile.min = Vec3f(-halfWidth, 0.0f, -halfWidth);
-  pile.max = Vec3f(halfWidth, height, halfWidth);
-  world.addWorldBoundaries(pile.min, pile.max, /*thickness=*/1.0f,
-                           /*friction=*/0.5f, /*restitution=*/0.2f,
-                           /*is2D=*/false);
-
-  std::mt19937 rng(0x5EED);
-  std::uniform_real_distribution<float> jitter(-0.05f, 0.05f);
-  std::normal_distribution<float> gauss;
-  for (int i = 0; i < n; i++) {
-    const int layer = i / (k * k);
-    const int ix = (i % (k * k)) % k;
-    const int iz = (i % (k * k)) / k;
-    Transform t;
-    t.position = Vec3f(
-        -halfWidth + 0.25f + cell * (static_cast<float>(ix) + 0.5f) + jitter(rng),
-        0.25f + cell * (static_cast<float>(layer) + 0.5f),
-        -halfWidth + 0.25f + cell * (static_cast<float>(iz) + 0.5f) + jitter(rng));
-
-    ShapeVariant shape{SphereShape{0.5f}};
-    if (mixed) {
-      t.orientation = glm::normalize(
-          Quatf(gauss(rng), gauss(rng), gauss(rng), gauss(rng)));
-      if (i % 3 == 0) { shape = ShapeVariant{BoxShape{Vec3f(0.4f)}}; }
-      if (i % 3 == 2) { shape = ShapeVariant{CapsuleShape{0.3f, 0.4f}}; }
-    }
-    pile.bodies.push_back(world.createDynamicBody(
-        shape, t, /*mass=*/1.0f, /*friction=*/0.5f, /*restitution=*/0.2f));
-  }
-  return pile;
-}
-
 // nothing goes NaN, escapes the walls, or blows up. pile settles by 10s
 void expectPileStaysContained(bool mixed, int n) {
   World world = makeWorld();
-  const Pile pile = buildPile(world, mixed, n);
+  const scenes::Scene pile = scenes::buildPile(world, mixed, n);
   const BodyStore& bodies = world.bodies();
 
   for (int step = 1; step <= kSteps; step++) {
@@ -170,12 +102,9 @@ void expectPileStaysContained(bool mixed, int n) {
     SCOPED_TRACE(at(step));
     for (size_t i = 0; i < pile.bodies.size(); i++) {
       const Vec3f p = bodies.position(pile.bodies[i]);
-      ASSERT_TRUE(isFinite(p)) << "body " << i << " became NaN";
-      ASSERT_TRUE(p.x >= pile.min.x && p.x <= pile.max.x &&
-                  p.y >= pile.min.y && p.y <= pile.max.y &&
-                  p.z >= pile.min.z && p.z <= pile.max.z)
-          << "body " << i << " escaped the walls at (" << p.x << ", " << p.y
-          << ", " << p.z << ")";
+      ASSERT_TRUE(pile.contains(p))
+          << "body " << i << " escaped the walls or went NaN at (" << p.x
+          << ", " << p.y << ", " << p.z << ")";
       ASSERT_LT(glm::length(bodies.linearVelocity(pile.bodies[i])), 50.0f)
           << "body " << i << " blew up";
     }
