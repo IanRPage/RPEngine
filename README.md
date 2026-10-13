@@ -158,8 +158,22 @@ framebuffer to a PNG (this is how the screenshot above was captured).
 
 ## State of Simulation Performance
 
-Haven't yet re-benchmarked. Debug/Release benchmark against 100k-body target
-still needs to be done.
+These results from [`rp_bench`](benchmarks/README.md) are as of 10/12/26 (commit
+`33c070a`), running single threaded, Release mode, with a i7-13800H (pinned to a
+P-core, turbo on). Each case settles for 300 steps, then times 300 steps at `dt
+= 1/60`, 5 repetitions (all CVs < 0.6%).
+
+| Case | Per step | Per body-step | 60 Hz budget (16.7 ms) |
+|---|---|---|---|
+| `BoxStack/h:5` | 0.031 ms | ~6 µs | 0.2% |
+| `MixedShapes/n:1000` | 8.1 ms | 8.1 µs | 49% |
+| `SpherePile/n:10000` | 46.9 ms | 4.7 µs | 2.8x over |
+| `MixedShapes/n:10000` | 103 ms | 10.3 µs | 6.2x over |
+
+So ~1k mixed bodies run in real time, 10k don't, and the 100k-body target is at
+least ~60x away. 1k to 10k scales slightly worse than linear (12.7x for 10x the
+bodies), and boxes/capsules cost ~2.2x more than spheres (likely GJK/EPA vs. the
+sphere-sphere fast path).
 
 ## TODO
 
@@ -180,7 +194,8 @@ still needs to be done.
   - [ ] add more narrowphase algorithms
 - [ ] add manual click-to-spawn in the 2D orthographic view 
 - [ ] update README with an current demo gif
-- [ ] re-benchmark simulation performance
+- [ ] make piles actually settle (likely needs a restitution velocity threshold)
+- [x] re-benchmark simulation performance
 - [x] refactor
   - [x] turn physics code into a separate library
   - [x] turn rendering code into a separate library

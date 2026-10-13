@@ -8,11 +8,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING
+  set(CMAKE_BUILD_TYPE Release CACHE STRING
       "Choose the build type (Debug or Release)" FORCE)
 endif()
 
 option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_BENCHMARKS "Build headless benchmarks (rp_bench)" OFF)
 
 add_subdirectory(rpe-physics)
 add_subdirectory(rpe-render)
@@ -37,4 +38,8 @@ add_custom_target(release
 if(BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+if(BUILD_BENCHMARKS)
+  add_subdirectory(benchmarks)
 endif()

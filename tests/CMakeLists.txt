@@ -43,6 +43,7 @@ add_executable(rp_tests
   test_conservation.cpp
   test_restitution.cpp
   test_world.cpp
+  test_scenarios.cpp
   test_fixed_timestep.cpp
   test_renderable_store.cpp
   test_mesh_library.cpp
