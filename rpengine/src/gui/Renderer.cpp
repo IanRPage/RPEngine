@@ -35,6 +35,13 @@ std::string expandTilde(const std::string& path) {
   return std::string(home) + path.substr(1);
 }
 
+Transform interpolatedTransform(const BodyStore& bodies, BodyHandle handle,
+                                float alpha) noexcept {
+  return Transform{
+      glm::mix(bodies.prevPosition(handle), bodies.position(handle), alpha),
+      nlerp(bodies.prevOrientation(handle), bodies.orientation(handle), alpha)};
+}
+
 }  // namespace
 
 Renderer::Renderer(Simulator& sim, RenderableStore& renderables,
@@ -172,6 +179,29 @@ void Renderer::handlePendingSpawnRequests() {
     renderables_.setColor(handle, randomColor());
   }
 
+  if (imguiCtrl_.consumeSpawnCompoundRequest()) {
+    float x = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float z = static_cast<float>(std::rand() % 600 - 300) / 100.0f;
+    float y = static_cast<float>(std::rand() % 300) / 100.0f + 7.0f;
+    std::vector<CompoundChild> children;
+    children.push_back(CompoundChild{BoxShape{Vec3f(0.15f, 0.6f, 0.15f)},
+                                     Transform{}, 1.0f});
+    children.push_back(
+        CompoundChild{BoxShape{Vec3f(0.5f, 0.2f, 0.25f)},
+                      Transform{Vec3f(0.0f, 0.8f, 0.0f),
+                                Quatf(1.0f, 0.0f, 0.0f, 0.0f)},
+                      3.0f});
+    children.push_back(CompoundChild{SphereShape{0.25f},
+                                     Transform{Vec3f(0.0f, -0.75f, 0.0f),
+                                               Quatf(1.0f, 0.0f, 0.0f, 0.0f)},
+                                     1.0f});
+    BodyHandle handle = world.createDynamicBody(
+        CompoundShape{std::move(children)}.recentered(),
+        Transform{Vec3f(x, y, z), Quatf(1.0f, 0.0f, 0.0f, 0.0f)}, 2.0f, 0.5f,
+        0.3f);
+    renderables_.setColor(handle, randomColor());
+  }
+
   if (imguiCtrl_.consumeResetRequest()) {
     BodyStore& store = world.bodies();
     std::vector<BodyHandle> dynamicHandles;
@@ -193,18 +223,11 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
   const BodyStore& bodies = sim_.world().bodies();
   bool is2D = imguiCtrl_.cameraMode() == CameraMode::Orthographic2D;
 
-  for (BodyHandle handle : bodies.liveHandles()) {
-    const ShapeVariant& shape = bodies.shape(handle);
-    if (std::holds_alternative<ConvexHullShape>(shape)) { continue; }
-
-    Vec3f position =
-        glm::mix(bodies.prevPosition(handle), bodies.position(handle), alpha);
+  auto addLeaf = [&](const ShapeVariant& leaf, const Transform& t,
+                     const Vec4f& color) {
+    Vec3f position = t.position;
     if (is2D) { position.z = 0.0f; }
-    Quatf orientation = nlerp(bodies.prevOrientation(handle),
-                              bodies.orientation(handle), alpha);
-    Vec4f color = renderables_.colorOr(handle);
-
-    render::InstanceData instance{position, orientation, Vec3f(1.0f), color};
+    render::InstanceData instance{position, t.orientation, Vec3f(1.0f), color};
 
     std::visit(
         [&](const auto& s) {
@@ -214,11 +237,8 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
             (is2D ? circleBatch_ : sphereBatch_).add(instance);
           } else if constexpr (std::is_same_v<T, BoxShape>) {
             instance.scale = s.halfExtents;
-            if (!is2D) {
-              float minVisualHalfThickness =
-                  std::min(instance.scale.x, instance.scale.y);
-              instance.scale.z =
-                  std::max(instance.scale.z, minVisualHalfThickness);
+            if (!is2D && instance.scale.z <= 0.0f) {
+              instance.scale.z = std::min(instance.scale.x, instance.scale.y);
             }
             (is2D ? quadBatch_ : boxBatch_).add(instance);
           } else if constexpr (std::is_same_v<T, CapsuleShape>) {
@@ -226,7 +246,24 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
             (is2D ? stadiumBatch_ : capsuleBatch_).add(instance);
           }
         },
-        shape);
+        leaf);
+  };
+
+  for (BodyHandle handle : bodies.liveHandles()) {
+    const ShapeVariant& shape = bodies.shape(handle);
+    if (std::holds_alternative<ConvexHullShape>(shape)) { continue; }
+
+    Transform bodyTransform = interpolatedTransform(bodies, handle, alpha);
+    Vec4f color = renderables_.colorOr(handle);
+
+    if (const auto* compound = std::get_if<CompoundShape>(&shape)) {
+      for (const CompoundChild& child : compound->children) {
+        addLeaf(child.shape, compose(bodyTransform, child.localTransform),
+                color);
+      }
+    } else {
+      addLeaf(shape, bodyTransform, color);
+    }
   }
 
   sphereBatch_.render(sphereMesh_, shader_, viewProjection);
@@ -240,22 +277,36 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
 void Renderer::drawHullBodies(float alpha, const Mat4f& viewProjection) {
   const BodyStore& bodies = sim_.world().bodies();
 
-  for (BodyHandle handle : bodies.liveHandles()) {
-    const ShapeVariant& shape = bodies.shape(handle);
-    const auto* hull = std::get_if<ConvexHullShape>(&shape);
-    if (hull == nullptr) { continue; }
-
-    Vec3f position =
-        glm::mix(bodies.prevPosition(handle), bodies.position(handle), alpha);
-    Quatf orientation = nlerp(bodies.prevOrientation(handle),
-                              bodies.orientation(handle), alpha);
-    Vec4f color = renderables_.colorOr(handle);
-
-    const render::Mesh& mesh = hullMeshCache_.getOrBuild(handle, *hull);
+  auto drawHull = [&](const render::Mesh& mesh, const Transform& t,
+                      const Vec4f& color) {
     hullBatch_.begin();
     hullBatch_.add(
-        render::InstanceData{position, orientation, Vec3f(1.0f), color});
+        render::InstanceData{t.position, t.orientation, Vec3f(1.0f), color});
     hullBatch_.render(mesh, shader_, viewProjection);
+  };
+
+  for (BodyHandle handle : bodies.liveHandles()) {
+    const ShapeVariant& shape = bodies.shape(handle);
+    if (const auto* hull = std::get_if<ConvexHullShape>(&shape)) {
+      drawHull(hullMeshCache_.getOrBuild(handle, *hull),
+               interpolatedTransform(bodies, handle, alpha),
+               renderables_.colorOr(handle));
+      continue;
+    }
+
+    const auto* compound = std::get_if<CompoundShape>(&shape);
+    if (compound == nullptr) { continue; }
+
+    for (std::size_t i = 0; i < compound->children.size(); ++i) {
+      const CompoundChild& child = compound->children[i];
+      const auto* childHull = std::get_if<ConvexHullShape>(&child.shape);
+      if (childHull == nullptr) { continue; }
+      Transform t = compose(interpolatedTransform(bodies, handle, alpha),
+                            child.localTransform);
+      drawHull(hullMeshCache_.getOrBuild(handle, static_cast<uint32_t>(i),
+                                         *childHull),
+               t, renderables_.colorOr(handle));
+    }
   }
 
   hullMeshCache_.pruneDead(bodies);

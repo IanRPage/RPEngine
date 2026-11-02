@@ -38,21 +38,26 @@ render::MeshData triangulateConvexHull(const ConvexHullShape& hull) {
 
 const render::Mesh& HullMeshCache::getOrBuild(BodyHandle handle,
                                               const ConvexHullShape& hull) {
-  auto it = meshes_.find(handle);
+  return getOrBuild(handle, 0, hull);
+}
+
+const render::Mesh& HullMeshCache::getOrBuild(BodyHandle handle,
+                                              uint32_t childIndex,
+                                              const ConvexHullShape& hull) {
+  Key key{handle, childIndex};
+  auto it = meshes_.find(key);
   if (it != meshes_.end()) { return it->second; }
 
   render::MeshData data = triangulateConvexHull(hull);
-  auto [inserted, ok] = meshes_.emplace(handle, render::Mesh(data));
+  auto [inserted, ok] = meshes_.emplace(key, render::Mesh(data));
   (void)ok;
   return inserted->second;
 }
 
 void HullMeshCache::pruneDead(const BodyStore& bodies) {
-  std::vector<BodyHandle> dead;
-  for (const auto& [handle, mesh] : meshes_) {
-    if (!bodies.isLive(handle)) { dead.push_back(handle); }
-  }
-  for (BodyHandle handle : dead) { meshes_.erase(handle); }
+  std::erase_if(meshes_, [&](const auto& entry) {
+    return !bodies.isLive(entry.first.handle);
+  });
 }
 
 }  // namespace gui

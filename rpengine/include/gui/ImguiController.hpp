@@ -29,6 +29,7 @@ class ImguiController {
   bool consumeSpawnSphereRequest() noexcept;
   bool consumeSpawnBoxRequest() noexcept;
   bool consumeSpawnCapsuleRequest() noexcept;
+  bool consumeSpawnCompoundRequest() noexcept;
   bool consumeResetRequest() noexcept;
 
   bool consumeScreenshotRequest(std::string& path);
@@ -46,6 +47,7 @@ class ImguiController {
   bool spawnSphereRequested_ = false;
   bool spawnBoxRequested_ = false;
   bool spawnCapsuleRequested_ = false;
+  bool spawnCompoundRequested_ = false;
   bool resetRequested_ = false;
 
   bool screenshotRequested_ = false;
