@@ -9,6 +9,7 @@
 #include <dynamics/Solver.hpp>
 #include <functional>
 #include <memory>
+#include <vector>
 
 class World {
  public:
@@ -55,6 +56,21 @@ class World {
   }
 
  private:
+  void collideLeafPair(BodyHandle a, const ShapeVariant& leafA,
+                       const Transform& ta, uint32_t idxA,
+                       const Transform* localA, BodyHandle b,
+                       const ShapeVariant& leafB, const Transform& tb,
+                       uint32_t idxB, const Transform* localB) noexcept;
+  void collideCompoundPair(BodyHandle a, const ShapeVariant& shapeA,
+                           const Transform& ta, BodyHandle b,
+                           const ShapeVariant& shapeB,
+                           const Transform& tb) noexcept;
+
+  struct ChildProxy {
+    Transform transform;
+    AABB aabb;
+  };
+
   BodyStore bodies_;
   std::unique_ptr<IBroadphase> broadphase_;
   ManifoldCache manifoldCache_;
@@ -63,6 +79,8 @@ class World {
 
   GjkFn gjkFn_ = gjkOverlap;
   EpaFn epaFn_ = epaPenetration;
+
+  std::vector<ChildProxy> childScratchB_;
 
   static constexpr float kManifoldMatchFactor = 0.05f;
 };

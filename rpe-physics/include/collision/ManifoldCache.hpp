@@ -2,6 +2,7 @@
 #define RPENGINE_COLLISION_MANIFOLDCACHE_HPP
 
 #include <collision/Manifold.hpp>
+#include <cstdint>
 #include <core/BodyHandle.hpp>
 #include <span>
 #include <unordered_map>
@@ -11,6 +12,8 @@
 class ManifoldCache {
  public:
   Manifold& getOrCreate(BodyHandle a, BodyHandle b) noexcept;
+  Manifold& getOrCreate(BodyHandle a, BodyHandle b, uint32_t childA,
+                        uint32_t childB) noexcept;
 
   void updateManifold(const Manifold& freshManifold,
                       float matchThreshold) noexcept;
@@ -21,16 +24,26 @@ class ManifoldCache {
   std::span<Manifold> activeManifolds() noexcept;
 
  private:
-  struct PairHash {
-    size_t operator()(
-        const std::pair<BodyHandle, BodyHandle>& p) const noexcept;
+  struct Key {
+    BodyHandle first;
+    BodyHandle second;
+    uint32_t childFirst = 0;
+    uint32_t childSecond = 0;
+    bool operator==(const Key& o) const noexcept {
+      return first == o.first && second == o.second &&
+             childFirst == o.childFirst && childSecond == o.childSecond;
+    }
   };
 
-  static std::pair<BodyHandle, BodyHandle> canonicalize(BodyHandle a,
-                                                        BodyHandle b) noexcept;
+  struct KeyHash {
+    size_t operator()(const Key& k) const noexcept;
+  };
 
-  std::unordered_map<std::pair<BodyHandle, BodyHandle>, std::size_t, PairHash>
-      indexOf_;
+  static Key canonicalize(BodyHandle a, BodyHandle b, uint32_t childA = 0,
+                          uint32_t childB = 0) noexcept;
+  static Key keyOf(const Manifold& m) noexcept;
+
+  std::unordered_map<Key, std::size_t, KeyHash> indexOf_;
   std::vector<Manifold> manifolds_;
   std::vector<bool> visited_;
 };

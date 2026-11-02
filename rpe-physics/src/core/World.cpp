@@ -11,6 +11,28 @@ float boundingRadiusOf(const ShapeVariant& shape) noexcept {
   return std::visit([](const auto& s) { return s.boundingRadius(); }, shape);
 }
 
+bool aabbOverlap(const AABB& x, const AABB& y) noexcept {
+  return x.min.x <= y.max.x && x.max.x >= y.min.x && x.min.y <= y.max.y &&
+         x.max.y >= y.min.y && x.min.z <= y.max.z && x.max.z >= y.min.z;
+}
+
+std::size_t childCount(const ShapeVariant& shape) noexcept {
+  const auto* c = std::get_if<CompoundShape>(&shape);
+  return c ? c->children.size() : 1;
+}
+
+const ShapeVariant& childShape(const ShapeVariant& shape,
+                               std::size_t i) noexcept {
+  const auto* c = std::get_if<CompoundShape>(&shape);
+  return c ? c->children[i].shape : shape;
+}
+
+const Transform* childLocal(const ShapeVariant& shape,
+                            std::size_t i) noexcept {
+  const auto* c = std::get_if<CompoundShape>(&shape);
+  return c ? &c->children[i].localTransform : nullptr;
+}
+
 std::unique_ptr<IBroadphase> normalizeBroadphase(
     std::unique_ptr<IBroadphase> broadphase) noexcept {
   return broadphase ? std::move(broadphase)
@@ -97,6 +119,63 @@ void World::snapshotPrevState() noexcept {
   }
 }
 
+void World::collideLeafPair(BodyHandle a, const ShapeVariant& leafA,
+                            const Transform& ta, uint32_t idxA,
+                            const Transform* localA, BodyHandle b,
+                            const ShapeVariant& leafB, const Transform& tb,
+                            uint32_t idxB, const Transform* localB) noexcept {
+  GjkResult gjk = gjkFn_(leafA, ta, leafB, tb);
+  if (!gjk.overlapping) { return; }
+
+  EpaResult epa = epaFn_(leafA, ta, leafB, tb, gjk);
+  Manifold fresh = buildManifold(leafA, ta, leafB, tb, a, b, gjk, epa);
+  fresh.childIndexA = idxA;
+  fresh.childIndexB = idxB;
+  if (localA || localB) {
+    for (uint8_t k = 0; k < fresh.pointCount; ++k) {
+      ManifoldPoint& p = fresh.points[k];
+      if (localA) { p.localAnchorA = transformPoint(*localA, p.localAnchorA); }
+      if (localB) { p.localAnchorB = transformPoint(*localB, p.localAnchorB); }
+    }
+  }
+
+  float matchThreshold =
+      kManifoldMatchFactor *
+      std::min(boundingRadiusOf(leafA), boundingRadiusOf(leafB));
+  manifoldCache_.updateManifold(fresh, matchThreshold);
+}
+
+void World::collideCompoundPair(BodyHandle a, const ShapeVariant& shapeA,
+                                const Transform& ta, BodyHandle b,
+                                const ShapeVariant& shapeB,
+                                const Transform& tb) noexcept {
+  const std::size_t countA = childCount(shapeA);
+  const std::size_t countB = childCount(shapeB);
+
+  childScratchB_.clear();
+  childScratchB_.reserve(countB);
+  for (std::size_t j = 0; j < countB; ++j) {
+    const Transform* localB = childLocal(shapeB, j);
+    Transform tj = localB ? compose(tb, *localB) : tb;
+    childScratchB_.push_back(ChildProxy{tj, worldAABB(childShape(shapeB, j), tj)});
+  }
+
+  for (std::size_t i = 0; i < countA; ++i) {
+    const ShapeVariant& leafA = childShape(shapeA, i);
+    const Transform* localA = childLocal(shapeA, i);
+    Transform ti = localA ? compose(ta, *localA) : ta;
+    AABB boxI = worldAABB(leafA, ti);
+
+    for (std::size_t j = 0; j < countB; ++j) {
+      const ChildProxy& proxyB = childScratchB_[j];
+      if (!aabbOverlap(boxI, proxyB.aabb)) { continue; }
+      collideLeafPair(a, leafA, ti, static_cast<uint32_t>(i), localA, b,
+                      childShape(shapeB, j), proxyB.transform,
+                      static_cast<uint32_t>(j), childLocal(shapeB, j));
+    }
+  }
+}
+
 void World::step(float dt) noexcept {
   integrateVelocity(bodies_, dt, gravity_);
 
@@ -116,16 +195,11 @@ void World::step(float dt) noexcept {
     Transform ta = bodies_.transform(a);
     Transform tb = bodies_.transform(b);
 
-    GjkResult gjk = gjkFn_(shapeA, ta, shapeB, tb);
-    if (!gjk.overlapping) { continue; }
-
-    EpaResult epa = epaFn_(shapeA, ta, shapeB, tb, gjk);
-    Manifold fresh = buildManifold(shapeA, ta, shapeB, tb, a, b, gjk, epa);
-
-    float matchThreshold =
-        kManifoldMatchFactor *
-        std::min(boundingRadiusOf(shapeA), boundingRadiusOf(shapeB));
-    manifoldCache_.updateManifold(fresh, matchThreshold);
+    if (!isCompound(shapeA) && !isCompound(shapeB)) {
+      collideLeafPair(a, shapeA, ta, 0, nullptr, b, shapeB, tb, 0, nullptr);
+    } else {
+      collideCompoundPair(a, shapeA, ta, b, shapeB, tb);
+    }
   }
   manifoldCache_.endFrame();
 

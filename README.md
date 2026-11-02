@@ -195,6 +195,7 @@ sphere-sphere fast path).
 - [ ] add manual click-to-spawn in the 2D orthographic view 
 - [ ] update README with an current demo gif
 - [ ] make piles actually settle (likely needs a restitution velocity threshold)
+- [ ] add static factory/preset helpers for shapes in `rpengine`
 - [x] re-benchmark simulation performance
 - [x] refactor
   - [x] turn physics code into a separate library

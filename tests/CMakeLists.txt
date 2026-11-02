@@ -37,6 +37,7 @@ add_executable(rp_tests
   test_narrowphase_regression.cpp
   test_manifold.cpp
   test_manifold_cache.cpp
+  test_compound.cpp
   test_integrator.cpp
   test_friction.cpp
   test_solver.cpp

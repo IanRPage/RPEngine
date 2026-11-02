@@ -105,6 +105,8 @@ void ImguiController::renderSpawnControls() {
   ImGui::SameLine();
   if (ImGui::Button("Spawn Box")) { spawnBoxRequested_ = true; }
   if (ImGui::Button("Spawn Capsule")) { spawnCapsuleRequested_ = true; }
+  ImGui::SameLine();
+  if (ImGui::Button("Spawn Compound")) { spawnCompoundRequested_ = true; }
   if (ImGui::Button("Reset Scene")) { resetRequested_ = true; }
 }
 
@@ -156,6 +158,12 @@ bool ImguiController::consumeSpawnBoxRequest() noexcept {
 bool ImguiController::consumeSpawnCapsuleRequest() noexcept {
   bool value = spawnCapsuleRequested_;
   spawnCapsuleRequested_ = false;
+  return value;
+}
+
+bool ImguiController::consumeSpawnCompoundRequest() noexcept {
+  bool value = spawnCompoundRequested_;
+  spawnCompoundRequested_ = false;
   return value;
 }
 
