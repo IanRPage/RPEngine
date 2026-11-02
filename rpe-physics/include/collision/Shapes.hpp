@@ -93,8 +93,48 @@ struct ConvexHullShape {
   float cachedBoundingRadius_ = 0.0f;  // precomputed in constructor
 };
 
-using ShapeVariant =
-    std::variant<SphereShape, BoxShape, CapsuleShape, ConvexHullShape>;
+struct CompoundChild;
+
+struct CompoundShape {
+  std::vector<CompoundChild> children;
+
+  explicit CompoundShape(std::vector<CompoundChild> children);
+
+  Vec3f support(Vec3f direction) const noexcept;
+
+  float boundingRadius() const noexcept { return cachedBoundingRadius_; }
+
+  Mat3f localInertiaTensor(float mass) const noexcept;
+
+  AABB localAABB() const noexcept { return cachedLocalAABB_; }
+
+  float totalWeight() const noexcept { return cachedTotalWeight_; }
+
+  Vec3f centerOfMass() const noexcept { return cachedCenterOfMass_; }
+
+  CompoundShape recentered() const;
+
+ private:
+  float cachedBoundingRadius_ = 0.0f;
+  float cachedTotalWeight_ = 0.0f;
+  Vec3f cachedCenterOfMass_{0.0f};
+  AABB cachedLocalAABB_{Vec3f(0.0f), Vec3f(0.0f)};
+};
+
+using ShapeVariant = std::variant<SphereShape, BoxShape, CapsuleShape,
+                                  ConvexHullShape, CompoundShape>;
+
+struct CompoundChild {
+  ShapeVariant shape{SphereShape{0.0f}};
+  Transform localTransform{};
+  float weight = 1.0f;
+};
+
+inline bool isCompound(const ShapeVariant& shape) noexcept {
+  return std::holds_alternative<CompoundShape>(shape);
+}
+
+Mat3f invertInertiaTensor(const Mat3f& tensor) noexcept;
 
 Vec3f worldSupport(const ShapeVariant& shape, const Transform& t,
                    Vec3f worldDir) noexcept;

@@ -3,6 +3,8 @@
 #include <collision/Shapes.hpp>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
+#include <variant>
 
 #include <math/Constants.hpp>
 
@@ -103,6 +105,14 @@ Mat3f ConvexHullShape::localInertiaTensor(float mass) const noexcept {
 
 namespace {
 
+AABB unionAABB(const AABB& a, const AABB& b) noexcept {
+  return AABB(glm::min(a.min, b.min), glm::max(a.max, b.max));
+}
+
+float childBoundingRadius(const ShapeVariant& shape) noexcept {
+  return std::visit([](const auto& s) { return s.boundingRadius(); }, shape);
+}
+
 AABB transformedCorners(const std::vector<Vec3f>& localPoints,
                         const Transform& t) noexcept {
   Vec3f worldMin(std::numeric_limits<float>::max());
@@ -116,6 +126,120 @@ AABB transformedCorners(const std::vector<Vec3f>& localPoints,
 }
 
 }  // namespace
+
+CompoundShape::CompoundShape(std::vector<CompoundChild> childList)
+    : children(std::move(childList)) {
+  if (children.empty()) {
+    throw std::invalid_argument("CompoundShape requires at least one child");
+  }
+  float total = 0.0f;
+  for (const CompoundChild& child : children) {
+    if (std::holds_alternative<CompoundShape>(child.shape)) {
+      throw std::invalid_argument(
+          "CompoundShape children may not themselves be CompoundShapes");
+    }
+    if (!std::isfinite(child.weight) || !(child.weight > 0.0f)) {
+      throw std::invalid_argument(
+          "CompoundShape child weight must be finite and positive");
+    }
+    const Quatf& q = child.localTransform.orientation;
+    const Vec3f& p = child.localTransform.position;
+    if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z) ||
+        !std::isfinite(q.w) || !std::isfinite(q.x) || !std::isfinite(q.y) ||
+        !std::isfinite(q.z) || glm::length(q) < 1e-6f) {
+      throw std::invalid_argument(
+          "CompoundShape child local transform must be finite and have a "
+          "non-degenerate orientation");
+    }
+    total += child.weight;
+  }
+  if (!std::isfinite(total) || !(total > 0.0f)) {
+    throw std::invalid_argument("CompoundShape total weight must be finite");
+  }
+  Vec3f weightedPosSum(0.0f);
+  for (CompoundChild& child : children) {
+    child.localTransform.orientation =
+        glm::normalize(child.localTransform.orientation);
+    weightedPosSum += child.weight * child.localTransform.position;
+  }
+  cachedTotalWeight_ = total;
+  cachedCenterOfMass_ = weightedPosSum / total;
+
+  float radius = 0.0f;
+  AABB box = worldAABB(children.front().shape,
+                       children.front().localTransform);
+  for (const CompoundChild& child : children) {
+    float r = glm::length(child.localTransform.position) +
+              childBoundingRadius(child.shape);
+    radius = std::max(radius, r);
+    box = unionAABB(box, worldAABB(child.shape, child.localTransform));
+  }
+  cachedBoundingRadius_ = radius;
+  cachedLocalAABB_ = box;
+}
+
+CompoundShape CompoundShape::recentered() const {
+  std::vector<CompoundChild> shifted = children;
+  for (CompoundChild& child : shifted) {
+    child.localTransform.position -= cachedCenterOfMass_;
+  }
+  return CompoundShape(std::move(shifted));
+}
+
+Vec3f CompoundShape::support(Vec3f direction) const noexcept {
+  Vec3f best = worldSupport(children.front().shape,
+                            children.front().localTransform, direction);
+  float bestDot = glm::dot(best, direction);
+  for (std::size_t i = 1; i < children.size(); ++i) {
+    Vec3f p = worldSupport(children[i].shape, children[i].localTransform,
+                           direction);
+    float d = glm::dot(p, direction);
+    if (d > bestDot) {
+      bestDot = d;
+      best = p;
+    }
+  }
+  return best;
+}
+
+Mat3f CompoundShape::localInertiaTensor(float mass) const noexcept {
+  Mat3f total(0.0f);
+  if (!(mass > 0.0f) || !(cachedTotalWeight_ > 0.0f)) { return total; }
+  for (const CompoundChild& child : children) {
+    const float childMass = mass * (child.weight / cachedTotalWeight_);
+    const Mat3f childLocal = std::visit(
+        [&](const auto& s) -> Mat3f {
+          using ShapeT = std::decay_t<decltype(s)>;
+          if constexpr (std::is_same_v<ShapeT, CompoundShape>) {
+            return Mat3f(0.0f);
+          } else {
+            return s.localInertiaTensor(childMass);
+          }
+        },
+        child.shape);
+    const Mat3f r = glm::mat3_cast(child.localTransform.orientation);
+    Mat3f rotated = r * childLocal * glm::transpose(r);
+    const Vec3f d = child.localTransform.position;
+    const float d2 = glm::dot(d, d);
+    Mat3f shift = Mat3f(d2) - glm::outerProduct(d, d);
+    total += rotated + childMass * shift;
+  }
+  return 0.5f * (total + glm::transpose(total));
+}
+
+Mat3f invertInertiaTensor(const Mat3f& tensor) noexcept {
+  auto safeInv = [](float v) { return (v > 1e-12f) ? 1.0f / v : 0.0f; };
+  const bool diagonal = tensor[0][1] == 0.0f && tensor[0][2] == 0.0f &&
+                        tensor[1][0] == 0.0f && tensor[1][2] == 0.0f &&
+                        tensor[2][0] == 0.0f && tensor[2][1] == 0.0f;
+  if (diagonal) {
+    return Mat3f(safeInv(tensor[0][0]), 0.0f, 0.0f, 0.0f,
+                 safeInv(tensor[1][1]), 0.0f, 0.0f, 0.0f,
+                 safeInv(tensor[2][2]));
+  }
+  float det = glm::determinant(tensor);
+  return (std::abs(det) > 1e-12f) ? glm::inverse(tensor) : Mat3f(0.0f);
+}
 
 Vec3f worldSupport(const ShapeVariant& shape, const Transform& t,
                    Vec3f worldDir) noexcept {
@@ -138,19 +262,21 @@ AABB worldAABB(const ShapeVariant& shape, const Transform& t) noexcept {
           Vec3f extent = s.halfHeight * axisWorld + Vec3f(s.radius);
           return AABB(t.position - extent, t.position + extent);
         } else if constexpr (std::is_same_v<ShapeT, BoxShape>) {
-          std::vector<Vec3f> corners;
-          corners.reserve(8);
-          for (float sx : {-1.0f, 1.0f}) {
-            for (float sy : {-1.0f, 1.0f}) {
-              for (float sz : {-1.0f, 1.0f}) {
-                corners.emplace_back(sx * s.halfExtents.x, sy * s.halfExtents.y,
-                                     sz * s.halfExtents.z);
-              }
-            }
-          }
-          return transformedCorners(corners, t);
-        } else {  // ConvexHullShape
+          Mat3f absR = glm::mat3_cast(t.orientation);
+          for (int c = 0; c < 3; ++c) { absR[c] = glm::abs(absR[c]); }
+          Vec3f extent = absR * s.halfExtents;
+          return AABB(t.position - extent, t.position + extent);
+        } else if constexpr (std::is_same_v<ShapeT, ConvexHullShape>) {
           return transformedCorners(s.localVertices, t);
+        } else {
+          AABB box = worldAABB(s.children.front().shape,
+                               compose(t, s.children.front().localTransform));
+          for (std::size_t i = 1; i < s.children.size(); ++i) {
+            box = unionAABB(box,
+                            worldAABB(s.children[i].shape,
+                                      compose(t, s.children[i].localTransform)));
+          }
+          return box;
         }
       },
       shape);
