@@ -237,8 +237,12 @@ Mat3f invertInertiaTensor(const Mat3f& tensor) noexcept {
                  safeInv(tensor[1][1]), 0.0f, 0.0f, 0.0f,
                  safeInv(tensor[2][2]));
   }
-  float det = glm::determinant(tensor);
-  return (std::abs(det) > 1e-12f) ? glm::inverse(tensor) : Mat3f(0.0f);
+  const float scale = (tensor[0][0] + tensor[1][1] + tensor[2][2]) / 3.0f;
+  if (!(scale > 1e-12f)) { return Mat3f(0.0f); }
+  const float det = glm::determinant(tensor);
+  return (std::abs(det) > 1e-9f * scale * scale * scale)
+             ? glm::inverse(tensor)
+             : Mat3f(0.0f);
 }
 
 Vec3f worldSupport(const ShapeVariant& shape, const Transform& t,

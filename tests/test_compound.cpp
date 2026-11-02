@@ -123,6 +123,11 @@ TEST(CompoundShapeTest, OffDiagonalInertiaAndFullInverse) {
 
   MassProperties stat = computeMassProperties(ShapeVariant{c}, 0.0f);
   expectMatNear(stat.invLocalInertiaTensor, Mat3f(0.0f), 0.0f);
+
+  // small/light off-diagonal tensor (det ~ 1e-14) still inverts accurately
+  MassProperties smallMp = computeMassProperties(ShapeVariant{c}, 1e-4f);
+  expectMatNear(smallMp.localInertiaTensor * smallMp.invLocalInertiaTensor,
+                Mat3f(1.0f), 1e-4f);
 }
 
 TEST(CompoundShapeTest, SingleCenteredChildMatchesLeaf) {

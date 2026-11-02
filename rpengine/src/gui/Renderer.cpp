@@ -276,12 +276,15 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
 
 void Renderer::drawHullBodies(float alpha, const Mat4f& viewProjection) {
   const BodyStore& bodies = sim_.world().bodies();
+  bool is2D = imguiCtrl_.cameraMode() == CameraMode::Orthographic2D;
 
   auto drawHull = [&](const render::Mesh& mesh, const Transform& t,
                       const Vec4f& color) {
+    Vec3f position = t.position;
+    if (is2D) { position.z = 0.0f; }
     hullBatch_.begin();
     hullBatch_.add(
-        render::InstanceData{t.position, t.orientation, Vec3f(1.0f), color});
+        render::InstanceData{position, t.orientation, Vec3f(1.0f), color});
     hullBatch_.render(mesh, shader_, viewProjection);
   };
 
