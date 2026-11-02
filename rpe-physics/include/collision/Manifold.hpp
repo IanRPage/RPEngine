@@ -25,6 +25,8 @@ struct Manifold {
   Vec3f normal;
   std::array<ManifoldPoint, 4> points;
   uint8_t pointCount{0};
+  uint32_t childIndexA{0};
+  uint32_t childIndexB{0};
 };
 
 Manifold buildManifold(const ShapeVariant& shapeA, const Transform& ta,

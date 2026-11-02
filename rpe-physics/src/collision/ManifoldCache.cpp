@@ -3,21 +3,37 @@
 #include <algorithm>
 #include <cstdint>
 
-size_t ManifoldCache::PairHash::operator()(
-    const std::pair<BodyHandle, BodyHandle>& p) const noexcept {
+size_t ManifoldCache::KeyHash::operator()(const Key& k) const noexcept {
   BodyHandleHash h;
-  size_t ha = h(p.first);
-  size_t hb = h(p.second);
-  return ha ^ (hb + 0x9e3779b9 + (ha << 6) + (ha >> 2));
+  size_t seed = h(k.first);
+  auto mix = [&seed](size_t v) {
+    seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  };
+  mix(h(k.second));
+  mix(std::hash<uint64_t>{}((static_cast<uint64_t>(k.childFirst) << 32) |
+                            k.childSecond));
+  return seed;
 }
 
-std::pair<BodyHandle, BodyHandle> ManifoldCache::canonicalize(
-    BodyHandle a, BodyHandle b) noexcept {
-  return (a < b) ? std::make_pair(a, b) : std::make_pair(b, a);
+ManifoldCache::Key ManifoldCache::canonicalize(BodyHandle a, BodyHandle b,
+                                               uint32_t childA,
+                                               uint32_t childB) noexcept {
+  if (a < b) { return Key{a, b, childA, childB}; }
+  return Key{b, a, childB, childA};
+}
+
+ManifoldCache::Key ManifoldCache::keyOf(const Manifold& m) noexcept {
+  return canonicalize(m.bodyA, m.bodyB, m.childIndexA, m.childIndexB);
 }
 
 Manifold& ManifoldCache::getOrCreate(BodyHandle a, BodyHandle b) noexcept {
-  auto key = canonicalize(a, b);
+  return getOrCreate(a, b, 0, 0);
+}
+
+Manifold& ManifoldCache::getOrCreate(BodyHandle a, BodyHandle b,
+                                     uint32_t childA,
+                                     uint32_t childB) noexcept {
+  Key key = canonicalize(a, b, childA, childB);
   auto it = indexOf_.find(key);
   std::size_t idx;
   if (it != indexOf_.end()) {
@@ -27,6 +43,8 @@ Manifold& ManifoldCache::getOrCreate(BodyHandle a, BodyHandle b) noexcept {
     Manifold m{};
     m.bodyA = key.first;
     m.bodyB = key.second;
+    m.childIndexA = key.childFirst;
+    m.childIndexB = key.childSecond;
     manifolds_.push_back(m);
     visited_.push_back(false);
     indexOf_.emplace(key, idx);
@@ -37,8 +55,13 @@ Manifold& ManifoldCache::getOrCreate(BodyHandle a, BodyHandle b) noexcept {
 
 void ManifoldCache::updateManifold(const Manifold& freshManifold,
                                    float matchThreshold) noexcept {
-  Manifold& cached = getOrCreate(freshManifold.bodyA, freshManifold.bodyB);
+  Manifold& cached =
+      getOrCreate(freshManifold.bodyA, freshManifold.bodyB,
+                  freshManifold.childIndexA, freshManifold.childIndexB);
   Manifold oldSnapshot = cached;
+
+  const bool swapped = oldSnapshot.pointCount > 0 &&
+                       !(oldSnapshot.bodyA == freshManifold.bodyA);
 
   Manifold merged = freshManifold;
   for (std::uint8_t i = 0; i < merged.pointCount; ++i) {
@@ -46,7 +69,9 @@ void ManifoldCache::updateManifold(const Manifold& freshManifold,
     float bestDist = matchThreshold;
     int bestJ = -1;
     for (std::uint8_t j = 0; j < oldSnapshot.pointCount; ++j) {
-      float d = glm::length(oldSnapshot.points[j].localAnchorA - newAnchor);
+      const Vec3f& oldAnchor = swapped ? oldSnapshot.points[j].localAnchorB
+                                       : oldSnapshot.points[j].localAnchorA;
+      float d = glm::length(oldAnchor - newAnchor);
       if (d < bestDist) {
         bestDist = d;
         bestJ = static_cast<int>(j);
@@ -54,10 +79,12 @@ void ManifoldCache::updateManifold(const Manifold& freshManifold,
     }
     if (bestJ >= 0) {
       merged.points[i].normalImpulse = oldSnapshot.points[bestJ].normalImpulse;
-      merged.points[i].tangentImpulse[0] =
-          oldSnapshot.points[bestJ].tangentImpulse[0];
-      merged.points[i].tangentImpulse[1] =
-          oldSnapshot.points[bestJ].tangentImpulse[1];
+      if (!swapped) {
+        merged.points[i].tangentImpulse[0] =
+            oldSnapshot.points[bestJ].tangentImpulse[0];
+        merged.points[i].tangentImpulse[1] =
+            oldSnapshot.points[bestJ].tangentImpulse[1];
+      }
     }
   }
   cached = merged;
@@ -74,14 +101,12 @@ void ManifoldCache::endFrame() noexcept {
       ++i;
       continue;
     }
-    auto removedKey = canonicalize(manifolds_[i].bodyA, manifolds_[i].bodyB);
-    indexOf_.erase(removedKey);
+    indexOf_.erase(keyOf(manifolds_[i]));
     std::size_t lastIdx = manifolds_.size() - 1;
     if (i != lastIdx) {
       manifolds_[i] = manifolds_[lastIdx];
       visited_[i] = visited_[lastIdx];
-      auto movedKey = canonicalize(manifolds_[i].bodyA, manifolds_[i].bodyB);
-      indexOf_[movedKey] = i;
+      indexOf_[keyOf(manifolds_[i])] = i;
     }
     manifolds_.pop_back();
     visited_.pop_back();
