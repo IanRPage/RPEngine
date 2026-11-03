@@ -182,67 +182,34 @@ float BodyStore::sleepTimer(BodyHandle handle) const noexcept {
   return slots_[handle.index].sleepTimer;
 }
 
-void BodyStore::sleepSlot(BodyHandle handle, uint32_t islandId) noexcept {
-  Slot& slot = slots_[handle.index];
-  if (!slot.sleeping) { sleepingCount_++; }
-  slot.sleeping = true;
-  slot.sleepIsland = islandId;
-  slot.linearVelocity = Vec3f(0.0f);
-  slot.angularVelocity = Vec3f(0.0f);
-  slot.prevPosition = slot.position;
-  slot.prevOrientation = slot.orientation;
-}
-
 void BodyStore::wakeSlot(Slot& slot) noexcept {
   slot.sleepTimer = 0.0f;
   if (!slot.sleeping) { return; }
   slot.sleeping = false;
-  slot.sleepIsland = 0;
   sleepingCount_--;
 }
 
 void BodyStore::putToSleep(BodyHandle handle) noexcept {
-  putIslandToSleep(std::span<const BodyHandle>(&handle, 1));
-}
-
-void BodyStore::putIslandToSleep(std::span<const BodyHandle> island) noexcept {
-  uint32_t islandId = nextIslandId_++;
-  if (islandId == 0) { islandId = nextIslandId_++; }
-
-  std::vector<BodyHandle> members;
-  members.reserve(island.size());
-  for (BodyHandle h : island) {
-    if (!isLive(h) || slots_[h.index].invMass <= 0.0f) { continue; }
-    sleepSlot(h, islandId);
-    members.push_back(h);
-  }
-  if (!members.empty()) { sleepingIslands_[islandId] = std::move(members); }
+  if (!isLive(handle)) { return; }
+  Slot& slot = slots_[handle.index];
+  if (slot.invMass <= 0.0f) { return; }
+  if (!slot.sleeping) { sleepingCount_++; }
+  slot.sleeping = true;
+  slot.linearVelocity = Vec3f(0.0f);
+  slot.angularVelocity = Vec3f(0.0f);
+  slot.prevPosition = slot.position;
+  slot.prevOrientation = slot.orientation;
+  slot.aabb = worldAABB(slot.shape, Transform{slot.position, slot.orientation});
+  slot.displacement = Vec3f(0.0f);
 }
 
 void BodyStore::wake(BodyHandle handle) noexcept {
   if (!isLive(handle)) { return; }
-  Slot& slot = slots_[handle.index];
-  if (!slot.sleeping) {
-    slot.sleepTimer = 0.0f;
-    return;
-  }
-
-  const uint32_t islandId = slot.sleepIsland;
-  wakeSlot(slot);
-
-  auto it = sleepingIslands_.find(islandId);
-  if (it == sleepingIslands_.end()) { return; }
-  for (BodyHandle member : it->second) {
-    if (!isLive(member)) { continue; }
-    Slot& m = slots_[member.index];
-    if (m.sleeping && m.sleepIsland == islandId) { wakeSlot(m); }
-  }
-  sleepingIslands_.erase(it);
+  wakeSlot(slots_[handle.index]);
 }
 
 void BodyStore::wakeAll() noexcept {
   for (BodyHandle h : liveHandles_) { wakeSlot(slots_[h.index]); }
-  sleepingIslands_.clear();
 }
 
 size_t BodyStore::sleepingCount() const noexcept { return sleepingCount_; }

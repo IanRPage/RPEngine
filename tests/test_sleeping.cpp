@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <atomic>
 #include <core/World.hpp>
 #include <sim/Simulator.hpp>
 
@@ -33,6 +32,7 @@ void stepFor(World& world, float seconds) {
 TEST(SleepingTest, ConfigDefaults) {
   SolverConfig c;
   EXPECT_TRUE(c.enableSleeping);
+  EXPECT_FLOAT_EQ(c.restitutionVelocityThreshold, 0.5f);
   EXPECT_FLOAT_EQ(c.linearSleepThreshold, 0.05f);
   EXPECT_FLOAT_EQ(c.angularSleepThreshold, 0.05f);
   EXPECT_FLOAT_EQ(c.timeToSleep, 0.5f);
@@ -53,6 +53,7 @@ TEST(SleepingTest, BodyStoreSleepWakeApi) {
   b.putToSleep(box);
   EXPECT_TRUE(b.isSleeping(box));
   EXPECT_EQ(b.linearVelocity(box), Vec3f(0.0f));
+  EXPECT_EQ(b.displacement(box), Vec3f(0.0f));
   EXPECT_EQ(world.sleepingBodyCount(), 1u);
 
   b.wake(box);
@@ -75,12 +76,13 @@ TEST(SleepingTest, RestingBoxFallsAsleepAndStaysPut) {
   EXPECT_EQ(world.bodies().position(box), pos);
   EXPECT_EQ(world.bodies().orientation(box), q);
   EXPECT_EQ(world.bodies().prevPosition(box), pos);
+  EXPECT_EQ(world.bodies().prevOrientation(box), q);
   EXPECT_EQ(world.bodies().linearVelocity(box), Vec3f(0.0f));
 }
 
 TEST(SleepingTest, SleepingSkipsNarrowphase) {
   World world;
-  std::atomic<int> calls{0};
+  int calls = 0;
   world.setNarrowphaseFns(
       [&](const ShapeVariant& a, const Transform& ta, const ShapeVariant& b,
           const Transform& tb) {
@@ -94,7 +96,7 @@ TEST(SleepingTest, SleepingSkipsNarrowphase) {
   ASSERT_TRUE(world.bodies().isSleeping(box));
   calls = 0;
   stepFor(world, 1.0f);
-  EXPECT_EQ(calls.load(), 0);
+  EXPECT_EQ(calls, 0);
 }
 
 TEST(SleepingTest, StackSleepsAsIslandAndWakesTogether) {
@@ -114,29 +116,38 @@ TEST(SleepingTest, StackSleepsAsIslandAndWakesTogether) {
   ASSERT_EQ(world.sleepingBodyCount(), 3u);
   float topY = s.position(c).y;
 
-  s.wake(b);  // whole island wakes immediately
-  EXPECT_FALSE(s.isSleeping(a));
-  EXPECT_FALSE(s.isSleeping(c));
-
-  // stack stays stable after waking (warm-start retained)
+  s.wake(b);
   world.step(kDt);
+  EXPECT_FALSE(s.isSleeping(a));
+  EXPECT_FALSE(s.isSleeping(b));
+  EXPECT_FALSE(s.isSleeping(c));
   EXPECT_NEAR(s.position(c).y, topY, 1e-3f);
+
   stepFor(world, 3.0f);
   EXPECT_EQ(world.sleepingBodyCount(), 3u);
   EXPECT_NEAR(s.position(c).y, topY, 2e-2f);
 }
 
-TEST(SleepingTest, SeparateIslandsSleepIndependently) {
+TEST(SleepingTest, SeparateIslandsOnSameStaticGroundAreIndependent) {
   World world;
   addGround(world);
-  BodyHandle resting = addBox(world, Vec3f(-5.0f, 0.5f, 0.0f));
-  BodyHandle moving = addBox(world, Vec3f(5.0f, 5.0f, 0.0f));
-  world.setGravity(Vec3f(0.0f));
-  // keep `moving` drifting through free space
-  world.bodies().linearVelocity(moving) = Vec3f(0.0f, 0.0f, 0.3f);
-  stepFor(world, 1.0f);
-  EXPECT_TRUE(world.bodies().isSleeping(resting));
-  EXPECT_FALSE(world.bodies().isSleeping(moving));
+  BodyHandle left = addBox(world, Vec3f(-5.0f, 0.5f, 0.0f));
+  BodyHandle right = addBox(world, Vec3f(5.0f, 0.5f, 0.0f));
+  world.bodies().linearVelocity(right) = Vec3f(0.0f, 4.0f, 0.0f);
+
+  stepFor(world, 0.6f);
+  EXPECT_TRUE(world.bodies().isSleeping(left));
+  EXPECT_FALSE(world.bodies().isSleeping(right));
+
+  stepFor(world, 3.0f);
+  ASSERT_TRUE(world.bodies().isSleeping(left));
+  ASSERT_TRUE(world.bodies().isSleeping(right));
+
+  // static ground does not bridge islands: waking left leaves right asleep
+  world.bodies().wake(left);
+  world.step(kDt);
+  EXPECT_FALSE(world.bodies().isSleeping(left));
+  EXPECT_TRUE(world.bodies().isSleeping(right));
 }
 
 TEST(SleepingTest, AwakeBodyHittingSleepingIslandWakesIt) {
@@ -159,55 +170,42 @@ TEST(SleepingTest, AwakeBodyHittingSleepingIslandWakesIt) {
   EXPECT_EQ(world.sleepingBodyCount(), 3u);
 }
 
-TEST(SleepingTest, RemovingSupportWakesSleepers) {
-  World world;
-  BodyHandle ground = addGround(world);
-  BodyHandle box = addBox(world, Vec3f(0.0f, 0.5f, 0.0f));
-  stepFor(world, 3.0f);
-  ASSERT_TRUE(world.bodies().isSleeping(box));
-  float y = world.bodies().position(box).y;
-
-  world.bodies().removeBody(ground);
-  world.step(kDt);
-  EXPECT_FALSE(world.bodies().isSleeping(box));
-  stepFor(world, 0.5f);
-  EXPECT_LT(world.bodies().position(box).y, y - 0.5f);
-}
-
-TEST(SleepingTest, WorldRemoveBodyWakesImmediately) {
+TEST(SleepingTest, RemovingSupportWakesSleepingIsland) {
   World world;
   addGround(world);
   BodyHandle a = addBox(world, Vec3f(0.0f, 0.5f, 0.0f));
   BodyHandle b = addBox(world, Vec3f(0.0f, 1.5f, 0.0f));
   stepFor(world, 3.0f);
   ASSERT_EQ(world.sleepingBodyCount(), 2u);
-  world.removeBody(a);
+  float topY = world.bodies().position(b).y;
+
+  world.bodies().removeBody(a);
+  EXPECT_EQ(world.sleepingBodyCount(), 1u);
+
+  world.step(kDt);
   EXPECT_FALSE(world.bodies().isSleeping(b));
-  EXPECT_EQ(world.sleepingBodyCount(), 0u);
+  stepFor(world, 0.5f);
+  EXPECT_LT(world.bodies().position(b).y, topY - 0.5f);
 }
 
-TEST(SleepingTest, DisablingSleepWakesEverything) {
+TEST(SleepingTest, DisablingSleepAndWakeAll) {
   World world;
   addGround(world);
   addBox(world, Vec3f(0.0f, 0.5f, 0.0f));
   addBox(world, Vec3f(3.0f, 0.5f, 0.0f));
   stepFor(world, 3.0f);
   ASSERT_EQ(world.sleepingBodyCount(), 2u);
+
+  world.wakeAll();
+  EXPECT_EQ(world.sleepingBodyCount(), 0u);
+
+  stepFor(world, 3.0f);
+  ASSERT_EQ(world.sleepingBodyCount(), 2u);
+
   world.config().enableSleeping = false;
   world.step(kDt);
   EXPECT_EQ(world.sleepingBodyCount(), 0u);
   stepFor(world, 3.0f);
-  EXPECT_EQ(world.sleepingBodyCount(), 0u);
-}
-
-TEST(SleepingTest, WakeAll) {
-  World world;
-  addGround(world);
-  addBox(world, Vec3f(0.0f, 0.5f, 0.0f));
-  addBox(world, Vec3f(3.0f, 0.5f, 0.0f));
-  stepFor(world, 3.0f);
-  ASSERT_EQ(world.sleepingBodyCount(), 2u);
-  world.wakeAll();
   EXPECT_EQ(world.sleepingBodyCount(), 0u);
 }
 
@@ -232,12 +230,4 @@ TEST(SleepingTest, BoxPileWithRestitutionSettlesAsleep) {
   }
   EXPECT_GT(onPlatform, 20u);
   EXPECT_EQ(world.sleepingBodyCount(), onPlatform);
-
-  // sleeping bodies don't move between snapshots. render interpolation is
-  // stationary
-  for (BodyHandle h : boxes) {
-    if (!world.bodies().isSleeping(h)) { continue; }
-    EXPECT_EQ(world.bodies().prevPosition(h), world.bodies().position(h));
-    EXPECT_EQ(world.bodies().prevOrientation(h), world.bodies().orientation(h));
-  }
 }

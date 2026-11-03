@@ -26,6 +26,11 @@ void reclamp2D(BodyStore& bodies, BodyHandle h) noexcept {
   q = glm::normalize(q);
 }
 
+bool isSleepingPair(const BodyStore& bodies, BodyHandle a,
+                    BodyHandle b) noexcept {
+  return bodies.isSleeping(a) || bodies.isSleeping(b);
+}
+
 }  // namespace
 
 const Mat3f& InvInertiaWorldCache::get(BodyHandle h) noexcept {
@@ -51,6 +56,7 @@ std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
   for (const Manifold& m : manifolds) {
     BodyHandle a = m.bodyA;
     BodyHandle b = m.bodyB;
+    if (isSleepingPair(bodies, a, b)) { continue; }
     Transform ta = bodies.transform(a);
     Transform tb = bodies.transform(b);
     float combinedRestitution =
@@ -80,6 +86,7 @@ void warmStart(std::span<Manifold> manifolds, BodyStore& bodies,
   for (Manifold& m : manifolds) {
     BodyHandle a = m.bodyA;
     BodyHandle b = m.bodyB;
+    if (isSleepingPair(bodies, a, b)) { continue; }
     Transform ta = bodies.transform(a);
     Transform tb = bodies.transform(b);
     const Mat3f& invIA = invInertiaCache.get(a);
@@ -118,6 +125,7 @@ void solveVelocity(std::span<Manifold> manifolds, BodyStore& bodies,
   for (Manifold& m : manifolds) {
     BodyHandle a = m.bodyA;
     BodyHandle b = m.bodyB;
+    if (isSleepingPair(bodies, a, b)) { continue; }
     Transform ta = bodies.transform(a);
     Transform tb = bodies.transform(b);
     const Mat3f& invIA = invInertiaCache.get(a);
@@ -205,6 +213,7 @@ void solvePosition(std::span<Manifold> manifolds, BodyStore& bodies,
   for (Manifold& m : manifolds) {
     BodyHandle a = m.bodyA;
     BodyHandle b = m.bodyB;
+    if (isSleepingPair(bodies, a, b)) { continue; }
     float invMassA = bodies.invMass(a);
     float invMassB = bodies.invMass(b);
 

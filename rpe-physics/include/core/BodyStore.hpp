@@ -6,8 +6,6 @@
 #include <core/BodyHandle.hpp>
 #include <math/Transform.hpp>
 #include <math/Types.hpp>
-#include <span>
-#include <unordered_map>
 #include <vector>
 
 struct BodyDesc {
@@ -62,18 +60,12 @@ class BodyStore {
   Transform transform(BodyHandle handle) const noexcept;
 
   bool isSleeping(BodyHandle handle) const noexcept;
-
   float& sleepTimer(BodyHandle handle) noexcept;
   float sleepTimer(BodyHandle handle) const noexcept;
 
   void putToSleep(BodyHandle handle) noexcept;
-
-  void putIslandToSleep(std::span<const BodyHandle> island) noexcept;
-
   void wake(BodyHandle handle) noexcept;
-
   void wakeAll() noexcept;
-
   size_t sleepingCount() const noexcept;
 
   const std::vector<BodyHandle>& liveHandles() const noexcept {
@@ -101,14 +93,12 @@ class BodyStore {
 
     bool sleeping = false;
     float sleepTimer = 0.0f;
-    uint32_t sleepIsland = 0;
 
     uint32_t generation = 0;
     bool alive = false;
   };
 
   uint32_t allocateSlot() noexcept;
-  void sleepSlot(BodyHandle handle, uint32_t islandId) noexcept;
   void wakeSlot(Slot& slot) noexcept;
 
   std::vector<Slot> slots_;
@@ -117,8 +107,6 @@ class BodyStore {
 
   std::vector<size_t> liveIndex_;
 
-  std::unordered_map<uint32_t, std::vector<BodyHandle>> sleepingIslands_;
-  uint32_t nextIslandId_ = 1;
   size_t sleepingCount_ = 0;
 };
 

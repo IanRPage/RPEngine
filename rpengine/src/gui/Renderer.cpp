@@ -37,11 +37,9 @@ std::string expandTilde(const std::string& path) {
 
 Transform interpolatedTransform(const BodyStore& bodies, BodyHandle handle,
                                 float alpha) noexcept {
-  float bodyAlpha = bodies.isSleeping(handle) ? 1.0f : alpha;
   return Transform{
-      glm::mix(bodies.prevPosition(handle), bodies.position(handle), bodyAlpha),
-      nlerp(bodies.prevOrientation(handle), bodies.orientation(handle),
-            bodyAlpha)};
+      glm::mix(bodies.prevPosition(handle), bodies.position(handle), alpha),
+      nlerp(bodies.prevOrientation(handle), bodies.orientation(handle), alpha)};
 }
 
 }  // namespace
