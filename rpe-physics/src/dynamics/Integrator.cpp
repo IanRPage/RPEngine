@@ -6,14 +6,14 @@
 void integrateVelocity(BodyStore& bodies, float dt, Vec3f gravity) noexcept {
   Vec3f deltaVelocity = gravity * dt;
   for (BodyHandle h : bodies.liveHandles()) {
-    if (bodies.invMass(h) <= 0.0f) { continue; }
+    if (bodies.invMass(h) <= 0.0f || bodies.isSleeping(h)) { continue; }
     bodies.linearVelocity(h) += deltaVelocity;
   }
 }
 
 void integratePosition(BodyStore& bodies, float dt) noexcept {
   for (BodyHandle h : bodies.liveHandles()) {
-    if (bodies.invMass(h) <= 0.0f) { continue; }
+    if (bodies.invMass(h) <= 0.0f || bodies.isSleeping(h)) { continue; }
 
     if (bodies.constrainTo2D(h)) {
       apply2DConstraint(bodies.position(h), bodies.linearVelocity(h),
