@@ -185,11 +185,31 @@ bool World::isAwakeDynamic(BodyHandle h) const noexcept {
 }
 
 void World::wakeBodiesTouchingRemoved() noexcept {
+  auto movedSincePrev = [this](BodyHandle h) noexcept {
+    return bodies_.position(h) != bodies_.prevPosition(h) ||
+           bodies_.orientation(h) != bodies_.prevOrientation(h);
+  };
+
   for (const Manifold& m : manifoldCache_.activeManifolds()) {
     bool liveA = bodies_.isLive(m.bodyA);
     bool liveB = bodies_.isLive(m.bodyB);
-    if (liveA && !liveB) { bodies_.wake(m.bodyA); }
-    if (liveB && !liveA) { bodies_.wake(m.bodyB); }
+    if (liveA && (!liveB || (bodies_.invMass(m.bodyB) <= 0.0f &&
+                             movedSincePrev(m.bodyB)))) {
+      bodies_.wake(m.bodyA);
+    }
+    if (liveB && (!liveA || (bodies_.invMass(m.bodyA) <= 0.0f &&
+                             movedSincePrev(m.bodyA)))) {
+      bodies_.wake(m.bodyB);
+    }
+  }
+
+  for (BodyHandle h : bodies_.liveHandles()) {
+    if (bodies_.isSleeping(h) && movedSincePrev(h)) {
+      bodies_.wake(h);
+    } else if (bodies_.invMass(h) <= 0.0f && movedSincePrev(h)) {
+      bodies_.prevPosition(h) = bodies_.position(h);
+      bodies_.prevOrientation(h) = bodies_.orientation(h);
+    }
   }
 }
 

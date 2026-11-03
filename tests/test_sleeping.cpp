@@ -170,9 +170,9 @@ TEST(SleepingTest, AwakeBodyHittingSleepingIslandWakesIt) {
   EXPECT_EQ(world.sleepingBodyCount(), 3u);
 }
 
-TEST(SleepingTest, RemovingSupportWakesSleepingIsland) {
+TEST(SleepingTest, RemovingOrMovingSupportWakesSleepingIsland) {
   World world;
-  addGround(world);
+  BodyHandle ground = addGround(world);
   BodyHandle a = addBox(world, Vec3f(0.0f, 0.5f, 0.0f));
   BodyHandle b = addBox(world, Vec3f(0.0f, 1.5f, 0.0f));
   stepFor(world, 3.0f);
@@ -184,8 +184,17 @@ TEST(SleepingTest, RemovingSupportWakesSleepingIsland) {
 
   world.step(kDt);
   EXPECT_FALSE(world.bodies().isSleeping(b));
-  stepFor(world, 0.5f);
+  stepFor(world, 3.0f);
   EXPECT_LT(world.bodies().position(b).y, topY - 0.5f);
+  ASSERT_TRUE(world.bodies().isSleeping(b));
+
+  // moving static support away wakes the resting sleeper on the next step
+  float settledY = world.bodies().position(b).y;
+  world.bodies().position(ground).y -= 5.0f;
+  world.step(kDt);
+  EXPECT_FALSE(world.bodies().isSleeping(b));
+  stepFor(world, 0.5f);
+  EXPECT_LT(world.bodies().position(b).y, settledY - 0.5f);
 }
 
 TEST(SleepingTest, DisablingSleepAndWakeAll) {
