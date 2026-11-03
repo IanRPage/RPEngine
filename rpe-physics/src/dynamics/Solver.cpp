@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <dynamics/Friction.hpp>
 #include <math/Rotation.hpp>
 
@@ -39,6 +40,13 @@ void InvInertiaWorldCache::invalidate(BodyHandle h) noexcept {
 
 std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
                                           const BodyStore& bodies) noexcept {
+  return prepareRestitutionBias(manifolds, bodies,
+                                -std::numeric_limits<float>::infinity());
+}
+
+std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
+                                          const BodyStore& bodies,
+                                          float velocityThreshold) noexcept {
   std::vector<float> bias;
   for (const Manifold& m : manifolds) {
     BodyHandle a = m.bodyA;
@@ -57,7 +65,11 @@ std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
                      (bodies.linearVelocity(a) +
                       glm::cross(bodies.angularVelocity(a), rA));
       float relVelNormal = glm::dot(relVel, m.normal);
-      bias.push_back(-combinedRestitution * relVelNormal);
+      if (relVelNormal >= -velocityThreshold) {
+        bias.push_back(0.0f);
+      } else {
+        bias.push_back(-combinedRestitution * relVelNormal);
+      }
     }
   }
   return bias;
