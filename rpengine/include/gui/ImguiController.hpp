@@ -21,7 +21,8 @@ class ImguiController {
   ImguiController& operator=(const ImguiController&) = delete;
 
   void beginFrame() noexcept;
-  void renderPanels(float frameTimeMs, size_t liveBodyCount);
+  void renderPanels(float frameTimeMs, size_t liveBodyCount,
+                    size_t sleepingBodyCount = 0);
   void endFrame() noexcept;
 
   CameraMode cameraMode() const noexcept { return cameraMode_; }
@@ -31,6 +32,7 @@ class ImguiController {
   bool consumeSpawnCapsuleRequest() noexcept;
   bool consumeSpawnCompoundRequest() noexcept;
   bool consumeResetRequest() noexcept;
+  bool consumeWakeAllRequest() noexcept;
 
   bool consumeScreenshotRequest(std::string& path);
   void setLastScreenshotStatus(std::string status) {
@@ -39,7 +41,8 @@ class ImguiController {
 
  private:
   void renderCameraControls();
-  void renderFrameStats(float frameTimeMs, size_t liveBodyCount);
+  void renderFrameStats(float frameTimeMs, size_t liveBodyCount,
+                        size_t sleepingBodyCount);
   void renderSpawnControls();
   void renderScreenshotControls();
 
@@ -49,6 +52,7 @@ class ImguiController {
   bool spawnCapsuleRequested_ = false;
   bool spawnCompoundRequested_ = false;
   bool resetRequested_ = false;
+  bool wakeAllRequested_ = false;
 
   bool screenshotRequested_ = false;
   std::string screenshotPath_;

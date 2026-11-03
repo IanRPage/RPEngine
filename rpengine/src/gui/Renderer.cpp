@@ -37,9 +37,11 @@ std::string expandTilde(const std::string& path) {
 
 Transform interpolatedTransform(const BodyStore& bodies, BodyHandle handle,
                                 float alpha) noexcept {
+  float bodyAlpha = bodies.isSleeping(handle) ? 1.0f : alpha;
   return Transform{
-      glm::mix(bodies.prevPosition(handle), bodies.position(handle), alpha),
-      nlerp(bodies.prevOrientation(handle), bodies.orientation(handle), alpha)};
+      glm::mix(bodies.prevPosition(handle), bodies.position(handle), bodyAlpha),
+      nlerp(bodies.prevOrientation(handle), bodies.orientation(handle),
+            bodyAlpha)};
 }
 
 }  // namespace
@@ -210,6 +212,8 @@ void Renderer::handlePendingSpawnRequests() {
     }
     for (BodyHandle h : dynamicHandles) { store.removeBody(h); }
   }
+
+  if (imguiCtrl_.consumeWakeAllRequest()) { world.wakeAll(); }
 }
 
 void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
@@ -405,7 +409,8 @@ void Renderer::drawFrame() {
   drawShapeBodies(alpha, viewProjection);
   drawHullBodies(alpha, viewProjection);
 
-  imguiCtrl_.renderPanels(frameTimeMs, sim_.world().bodies().size());
+  imguiCtrl_.renderPanels(frameTimeMs, sim_.world().bodies().size(),
+                          sim_.world().sleepingBodyCount());
   imguiCtrl_.endFrame();
 
   handleScreenshotRequest();

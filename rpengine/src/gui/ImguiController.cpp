@@ -44,7 +44,8 @@ void ImguiController::beginFrame() noexcept {
   ImGui::NewFrame();
 }
 
-void ImguiController::renderPanels(float frameTimeMs, size_t liveBodyCount) {
+void ImguiController::renderPanels(float frameTimeMs, size_t liveBodyCount,
+                                   size_t sleepingBodyCount) {
   const ImGuiIO& io = ImGui::GetIO();
 
   ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
@@ -55,7 +56,7 @@ void ImguiController::renderPanels(float frameTimeMs, size_t liveBodyCount) {
   ImGui::Begin("RPEngine", nullptr, flags);
 
   if (ImGui::CollapsingHeader("Frame Stats", ImGuiTreeNodeFlags_DefaultOpen)) {
-    renderFrameStats(frameTimeMs, liveBodyCount);
+    renderFrameStats(frameTimeMs, liveBodyCount, sleepingBodyCount);
   }
   if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
     renderCameraControls();
@@ -76,10 +77,12 @@ void ImguiController::endFrame() noexcept {
 }
 
 void ImguiController::renderFrameStats(float frameTimeMs,
-                                       size_t liveBodyCount) {
+                                       size_t liveBodyCount,
+                                       size_t sleepingBodyCount) {
   ImGui::Text("Frame time: %.3f ms (%.1f FPS)", frameTimeMs,
               frameTimeMs > 0.0f ? 1000.0f / frameTimeMs : 0.0f);
   ImGui::Text("Live bodies: %zu", liveBodyCount);
+  ImGui::Text("Sleeping bodies: %zu", sleepingBodyCount);
 }
 
 void ImguiController::renderCameraControls() {
@@ -108,6 +111,8 @@ void ImguiController::renderSpawnControls() {
   ImGui::SameLine();
   if (ImGui::Button("Spawn Compound")) { spawnCompoundRequested_ = true; }
   if (ImGui::Button("Reset Scene")) { resetRequested_ = true; }
+  ImGui::SameLine();
+  if (ImGui::Button("Wake All")) { wakeAllRequested_ = true; }
 }
 
 void ImguiController::renderScreenshotControls() {
@@ -170,6 +175,12 @@ bool ImguiController::consumeSpawnCompoundRequest() noexcept {
 bool ImguiController::consumeResetRequest() noexcept {
   bool value = resetRequested_;
   resetRequested_ = false;
+  return value;
+}
+
+bool ImguiController::consumeWakeAllRequest() noexcept {
+  bool value = wakeAllRequested_;
+  wakeAllRequested_ = false;
   return value;
 }
 
