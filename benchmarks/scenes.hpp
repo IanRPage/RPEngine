@@ -90,4 +90,64 @@ inline Scene buildPile(World& world, bool mixed, int n) {
   return scene;
 }
 
+inline Scene buildDemoScene(World& world, int n = 1000) {
+  CompoundShape openBox({
+      CompoundChild{BoxShape{Vec3f(8.5f, 0.5f, 8.5f)},
+                    Transform{Vec3f(0.0f, -0.5f, 0.0f)}},
+      CompoundChild{BoxShape{Vec3f(0.5f, 3.5f, 8.5f)},
+                    Transform{Vec3f(-8.0f, 3.5f, 0.0f)}},
+      CompoundChild{BoxShape{Vec3f(0.5f, 3.5f, 8.5f)},
+                    Transform{Vec3f(8.0f, 3.5f, 0.0f)}},
+      CompoundChild{BoxShape{Vec3f(7.5f, 3.5f, 0.5f)},
+                    Transform{Vec3f(0.0f, 3.5f, -8.0f)}},
+      CompoundChild{BoxShape{Vec3f(7.5f, 3.5f, 0.5f)},
+                    Transform{Vec3f(0.0f, 3.5f, 8.0f)}},
+  });
+  world.createStaticBody(std::move(openBox), Transform{}, 0.5f, 0.3f);
+
+  CompoundShape hammer =
+      CompoundShape({
+          CompoundChild{BoxShape{Vec3f(0.15f, 0.6f, 0.15f)}, Transform{}, 1.0f},
+          CompoundChild{BoxShape{Vec3f(0.5f, 0.2f, 0.25f)},
+                        Transform{Vec3f(0.0f, 0.8f, 0.0f)}, 3.0f},
+          CompoundChild{SphereShape{0.25f},
+                        Transform{Vec3f(0.0f, -0.75f, 0.0f)}, 1.0f},
+      })
+          .recentered();
+
+  Scene scene;
+  scene.min = Vec3f(-200.0f, -600.0f, -200.0f);
+  scene.max =
+      Vec3f(200.0f, 7.0f + static_cast<float>(n) * 0.5f + 50.0f, 200.0f);
+
+  std::mt19937 rng(0x5EED);
+  for (int i = 0; i < n; ++i) {
+    float x = static_cast<float>(static_cast<int>(rng() % 800) - 400) / 100.0f;
+    float z = static_cast<float>(static_cast<int>(rng() % 800) - 400) / 100.0f;
+    float y = 7.0f + static_cast<float>(i) * 0.5f;
+    Transform t{Vec3f(x, y, z), Quatf(1.0f, 0.0f, 0.0f, 0.0f)};
+
+    BodyHandle handle;
+    switch (i % 4) {
+      case 0:
+        handle =
+            world.createDynamicBody(SphereShape{0.5f}, t, 1.0f, 0.5f, 0.5f);
+        break;
+      case 1:
+        handle = world.createDynamicBody(BoxShape{Vec3f(0.5f, 0.5f, 0.5f)}, t,
+                                         1.0f, 0.5f, 0.3f);
+        break;
+      case 2:
+        handle = world.createDynamicBody(CapsuleShape{0.35f, 0.45f}, t, 1.0f,
+                                         0.5f, 0.4f);
+        break;
+      default:
+        handle = world.createDynamicBody(hammer, t, 2.0f, 0.5f, 0.3f);
+        break;
+    }
+    scene.bodies.push_back(handle);
+  }
+  return scene;
+}
+
 }  // namespace scenes

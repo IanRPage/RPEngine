@@ -17,6 +17,7 @@ constexpr int kTimedSteps = 300;
 template <class Build>
 void runScene(benchmark::State& state, const Build& build) {
   size_t bodies = 0;
+  size_t sleeping = 0;
 
   for (auto _ : state) {
     state.PauseTiming();
@@ -31,6 +32,7 @@ void runScene(benchmark::State& state, const Build& build) {
     const auto t1 = std::chrono::steady_clock::now();
 
     state.PauseTiming();
+    sleeping = world->sleepingBodyCount();
     const bool intact = std::ranges::all_of(scene.bodies, [&](BodyHandle h) {
       return scene.contains(world->bodies().position(h));
     });
@@ -44,6 +46,7 @@ void runScene(benchmark::State& state, const Build& build) {
   }
 
   state.counters["bodies"] = static_cast<double>(bodies);
+  state.counters["sleeping"] = static_cast<double>(sleeping);
 }
 
 template <class Build>
@@ -75,6 +78,8 @@ int main(int argc, char** argv) {
   argc = out;
 
   add("BoxStack/h:5", [](World& w) { return scenes::buildBoxStack(w, 5); });
+  add("DemoScene/n:1000",
+      [](World& w) { return scenes::buildDemoScene(w, 1000); });
   addPile(/*mixed=*/true, 1000);
   addPile(/*mixed=*/true, 10000);
   addPile(/*mixed=*/false, 10000);
