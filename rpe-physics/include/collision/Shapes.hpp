@@ -5,6 +5,7 @@
 #include <math/Constants.hpp>
 #include <math/Transform.hpp>
 #include <math/Types.hpp>
+#include <cstddef>
 #include <variant>
 #include <vector>
 
@@ -28,6 +29,9 @@ struct SphereShape {
   AABB localAABB() const noexcept {
     return AABB(Vec3f(-radius), Vec3f(radius));
   }
+
+  bool raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
+                    float& distance, Vec3f& normal) const noexcept;
 };
 
 struct BoxShape {
@@ -44,6 +48,9 @@ struct BoxShape {
   Mat3f localInertiaTensor(float mass) const noexcept;
 
   AABB localAABB() const noexcept { return AABB(-halfExtents, halfExtents); }
+
+  bool raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
+                    float& distance, Vec3f& normal) const noexcept;
 };
 
 struct CapsuleShape {
@@ -65,6 +72,9 @@ struct CapsuleShape {
     return AABB(Vec3f(-radius, -halfHeight - radius, -radius),
                 Vec3f(radius, halfHeight + radius, radius));
   }
+
+  bool raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
+                    float& distance, Vec3f& normal) const noexcept;
 };
 
 struct ConvexHullShape {
@@ -89,8 +99,15 @@ struct ConvexHullShape {
     return AABB(mn, mx);
   }
 
+  bool raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
+                    float& distance, Vec3f& normal) const noexcept;
+
  private:
-  float cachedBoundingRadius_ = 0.0f;  // precomputed in constructor
+  static std::vector<Vec4f> buildRayPlanes(const std::vector<Vec3f>& vertices,
+                                           float boundingRadius);
+
+  float cachedBoundingRadius_ = 0.0f;
+  std::vector<Vec4f> rayPlanes_;
 };
 
 struct CompoundChild;
@@ -113,6 +130,9 @@ struct CompoundShape {
   Vec3f centerOfMass() const noexcept { return cachedCenterOfMass_; }
 
   CompoundShape recentered() const;
+
+  bool raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
+                    float& distance, Vec3f& normal) const noexcept;
 
  private:
   float cachedBoundingRadius_ = 0.0f;

@@ -16,6 +16,7 @@ add_library(rpe-physics STATIC
   src/math/Rotation.cpp
   src/math/Constraints2D.cpp
   src/collision/Shapes.cpp
+  src/collision/Raycast.cpp
   src/collision/MassProperties.cpp
   src/collision/Gjk.cpp
   src/collision/Epa.cpp
