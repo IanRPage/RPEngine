@@ -193,8 +193,22 @@ TEST(SleepingTest, RemovingOrMovingSupportWakesSleepingIsland) {
   world.bodies().position(ground).y -= 5.0f;
   world.step(kDt);
   EXPECT_FALSE(world.bodies().isSleeping(b));
-  stepFor(world, 0.5f);
+  stepFor(world, 3.0f);
   EXPECT_LT(world.bodies().position(b).y, settledY - 0.5f);
+  ASSERT_TRUE(world.bodies().isSleeping(b));
+
+  // moving non-contacting static body into a sleeper (w/in fat-AABB margin)
+  // runs narrowphase and wakes sleeper on contact
+  Transform pusherT;
+  pusherT.position = world.bodies().position(b) + Vec3f(1.02f, 0.0f, 0.0f);
+  BodyHandle pusher = world.createStaticBody(
+      ShapeVariant{BoxShape{Vec3f(0.5f)}}, pusherT, 0.5f, 0.0f);
+  world.step(kDt);
+  ASSERT_TRUE(world.bodies().isSleeping(b));
+
+  world.bodies().position(pusher).x -= 0.05f;
+  world.step(kDt);
+  EXPECT_FALSE(world.bodies().isSleeping(b));
 }
 
 TEST(SleepingTest, DisablingSleepAndWakeAll) {

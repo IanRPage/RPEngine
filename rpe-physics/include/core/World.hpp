@@ -86,7 +86,7 @@ class World {
   std::vector<ChildProxy> childScratchB_;
 
   bool isAwakeDynamic(BodyHandle h) const noexcept;
-  void wakeBodiesTouchingRemoved() noexcept;
+  bool wakesContactPartner(BodyHandle h) const noexcept;
   void propagateWakeThroughContacts(
       Vec3f wakeDeltaVelocity = Vec3f(0.0f)) noexcept;
   void updateSleep(std::span<const Manifold> manifolds, float dt) noexcept;

@@ -40,6 +40,11 @@ std::unique_ptr<IBroadphase> normalizeBroadphase(
   return broadphase ? std::move(broadphase)
                     : std::make_unique<DynamicBVHBroadphase>();
 }
+
+bool hasMovedSincePrev(const BodyStore& bodies, BodyHandle h) noexcept {
+  return bodies.position(h) != bodies.prevPosition(h) ||
+         bodies.orientation(h) != bodies.prevOrientation(h);
+}
 }  // namespace
 
 World::World() : World(std::make_unique<DynamicBVHBroadphase>()) {}
@@ -184,33 +189,10 @@ bool World::isAwakeDynamic(BodyHandle h) const noexcept {
          !bodies_.isSleeping(h);
 }
 
-void World::wakeBodiesTouchingRemoved() noexcept {
-  auto movedSincePrev = [this](BodyHandle h) noexcept {
-    return bodies_.position(h) != bodies_.prevPosition(h) ||
-           bodies_.orientation(h) != bodies_.prevOrientation(h);
-  };
-
-  for (const Manifold& m : manifoldCache_.activeManifolds()) {
-    bool liveA = bodies_.isLive(m.bodyA);
-    bool liveB = bodies_.isLive(m.bodyB);
-    if (liveA && (!liveB || (bodies_.invMass(m.bodyB) <= 0.0f &&
-                             movedSincePrev(m.bodyB)))) {
-      bodies_.wake(m.bodyA);
-    }
-    if (liveB && (!liveA || (bodies_.invMass(m.bodyA) <= 0.0f &&
-                             movedSincePrev(m.bodyA)))) {
-      bodies_.wake(m.bodyB);
-    }
-  }
-
-  for (BodyHandle h : bodies_.liveHandles()) {
-    if (bodies_.isSleeping(h) && movedSincePrev(h)) {
-      bodies_.wake(h);
-    } else if (bodies_.invMass(h) <= 0.0f && movedSincePrev(h)) {
-      bodies_.prevPosition(h) = bodies_.position(h);
-      bodies_.prevOrientation(h) = bodies_.orientation(h);
-    }
-  }
+bool World::wakesContactPartner(BodyHandle h) const noexcept {
+  if (!bodies_.isLive(h)) { return true; }
+  return bodies_.invMass(h) > 0.0f ? !bodies_.isSleeping(h)
+                                   : hasMovedSincePrev(bodies_, h);
 }
 
 void World::resetUnionFind() noexcept {
@@ -242,9 +224,8 @@ void World::propagateWakeThroughContacts(Vec3f wakeDeltaVelocity) noexcept {
   std::span<Manifold> manifolds = manifoldCache_.activeManifolds();
   bool anyMixed = false;
   for (const Manifold& m : manifolds) {
-    bool sa = bodies_.isSleeping(m.bodyA);
-    bool sb = bodies_.isSleeping(m.bodyB);
-    if ((sa && isAwakeDynamic(m.bodyB)) || (sb && isAwakeDynamic(m.bodyA))) {
+    if ((bodies_.isSleeping(m.bodyA) && wakesContactPartner(m.bodyB)) ||
+        (bodies_.isSleeping(m.bodyB) && wakesContactPartner(m.bodyA))) {
       anyMixed = true;
       break;
     }
@@ -261,8 +242,13 @@ void World::propagateWakeThroughContacts(Vec3f wakeDeltaVelocity) noexcept {
   }
 
   ufAwake_.assign(ufParent_.size(), 0);
-  for (BodyHandle h : bodies_.liveHandles()) {
-    if (isAwakeDynamic(h)) { ufAwake_[findRoot(h.index)] = 1; }
+  for (const Manifold& m : manifolds) {
+    if (bodies_.isSleeping(m.bodyA) && wakesContactPartner(m.bodyB)) {
+      ufAwake_[findRoot(m.bodyA.index)] = 1;
+    }
+    if (bodies_.isSleeping(m.bodyB) && wakesContactPartner(m.bodyA)) {
+      ufAwake_[findRoot(m.bodyB.index)] = 1;
+    }
   }
   for (BodyHandle h : bodies_.liveHandles()) {
     if (bodies_.isSleeping(h) && ufAwake_[findRoot(h.index)]) {
@@ -317,7 +303,11 @@ void World::step(float dt) noexcept {
   if (!config_.enableSleeping) {
     if (bodies_.sleepingCount() > 0) { bodies_.wakeAll(); }
   } else {
-    wakeBodiesTouchingRemoved();
+    for (BodyHandle h : bodies_.liveHandles()) {
+      if (bodies_.isSleeping(h) && hasMovedSincePrev(bodies_, h)) {
+        bodies_.wake(h);
+      }
+    }
     propagateWakeThroughContacts();
   }
 
@@ -336,19 +326,14 @@ void World::step(float dt) noexcept {
   manifoldCache_.beginFrame();
   if (bodies_.sleepingCount() > 0) {
     manifoldCache_.retainIf([this](const Manifold& m) {
-      if (!bodies_.isLive(m.bodyA) || !bodies_.isLive(m.bodyB)) {
-        return false;
-      }
-      bool anySleeping =
-          bodies_.isSleeping(m.bodyA) || bodies_.isSleeping(m.bodyB);
-      return anySleeping && !isAwakeDynamic(m.bodyA) &&
-             !isAwakeDynamic(m.bodyB);
+      return (bodies_.isSleeping(m.bodyA) || bodies_.isSleeping(m.bodyB)) &&
+             !wakesContactPartner(m.bodyA) && !wakesContactPartner(m.bodyB);
     });
   }
 
   for (const auto& [a, b] : pairs) {
     if ((bodies_.isSleeping(a) || bodies_.isSleeping(b)) &&
-        !isAwakeDynamic(a) && !isAwakeDynamic(b)) {
+        !wakesContactPartner(a) && !wakesContactPartner(b)) {
       continue;
     }
 
@@ -366,6 +351,12 @@ void World::step(float dt) noexcept {
   manifoldCache_.endFrame();
 
   propagateWakeThroughContacts(gravity_ * dt);
+  for (BodyHandle h : bodies_.liveHandles()) {
+    if (bodies_.invMass(h) <= 0.0f && hasMovedSincePrev(bodies_, h)) {
+      bodies_.prevPosition(h) = bodies_.position(h);
+      bodies_.prevOrientation(h) = bodies_.orientation(h);
+    }
+  }
 
   std::span<Manifold> activeManifolds = manifoldCache_.activeManifolds();
 
