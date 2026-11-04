@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <optional>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -26,6 +27,10 @@ Vec4f randomColor() noexcept {
   };
   return Vec4f(channel(), channel(), channel(), 1.0f);
 }
+
+constexpr float kClickSlopPixels = 4.0f;
+constexpr float kOrthoPickHeight = 1.0e4f;
+const Vec4f kSelectionTint{1.0f, 0.85f, 0.2f, 1.0f};
 
 std::string expandTilde(const std::string& path) {
   if (path.empty() || path[0] != '~') { return path; }
@@ -76,6 +81,75 @@ Mat4f Renderer::currentViewProjection(float aspect) noexcept {
   return flyCamera_.toCamera(aspect).viewProjection();
 }
 
+float Renderer::worldViewAspect() const noexcept {
+  int fbWidth = window_.framebufferWidth();
+  int fbHeight = window_.framebufferHeight();
+  float scaleX = static_cast<float>(fbWidth) /
+                 static_cast<float>(std::max(window_.width(), 1));
+  int sidebarPx = static_cast<int>(ImguiController::kSidebarWidth * scaleX);
+  int viewportWidth = std::max(fbWidth - sidebarPx, 1);
+  return static_cast<float>(viewportWidth) /
+         static_cast<float>(std::max(fbHeight, 1));
+}
+
+Vec2f Renderer::worldViewSize() const noexcept {
+  return Vec2f(std::max(static_cast<float>(window_.width()) -
+                            ImguiController::kSidebarWidth,
+                        1.0f),
+               std::max(static_cast<float>(window_.height()), 1.0f));
+}
+
+bool Renderer::pickBodyAt(Vec2f viewportPos) noexcept {
+  Vec2f viewportSize = worldViewSize();
+  float aspect = worldViewAspect();
+
+  Ray ray;
+  float maxDistance = 0.0f;
+  if (imguiCtrl_.cameraMode() == CameraMode::Orthographic2D) {
+    orthoCamera_.aspect = aspect;
+    render::Ray r = orthoCamera_.screenPointToRay(viewportPos, viewportSize);
+    ray.origin = Vec3f(r.origin.x, r.origin.y, kOrthoPickHeight);
+    ray.direction = r.direction;
+    maxDistance = 2.0f * kOrthoPickHeight;
+  } else {
+    render::PerspectiveCamera camera = flyCamera_.toCamera(aspect);
+    render::Ray r = camera.screenPointToRay(viewportPos, viewportSize);
+    ray.origin = r.origin;
+    ray.direction = r.direction;
+    maxDistance = camera.farPlane;
+  }
+
+  std::optional<WorldRayHit> hit =
+      sim_.world().raycastClosest(ray, maxDistance);
+  const BodyStore& bodies = sim_.world().bodies();
+  if (hit && bodies.invMass(hit->body) > 0.0f) {
+    selectedBody_ = hit->body;
+    return true;
+  }
+  selectedBody_ = BodyHandle{};
+  return false;
+}
+
+void Renderer::refreshSelection() noexcept {
+  const BodyStore& bodies = sim_.world().bodies();
+  if (selectedBody_.valid() && !bodies.isLive(selectedBody_)) {
+    selectedBody_ = BodyHandle{};
+  }
+  if (selectedBody_.valid()) {
+    imguiCtrl_.setSelectedBody(selectedBody_.index);
+  } else {
+    imguiCtrl_.setSelectedBody(std::nullopt);
+  }
+}
+
+Vec4f Renderer::displayColor(BodyHandle handle) const noexcept {
+  Vec4f color = renderables_.colorOr(handle);
+  if (selectedBody_.valid() && handle == selectedBody_) {
+    color = glm::mix(color, kSelectionTint, 0.6f);
+  }
+  return color;
+}
+
 void Renderer::handleWorldViewInput(float dt) noexcept {
   ImGuiIO& io = ImGui::GetIO();
   bool overWorldView =
@@ -88,6 +162,19 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
       mouseCaptured_ = false;
     }
     hasLastMouseLookPos_ = false;
+    Vec2f mousePos(io.MousePos.x, io.MousePos.y);
+    if (overWorldView && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+      orthoClickPending_ = true;
+      orthoClickStart_ = mousePos;
+    }
+    if (orthoClickPending_ &&
+        glm::length(mousePos - orthoClickStart_) > kClickSlopPixels) {
+      orthoClickPending_ = false;
+    }
+    if (orthoClickPending_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+      orthoClickPending_ = false;
+      pickBodyAt(mousePos - Vec2f(ImguiController::kSidebarWidth, 0.0f));
+    }
     if (overWorldView && io.MouseDown[ImGuiMouseButton_Left]) {
       float viewportHeight =
           std::max(static_cast<float>(window_.height()), 1.0f);
@@ -99,15 +186,23 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
     return;
   }
 
+  orthoClickPending_ = false;
+
   if (mouseCaptured_ && glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     mouseCaptured_ = false;
     hasLastMouseLookPos_ = false;
+  } else if (mouseCaptured_ && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+    pickBodyAt(worldViewSize() * 0.5f);
   } else if (!mouseCaptured_ && overWorldView &&
              ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    mouseCaptured_ = true;
-    hasLastMouseLookPos_ = false;
+    Vec2f viewportPos(io.MousePos.x - ImguiController::kSidebarWidth,
+                      io.MousePos.y);
+    if (!pickBodyAt(viewportPos)) {
+      glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      mouseCaptured_ = true;
+      hasLastMouseLookPos_ = false;
+    }
   }
 
   if (!mouseCaptured_) { return; }
@@ -212,6 +307,17 @@ void Renderer::handlePendingSpawnRequests() {
   }
 
   if (imguiCtrl_.consumeWakeAllRequest()) { world.wakeAll(); }
+
+  if (imguiCtrl_.consumeDeleteSelectedRequest()) {
+    const BodyStore& store = world.bodies();
+    if (selectedBody_.valid() && store.isLive(selectedBody_) &&
+        store.invMass(selectedBody_) > 0.0f) {
+      world.removeBody(selectedBody_);
+      selectedBody_ = BodyHandle{};
+    }
+  }
+
+  refreshSelection();
 }
 
 void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
@@ -256,7 +362,7 @@ void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
     if (std::holds_alternative<ConvexHullShape>(shape)) { continue; }
 
     Transform bodyTransform = interpolatedTransform(bodies, handle, alpha);
-    Vec4f color = renderables_.colorOr(handle);
+    Vec4f color = displayColor(handle);
 
     if (const auto* compound = std::get_if<CompoundShape>(&shape)) {
       for (const CompoundChild& child : compound->children) {
@@ -295,7 +401,7 @@ void Renderer::drawHullBodies(float alpha, const Mat4f& viewProjection) {
     if (const auto* hull = std::get_if<ConvexHullShape>(&shape)) {
       drawHull(hullMeshCache_.getOrBuild(handle, *hull),
                interpolatedTransform(bodies, handle, alpha),
-               renderables_.colorOr(handle));
+               displayColor(handle));
       continue;
     }
 
@@ -310,7 +416,7 @@ void Renderer::drawHullBodies(float alpha, const Mat4f& viewProjection) {
                             child.localTransform);
       drawHull(hullMeshCache_.getOrBuild(handle, static_cast<uint32_t>(i),
                                          *childHull),
-               t, renderables_.colorOr(handle));
+               t, displayColor(handle));
     }
   }
 
@@ -394,8 +500,7 @@ void Renderer::drawFrame() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glViewport(viewportX, 0, viewportWidth, fbHeight);
-  float aspect = static_cast<float>(viewportWidth) /
-                 static_cast<float>(std::max(fbHeight, 1));
+  float aspect = worldViewAspect();
 
   shader_.bind();
   shader_.setUniform("uLightDirection", Vec3f(-0.3f, -1.0f, -0.2f));

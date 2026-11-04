@@ -36,6 +36,11 @@ class Renderer {
  private:
   Mat4f currentViewProjection(float aspect) noexcept;
   void handleWorldViewInput(float dt) noexcept;
+  float worldViewAspect() const noexcept;
+  Vec2f worldViewSize() const noexcept;
+  bool pickBodyAt(Vec2f viewportPos) noexcept;
+  void refreshSelection() noexcept;
+  Vec4f displayColor(BodyHandle handle) const noexcept;
   void drawShapeBodies(float alpha, const Mat4f& viewProjection);
   void drawHullBodies(float alpha, const Mat4f& viewProjection);
   void handlePendingSpawnRequests();
@@ -73,6 +78,10 @@ class Renderer {
   bool hasLastMouseLookPos_ = false;
   Vec2f lastMouseLookPos_{0.0f, 0.0f};
   bool mouseCaptured_ = false;
+
+  BodyHandle selectedBody_{};
+  bool orthoClickPending_ = false;
+  Vec2f orthoClickStart_{0.0f, 0.0f};
 
   bool screenshotPending_ = false;
   std::string pendingScreenshotPath_;
