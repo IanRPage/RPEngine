@@ -38,91 +38,10 @@ bool sphereInterval(Vec3f center, float radius, Vec3f origin, Vec3f dir,
   return true;
 }
 
-bool raycastSphereAt(Vec3f center, float radius, Vec3f origin, Vec3f dir,
-                     float maxDistance, float& distance,
-                     Vec3f& normal) noexcept {
-  float t0 = 0.0f, t1 = 0.0f;
-  if (!sphereInterval(center, radius, origin, dir, t0, t1)) { return false; }
-  float t = 0.0f;
-  bool exiting = false;
-  if (!chooseDistance(t0, t1, maxDistance, t, exiting)) { return false; }
-  distance = t;
-  normal = normalizedOr(origin + dir * t - center, exiting ? dir : -dir);
-  return true;
-}
-
-bool raycastCapsuleY(float radius, float halfHeight, Vec3f origin, Vec3f dir,
-                     float maxDistance, float& distance,
-                     Vec3f& normal) noexcept {
-  float tEnter = kInf;
-  float tExit = -kInf;
-  bool any = false;
-  auto merge = [&](float a, float b) {
-    tEnter = std::min(tEnter, a);
-    tExit = std::max(tExit, b);
-    any = true;
-  };
-
-  float a = 0.0f, b = 0.0f;
-  if (sphereInterval(Vec3f(0.0f, halfHeight, 0.0f), radius, origin, dir, a,
-                     b)) {
-    merge(a, b);
-  }
-  if (halfHeight > 0.0f) {
-    if (sphereInterval(Vec3f(0.0f, -halfHeight, 0.0f), radius, origin, dir, a,
-                       b)) {
-      merge(a, b);
-    }
-
-    float qa = dir.x * dir.x + dir.z * dir.z;
-    float qb = origin.x * dir.x + origin.z * dir.z;
-    float qc = origin.x * origin.x + origin.z * origin.z - radius * radius;
-    float c0 = -kInf, c1 = kInf;
-    bool ok = true;
-    if (qa < kZeroLengthEpsilon) {
-      ok = qc <= 0.0f;
-    } else {
-      float disc = qb * qb - qa * qc;
-      if (disc < 0.0f) {
-        ok = false;
-      } else {
-        float s = std::sqrt(disc);
-        c0 = (-qb - s) / qa;
-        c1 = (-qb + s) / qa;
-      }
-    }
-    if (ok) {
-      if (std::abs(dir.y) < kZeroLengthEpsilon) {
-        ok = std::abs(origin.y) <= halfHeight;
-      } else {
-        float y0 = (-halfHeight - origin.y) / dir.y;
-        float y1 = (halfHeight - origin.y) / dir.y;
-        if (y0 > y1) { std::swap(y0, y1); }
-        c0 = std::max(c0, y0);
-        c1 = std::min(c1, y1);
-        ok = c0 <= c1;
-      }
-    }
-    if (ok && std::isfinite(c0) && std::isfinite(c1)) { merge(c0, c1); }
-  }
-
-  if (!any) { return false; }
-
-  float t = 0.0f;
-  bool exiting = false;
-  if (!chooseDistance(tEnter, tExit, maxDistance, t, exiting)) {
-    return false;
-  }
-  Vec3f p = origin + dir * t;
-  Vec3f axisPoint(0.0f, std::clamp(p.y, -halfHeight, halfHeight), 0.0f);
-  distance = t;
-  normal = normalizedOr(p - axisPoint, exiting ? dir : -dir);
-  return true;
-}
-
-bool raycastPlanes(const Vec4f* planes, std::size_t count, float tolerance,
+bool raycastPlanes(const Vec4f* planes, std::size_t count, float boundingRadius,
                    Vec3f origin, Vec3f dir, float maxDistance, float& distance,
                    Vec3f& normal) noexcept {
+  const float tolerance = 1e-5f * std::max(1.0f, boundingRadius);
   float tEnter = -kInf;
   float tExit = kInf;
   Vec3f nEnter(0.0f), nExit(0.0f);
@@ -160,17 +79,6 @@ bool raycastPlanes(const Vec4f* planes, std::size_t count, float tolerance,
   return true;
 }
 
-void addUniquePlane(std::vector<Vec4f>& planes, Vec3f n, float w,
-                    float tolerance) {
-  for (const Vec4f& p : planes) {
-    if (glm::dot(Vec3f(p), n) > 1.0f - 1e-5f &&
-        std::abs(p.w - w) <= tolerance) {
-      return;
-    }
-  }
-  planes.emplace_back(n, w);
-}
-
 void trySupportingPlane(std::vector<Vec4f>& planes,
                         const std::vector<Vec3f>& vertices, Vec3f n,
                         Vec3f point, float tolerance) {
@@ -182,11 +90,18 @@ void trySupportingPlane(std::vector<Vec4f>& planes,
     maxSide = std::max(maxSide, side);
     minSide = std::min(minSide, side);
   }
-  if (maxSide <= tolerance) {
-    addUniquePlane(planes, n, w, tolerance);
-  } else if (minSide >= -tolerance) {
-    addUniquePlane(planes, -n, -w, tolerance);
+  if (maxSide > tolerance) {
+    if (minSide < -tolerance) { return; }
+    n = -n;
+    w = -w;
   }
+  for (const Vec4f& p : planes) {
+    if (glm::dot(Vec3f(p), n) > 1.0f - 1e-5f &&
+        std::abs(p.w - w) <= tolerance) {
+      return;
+    }
+  }
+  planes.emplace_back(n, w);
 }
 
 std::vector<Vec4f> buildRayPlanes(const std::vector<Vec3f>& vertices,
@@ -197,32 +112,28 @@ std::vector<Vec4f> buildRayPlanes(const std::vector<Vec3f>& vertices,
   const float tol = kHullBuildTolerance * std::max(1.0f, boundingRadius);
   const Vec3f v0 = vertices.front();
 
-  std::size_t i1 = 0;
+  Vec3f lineDir(0.0f);
   float best = 0.0f;
-  for (std::size_t i = 0; i < vertices.size(); ++i) {
-    float d = glm::length(vertices[i] - v0);
+  for (const Vec3f& v : vertices) {
+    float d = glm::length(v - v0);
     if (d > best) {
       best = d;
-      i1 = i;
+      lineDir = (v - v0) / d;
     }
   }
   if (best <= tol) { return planes; }
-  const Vec3f lineDir = (vertices[i1] - v0) / best;
 
-  std::size_t i2 = 0;
+  Vec3f planeNormal(0.0f);
   best = 0.0f;
-  for (std::size_t i = 0; i < vertices.size(); ++i) {
-    Vec3f rel = vertices[i] - v0;
-    float d = glm::length(rel - lineDir * glm::dot(rel, lineDir));
+  for (const Vec3f& v : vertices) {
+    Vec3f c = glm::cross(lineDir, v - v0);
+    float d = glm::length(c);
     if (d > best) {
       best = d;
-      i2 = i;
+      planeNormal = c / d;
     }
   }
   if (best <= tol) { return planes; }
-
-  const Vec3f planeNormal =
-      glm::normalize(glm::cross(vertices[i1] - v0, vertices[i2] - v0));
 
   float maxOffPlane = 0.0f;
   for (const Vec3f& v : vertices) {
@@ -260,10 +171,22 @@ std::vector<Vec4f> buildRayPlanes(const std::vector<Vec3f>& vertices,
   return planes;
 }
 
+bool raycastTransformed(const ShapeVariant& shape, const Transform& transform,
+                        Vec3f origin, Vec3f unitDir, float maxDistance,
+                        float& distance, Vec3f& normal) noexcept;
+
 bool raycastLocal(const SphereShape& s, Vec3f origin, Vec3f unitDir,
                   float maxDistance, float& distance, Vec3f& normal) noexcept {
-  return raycastSphereAt(Vec3f(0.0f), s.radius, origin, unitDir, maxDistance,
-                         distance, normal);
+  float t0 = 0.0f, t1 = 0.0f;
+  if (!sphereInterval(Vec3f(0.0f), s.radius, origin, unitDir, t0, t1)) {
+    return false;
+  }
+  float t = 0.0f;
+  bool exiting = false;
+  if (!chooseDistance(t0, t1, maxDistance, t, exiting)) { return false; }
+  distance = t;
+  normal = normalizedOr(origin + unitDir * t, exiting ? unitDir : -unitDir);
+  return true;
 }
 
 bool raycastLocal(const BoxShape& s, Vec3f origin, Vec3f unitDir,
@@ -276,45 +199,117 @@ bool raycastLocal(const BoxShape& s, Vec3f origin, Vec3f unitDir,
       Vec4f(0.0f, 0.0f, 1.0f, s.halfExtents.z),
       Vec4f(0.0f, 0.0f, -1.0f, s.halfExtents.z),
   };
-  float tolerance = 1e-5f * std::max(1.0f, glm::length(s.halfExtents));
-  return raycastPlanes(planes, 6, tolerance, origin, unitDir, maxDistance,
-                       distance, normal);
+  return raycastPlanes(planes, 6, s.boundingRadius(), origin, unitDir,
+                       maxDistance, distance, normal);
 }
 
 bool raycastLocal(const CapsuleShape& s, Vec3f origin, Vec3f unitDir,
                   float maxDistance, float& distance, Vec3f& normal) noexcept {
-  return raycastCapsuleY(s.radius, s.halfHeight, origin, unitDir, maxDistance,
-                         distance, normal);
+  float tEnter = kInf;
+  float tExit = -kInf;
+  bool any = false;
+  auto merge = [&](float a, float b) {
+    tEnter = std::min(tEnter, a);
+    tExit = std::max(tExit, b);
+    any = true;
+  };
+
+  float a = 0.0f, b = 0.0f;
+  if (sphereInterval(Vec3f(0.0f, s.halfHeight, 0.0f), s.radius, origin, unitDir,
+                     a, b)) {
+    merge(a, b);
+  }
+  if (s.halfHeight > 0.0f) {
+    if (sphereInterval(Vec3f(0.0f, -s.halfHeight, 0.0f), s.radius, origin,
+                       unitDir, a, b)) {
+      merge(a, b);
+    }
+
+    float qa = unitDir.x * unitDir.x + unitDir.z * unitDir.z;
+    float qb = origin.x * unitDir.x + origin.z * unitDir.z;
+    float qc = origin.x * origin.x + origin.z * origin.z - s.radius * s.radius;
+    float disc = qb * qb - qa * qc;
+    if (qa >= kZeroLengthEpsilon && disc >= 0.0f) {
+      float root = std::sqrt(disc);
+      float c0 = (-qb - root) / qa;
+      float c1 = (-qb + root) / qa;
+      if (std::abs(unitDir.y) >= kZeroLengthEpsilon) {
+        float y0 = (-s.halfHeight - origin.y) / unitDir.y;
+        float y1 = (s.halfHeight - origin.y) / unitDir.y;
+        if (y0 > y1) { std::swap(y0, y1); }
+        c0 = std::max(c0, y0);
+        c1 = std::min(c1, y1);
+      } else if (std::abs(origin.y) > s.halfHeight) {
+        c0 = 1.0f;
+        c1 = 0.0f;
+      }
+      if (c0 <= c1) { merge(c0, c1); }
+    }
+  }
+
+  if (!any) { return false; }
+
+  float t = 0.0f;
+  bool exiting = false;
+  if (!chooseDistance(tEnter, tExit, maxDistance, t, exiting)) {
+    return false;
+  }
+  Vec3f p = origin + unitDir * t;
+  Vec3f axisPoint(0.0f, std::clamp(p.y, -s.halfHeight, s.halfHeight), 0.0f);
+  distance = t;
+  normal = normalizedOr(p - axisPoint, exiting ? unitDir : -unitDir);
+  return true;
 }
 
 bool raycastLocal(const ConvexHullShape& s, Vec3f origin, Vec3f unitDir,
                   float maxDistance, float& distance, Vec3f& normal) noexcept {
-  std::vector<Vec4f> planes =
-      buildRayPlanes(s.localVertices, s.boundingRadius());
+  const float radius = s.boundingRadius();
+  std::vector<Vec4f> planes = buildRayPlanes(s.localVertices, radius);
   if (planes.empty()) { return false; }
-  float tolerance = 1e-5f * std::max(1.0f, s.boundingRadius());
-  return raycastPlanes(planes.data(), planes.size(), tolerance, origin, unitDir,
+  return raycastPlanes(planes.data(), planes.size(), radius, origin, unitDir,
                        maxDistance, distance, normal);
 }
 
 bool raycastLocal(const CompoundShape& s, Vec3f origin, Vec3f unitDir,
                   float maxDistance, float& distance, Vec3f& normal) noexcept {
-  Ray localRay{origin, unitDir};
   float bestDistance = maxDistance;
   Vec3f bestNormal(0.0f);
   bool anyHit = false;
   for (const CompoundChild& child : s.children) {
-    RayHit hit =
-        raycastShape(child.shape, child.localTransform, localRay, bestDistance);
-    if (hit.hit && (!anyHit || hit.distance < bestDistance)) {
-      bestDistance = hit.distance;
-      bestNormal = hit.normal;
+    float childDist = 0.0f;
+    Vec3f childNormal(0.0f);
+    if (raycastTransformed(child.shape, child.localTransform, origin, unitDir,
+                           bestDistance, childDist, childNormal) &&
+        (!anyHit || childDist < bestDistance)) {
+      bestDistance = childDist;
+      bestNormal = childNormal;
       anyHit = true;
     }
   }
   if (!anyHit) { return false; }
   distance = bestDistance;
   normal = bestNormal;
+  return true;
+}
+
+bool raycastTransformed(const ShapeVariant& shape, const Transform& transform,
+                        Vec3f origin, Vec3f unitDir, float maxDistance,
+                        float& distance, Vec3f& normal) noexcept {
+  const Quatf q = glm::normalize(transform.orientation);
+  const Quatf invQ = glm::conjugate(q);
+  const Vec3f localOrigin = invQ * (origin - transform.position);
+  const Vec3f localDir = invQ * unitDir;
+
+  Vec3f localNormal(0.0f);
+  bool hit = std::visit(
+      [&](const auto& s) {
+        return raycastLocal(s, localOrigin, localDir, maxDistance, distance,
+                            localNormal);
+      },
+      shape);
+  if (!hit) { return false; }
+
+  normal = normalizedOr(q * localNormal, -unitDir);
   return true;
 }
 
@@ -354,26 +349,14 @@ RayHit raycastShape(const ShapeVariant& shape, const Transform& transform,
 
   float len = glm::length(ray.direction);
   if (!(len > kZeroLengthEpsilon) || !std::isfinite(len)) { return result; }
-  const Vec3f dir = ray.direction / len;
+  const Vec3f unitDir = ray.direction / len;
 
-  const Quatf q = glm::normalize(transform.orientation);
-  const Quatf invQ = glm::conjugate(q);
-  const Vec3f localOrigin = invQ * (ray.origin - transform.position);
-  const Vec3f localDir = invQ * dir;
-
-  float distance = 0.0f;
-  Vec3f localNormal(0.0f);
-  bool hit = std::visit(
-      [&](const auto& s) {
-        return raycastLocal(s, localOrigin, localDir, maxDistance, distance,
-                            localNormal);
-      },
-      shape);
-  if (!hit) { return result; }
+  if (!raycastTransformed(shape, transform, ray.origin, unitDir, maxDistance,
+                          result.distance, result.normal)) {
+    return result;
+  }
 
   result.hit = true;
-  result.distance = distance;
-  result.point = ray.origin + dir * distance;
-  result.normal = normalizedOr(q * localNormal, -dir);
+  result.point = ray.origin + unitDir * result.distance;
   return result;
 }
