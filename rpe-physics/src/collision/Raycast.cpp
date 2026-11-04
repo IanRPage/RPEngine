@@ -189,65 +189,8 @@ void trySupportingPlane(std::vector<Vec4f>& planes,
   }
 }
 
-}  // namespace
-
-bool rayIntersectsAABB(const Ray& ray, const AABB& aabb, float maxDistance,
-                       float* tEnter, float* tExit) noexcept {
-  float t0 = 0.0f;
-  float t1 = maxDistance;
-  if (!(t1 >= 0.0f)) { return false; }
-  for (int axis = 0; axis < 3; ++axis) {
-    float o = ray.origin[axis];
-    float d = ray.direction[axis];
-    float mn = aabb.min[axis];
-    float mx = aabb.max[axis];
-    if (std::abs(d) < kZeroLengthEpsilon) {
-      if (o < mn || o > mx) { return false; }
-      continue;
-    }
-    float inv = 1.0f / d;
-    float a = (mn - o) * inv;
-    float b = (mx - o) * inv;
-    if (a > b) { std::swap(a, b); }
-    t0 = std::max(t0, a);
-    t1 = std::min(t1, b);
-    if (t0 > t1) { return false; }
-  }
-  if (tEnter != nullptr) { *tEnter = t0; }
-  if (tExit != nullptr) { *tExit = t1; }
-  return true;
-}
-
-bool SphereShape::raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
-                               float& distance, Vec3f& normal) const noexcept {
-  return raycastSphereAt(Vec3f(0.0f), radius, origin, unitDir, maxDistance,
-                         distance, normal);
-}
-
-bool BoxShape::raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
-                            float& distance, Vec3f& normal) const noexcept {
-  const Vec4f planes[6] = {
-      Vec4f(1.0f, 0.0f, 0.0f, halfExtents.x),
-      Vec4f(-1.0f, 0.0f, 0.0f, halfExtents.x),
-      Vec4f(0.0f, 1.0f, 0.0f, halfExtents.y),
-      Vec4f(0.0f, -1.0f, 0.0f, halfExtents.y),
-      Vec4f(0.0f, 0.0f, 1.0f, halfExtents.z),
-      Vec4f(0.0f, 0.0f, -1.0f, halfExtents.z),
-  };
-  float tolerance = 1e-5f * std::max(1.0f, glm::length(halfExtents));
-  return raycastPlanes(planes, 6, tolerance, origin, unitDir, maxDistance,
-                       distance, normal);
-}
-
-bool CapsuleShape::raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
-                                float& distance,
-                                Vec3f& normal) const noexcept {
-  return raycastCapsuleY(radius, halfHeight, origin, unitDir, maxDistance,
-                         distance, normal);
-}
-
-std::vector<Vec4f> ConvexHullShape::buildRayPlanes(
-    const std::vector<Vec3f>& vertices, float boundingRadius) {
+std::vector<Vec4f> buildRayPlanes(const std::vector<Vec3f>& vertices,
+                                  float boundingRadius) {
   std::vector<Vec4f> planes;
   if (vertices.empty()) { return planes; }
 
@@ -317,23 +260,50 @@ std::vector<Vec4f> ConvexHullShape::buildRayPlanes(
   return planes;
 }
 
-bool ConvexHullShape::raycastLocal(Vec3f origin, Vec3f unitDir,
-                                   float maxDistance, float& distance,
-                                   Vec3f& normal) const noexcept {
-  if (rayPlanes_.empty()) { return false; }
-  float tolerance = 1e-5f * std::max(1.0f, cachedBoundingRadius_);
-  return raycastPlanes(rayPlanes_.data(), rayPlanes_.size(), tolerance, origin,
-                       unitDir, maxDistance, distance, normal);
+bool raycastLocal(const SphereShape& s, Vec3f origin, Vec3f unitDir,
+                  float maxDistance, float& distance, Vec3f& normal) noexcept {
+  return raycastSphereAt(Vec3f(0.0f), s.radius, origin, unitDir, maxDistance,
+                         distance, normal);
 }
 
-bool CompoundShape::raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
-                                 float& distance,
-                                 Vec3f& normal) const noexcept {
+bool raycastLocal(const BoxShape& s, Vec3f origin, Vec3f unitDir,
+                  float maxDistance, float& distance, Vec3f& normal) noexcept {
+  const Vec4f planes[6] = {
+      Vec4f(1.0f, 0.0f, 0.0f, s.halfExtents.x),
+      Vec4f(-1.0f, 0.0f, 0.0f, s.halfExtents.x),
+      Vec4f(0.0f, 1.0f, 0.0f, s.halfExtents.y),
+      Vec4f(0.0f, -1.0f, 0.0f, s.halfExtents.y),
+      Vec4f(0.0f, 0.0f, 1.0f, s.halfExtents.z),
+      Vec4f(0.0f, 0.0f, -1.0f, s.halfExtents.z),
+  };
+  float tolerance = 1e-5f * std::max(1.0f, glm::length(s.halfExtents));
+  return raycastPlanes(planes, 6, tolerance, origin, unitDir, maxDistance,
+                       distance, normal);
+}
+
+bool raycastLocal(const CapsuleShape& s, Vec3f origin, Vec3f unitDir,
+                  float maxDistance, float& distance, Vec3f& normal) noexcept {
+  return raycastCapsuleY(s.radius, s.halfHeight, origin, unitDir, maxDistance,
+                         distance, normal);
+}
+
+bool raycastLocal(const ConvexHullShape& s, Vec3f origin, Vec3f unitDir,
+                  float maxDistance, float& distance, Vec3f& normal) noexcept {
+  std::vector<Vec4f> planes =
+      buildRayPlanes(s.localVertices, s.boundingRadius());
+  if (planes.empty()) { return false; }
+  float tolerance = 1e-5f * std::max(1.0f, s.boundingRadius());
+  return raycastPlanes(planes.data(), planes.size(), tolerance, origin, unitDir,
+                       maxDistance, distance, normal);
+}
+
+bool raycastLocal(const CompoundShape& s, Vec3f origin, Vec3f unitDir,
+                  float maxDistance, float& distance, Vec3f& normal) noexcept {
   Ray localRay{origin, unitDir};
   float bestDistance = maxDistance;
   Vec3f bestNormal(0.0f);
   bool anyHit = false;
-  for (const CompoundChild& child : children) {
+  for (const CompoundChild& child : s.children) {
     RayHit hit =
         raycastShape(child.shape, child.localTransform, localRay, bestDistance);
     if (hit.hit && (!anyHit || hit.distance < bestDistance)) {
@@ -345,6 +315,35 @@ bool CompoundShape::raycastLocal(Vec3f origin, Vec3f unitDir, float maxDistance,
   if (!anyHit) { return false; }
   distance = bestDistance;
   normal = bestNormal;
+  return true;
+}
+
+}  // namespace
+
+bool rayIntersectsAABB(const Ray& ray, const AABB& aabb, float maxDistance,
+                       float* tEnter, float* tExit) noexcept {
+  float t0 = 0.0f;
+  float t1 = maxDistance;
+  if (!(t1 >= 0.0f)) { return false; }
+  for (int axis = 0; axis < 3; ++axis) {
+    float o = ray.origin[axis];
+    float d = ray.direction[axis];
+    float mn = aabb.min[axis];
+    float mx = aabb.max[axis];
+    if (std::abs(d) < kZeroLengthEpsilon) {
+      if (o < mn || o > mx) { return false; }
+      continue;
+    }
+    float inv = 1.0f / d;
+    float a = (mn - o) * inv;
+    float b = (mx - o) * inv;
+    if (a > b) { std::swap(a, b); }
+    t0 = std::max(t0, a);
+    t1 = std::min(t1, b);
+    if (t0 > t1) { return false; }
+  }
+  if (tEnter != nullptr) { *tEnter = t0; }
+  if (tExit != nullptr) { *tExit = t1; }
   return true;
 }
 
@@ -366,8 +365,8 @@ RayHit raycastShape(const ShapeVariant& shape, const Transform& transform,
   Vec3f localNormal(0.0f);
   bool hit = std::visit(
       [&](const auto& s) {
-        return s.raycastLocal(localOrigin, localDir, maxDistance, distance,
-                              localNormal);
+        return raycastLocal(s, localOrigin, localDir, maxDistance, distance,
+                            localNormal);
       },
       shape);
   if (!hit) { return result; }

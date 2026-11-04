@@ -61,7 +61,6 @@ ConvexHullShape::ConvexHullShape(std::vector<Vec3f> vertices)
     maxDistSq = std::max(maxDistSq, glm::dot(v, v));
   }
   cachedBoundingRadius_ = std::sqrt(maxDistSq);
-  rayPlanes_ = buildRayPlanes(localVertices, cachedBoundingRadius_);
 }
 
 Vec3f ConvexHullShape::support(Vec3f direction) const noexcept {

@@ -202,6 +202,7 @@ sphere-sphere fast path).
 - [ ] make piles actually settle (likely needs a restitution velocity threshold)
 - [ ] add static factory/preset helpers for shapes in `rpengine`
 - [ ] remove bodies not in renderable view (`rpengine`)
+- [ ] add pinch-to-zoom in 2D and in ESCed 3D
 - [x] re-benchmark simulation performance
 - [x] refactor
   - [x] turn physics code into a separate library
