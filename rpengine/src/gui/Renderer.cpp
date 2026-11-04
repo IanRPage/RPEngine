@@ -155,10 +155,13 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
   bool overWorldView =
       !io.WantCaptureMouse && io.MousePos.x >= ImguiController::kSidebarWidth;
   GLFWwindow* handle = window_.handle();
+  Vec2f center =
+      Vec2f(ImguiController::kSidebarWidth, 0.0f) + worldViewSize() * 0.5f;
 
   if (imguiCtrl_.cameraMode() == CameraMode::Orthographic2D) {
     if (mouseCaptured_) {
       glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      glfwSetCursorPos(handle, center.x, center.y);
       mouseCaptured_ = false;
     }
     hasLastMouseLookPos_ = false;
@@ -190,19 +193,17 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
 
   if (mouseCaptured_ && glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetCursorPos(handle, center.x, center.y);
     mouseCaptured_ = false;
     hasLastMouseLookPos_ = false;
   } else if (mouseCaptured_ && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
     pickBodyAt(worldViewSize() * 0.5f);
   } else if (!mouseCaptured_ && overWorldView &&
              ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-    Vec2f viewportPos(io.MousePos.x - ImguiController::kSidebarWidth,
-                      io.MousePos.y);
-    if (!pickBodyAt(viewportPos)) {
-      glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      mouseCaptured_ = true;
-      hasLastMouseLookPos_ = false;
-    }
+    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPos(handle, center.x, center.y);
+    mouseCaptured_ = true;
+    hasLastMouseLookPos_ = false;
   }
 
   if (!mouseCaptured_) { return; }
@@ -230,10 +231,11 @@ void Renderer::handleWorldViewInput(float dt) noexcept {
   if (glfwGetKey(handle, GLFW_KEY_A) == GLFW_PRESS) {
     flyCamera_.moveRight(-step);
   }
-  if (glfwGetKey(handle, GLFW_KEY_E) == GLFW_PRESS) {
+  if (glfwGetKey(handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
     flyCamera_.moveUp(step);
   }
-  if (glfwGetKey(handle, GLFW_KEY_Q) == GLFW_PRESS) {
+  if (glfwGetKey(handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+      glfwGetKey(handle, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS) {
     flyCamera_.moveUp(-step);
   }
 }
@@ -308,7 +310,9 @@ void Renderer::handlePendingSpawnRequests() {
 
   if (imguiCtrl_.consumeWakeAllRequest()) { world.wakeAll(); }
 
-  if (imguiCtrl_.consumeDeleteSelectedRequest()) {
+  bool deleteKeyPressed = !ImGui::GetIO().WantCaptureKeyboard &&
+                          ImGui::IsKeyPressed(ImGuiKey_Backspace);
+  if (imguiCtrl_.consumeDeleteSelectedRequest() || deleteKeyPressed) {
     const BodyStore& store = world.bodies();
     if (selectedBody_.valid() && store.isLive(selectedBody_) &&
         store.invMass(selectedBody_) > 0.0f) {
@@ -514,6 +518,15 @@ void Renderer::drawFrame() {
 
   imguiCtrl_.renderPanels(frameTimeMs, sim_.world().bodies().size(),
                           sim_.world().sleepingBodyCount());
+  if (mouseCaptured_) {
+    Vec2f c =
+        Vec2f(ImguiController::kSidebarWidth, 0.0f) + worldViewSize() * 0.5f;
+    constexpr float kArm = 5.0f;
+    ImU32 col = IM_COL32(255, 255, 255, 220);
+    ImDrawList* dl = ImGui::GetForegroundDrawList();
+    dl->AddLine(ImVec2(c.x - kArm, c.y), ImVec2(c.x + kArm, c.y), col, 1.5f);
+    dl->AddLine(ImVec2(c.x, c.y - kArm), ImVec2(c.x, c.y + kArm), col, 1.5f);
+  }
   imguiCtrl_.endFrame();
 
   handleScreenshotRequest();

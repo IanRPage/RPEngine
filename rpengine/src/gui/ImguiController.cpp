@@ -101,13 +101,13 @@ void ImguiController::renderCameraControls() {
   ImGui::Separator();
   if (cameraMode_ == CameraMode::Orthographic2D) {
     ImGui::TextWrapped(
-        "Left-drag the world view to pan; click a dynamic body to select it.");
+        "Left-drag the world view to pan; click a dynamic body to select it. "
+        "Backspace deletes the selected body.");
   } else {
     ImGui::TextWrapped(
-        "Click a dynamic body to select it. Click static geometry or empty "
-        "space to capture the mouse: look around, W/A/S/D to move, E/Q for "
-        "up/down, click to select under the view center. Esc releases the "
-        "cursor.");
+        "Click the world view to capture the mouse: look around, W/A/S/D to "
+        "move, Space/Ctrl for up/down, click to select under the +, Backspace "
+        "to delete selected. Esc releases the cursor.");
   }
 }
 
