@@ -5,10 +5,13 @@
 #include <collision/Epa.hpp>
 #include <collision/Gjk.hpp>
 #include <collision/ManifoldCache.hpp>
+#include <collision/Raycast.hpp>
 #include <core/BodyStore.hpp>
 #include <dynamics/Solver.hpp>
 #include <functional>
+#include <limits>
 #include <memory>
+#include <optional>
 #include <vector>
 
 class World {
@@ -30,7 +33,17 @@ class World {
                           float friction, float restitution,
                           bool is2D) noexcept;
 
+  void removeBody(BodyHandle handle) noexcept { bodies_.removeBody(handle); }
+
   void step(float dt) noexcept;
+
+  std::optional<WorldRayHit> raycastClosest(
+      const Ray& ray,
+      float maxDistance = std::numeric_limits<float>::infinity()) const;
+  std::vector<WorldRayHit> raycastAll(
+      const Ray& ray,
+      float maxDistance = std::numeric_limits<float>::infinity()) const;
+  std::vector<BodyHandle> queryAABB(const AABB& aabb) const;
 
   void snapshotPrevState() noexcept;
 

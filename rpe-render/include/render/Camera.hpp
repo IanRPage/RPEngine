@@ -5,6 +5,11 @@
 
 namespace render {
 
+struct Ray {
+  Vec3f origin{0.0f, 0.0f, 0.0f};
+  Vec3f direction{0.0f, 0.0f, -1.0f};
+};
+
 struct OrthographicCamera {
   Vec2f center{0.0f, 0.0f};
   float halfHeight = 10.0f;
@@ -13,6 +18,8 @@ struct OrthographicCamera {
   float farPlane = 100.0f;
 
   Mat4f viewProjection() const noexcept;
+
+  Ray screenPointToRay(Vec2f viewportPos, Vec2f viewportSize) const noexcept;
 };
 
 struct PerspectiveCamera {
@@ -25,6 +32,8 @@ struct PerspectiveCamera {
   float farPlane = 500.0f;
 
   Mat4f viewProjection() const noexcept;
+
+  Ray screenPointToRay(Vec2f viewportPos, Vec2f viewportSize) const noexcept;
 };
 
 class FreeFlyCameraController {

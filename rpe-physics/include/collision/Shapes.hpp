@@ -90,7 +90,7 @@ struct ConvexHullShape {
   }
 
  private:
-  float cachedBoundingRadius_ = 0.0f;  // precomputed in constructor
+  float cachedBoundingRadius_ = 0.0f;
 };
 
 struct CompoundChild;

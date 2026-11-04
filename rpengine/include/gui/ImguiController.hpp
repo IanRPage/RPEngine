@@ -2,6 +2,8 @@
 #define RPENGINE_RENDER_IMGUICONTROLLER_HPP
 
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
 
 struct GLFWwindow;
@@ -33,6 +35,14 @@ class ImguiController {
   bool consumeSpawnCompoundRequest() noexcept;
   bool consumeResetRequest() noexcept;
   bool consumeWakeAllRequest() noexcept;
+  bool consumeDeleteSelectedRequest() noexcept;
+
+  void setSelectedBody(std::optional<uint32_t> bodyIndex) noexcept {
+    selectedBody_ = bodyIndex;
+  }
+  std::optional<uint32_t> selectedBody() const noexcept {
+    return selectedBody_;
+  }
 
   bool consumeScreenshotRequest(std::string& path);
   void setLastScreenshotStatus(std::string status) {
@@ -53,6 +63,9 @@ class ImguiController {
   bool spawnCompoundRequested_ = false;
   bool resetRequested_ = false;
   bool wakeAllRequested_ = false;
+  bool deleteSelectedRequested_ = false;
+
+  std::optional<uint32_t> selectedBody_;
 
   bool screenshotRequested_ = false;
   std::string screenshotPath_;

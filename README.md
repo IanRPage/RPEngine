@@ -143,15 +143,20 @@ The sidebar panel (`ImguiController`) is organized by section, and this is
 everything it currently exposes:
 
 **Camera**:
-- **Orthographic (2D)**: Left-drag the world view to pan. No zoom control
-  yet.
+- **Orthographic (2D)**: Left-drag the world view to pan, left-click (without
+  dragging) to select a dynamic body. No zoom control yet.
 - **Perspective (3D)**: Click the world view to capture the mouse, then look
-  around with the mouse and move with W/A/S/D (Q/E for up/down), Esc releases
-  the cursor.
+  around with the mouse and move with W/A/S/D (Space/Ctrl for up/down); while
+  captured, clicking selects the dynamic body under the `+` crosshair. Esc
+  releases the cursor at the crosshair.
 
-**Spawn**: "Spawn Sphere"/"Spawn Box"/"Spawn Capsule" each drop one body of
-that shape at a randomized position above the scene. "Reset Scene" removes every
-dynamic body, leaving statics in place.
+**Frame Stats**: frame time, live body count, sleeping body count, and the
+selected body index ("Selected body: None" when nothing is selected).
+
+**Spawn**: "Spawn Sphere"/"Spawn Box"/"Spawn Capsule"/"Spawn Compound" each drop
+one body of that shape at a randomized position above the scene. "Reset Scene"
+removes every dynamic body, leaving statics in place. "Wake All" wakes every
+sleeping body. "Delete Selected" (or `Backspace`) removes the selected body.
 
 **Screenshot**: "Take Screenshot" opens a path prompt and writes the current
 framebuffer to a PNG (this is how the screenshot above was captured).
@@ -196,6 +201,8 @@ sphere-sphere fast path).
 - [ ] update README with an current demo gif
 - [ ] make piles actually settle (likely needs a restitution velocity threshold)
 - [ ] add static factory/preset helpers for shapes in `rpengine`
+- [ ] remove bodies not in renderable view (`rpengine`)
+- [ ] add pinch-to-zoom in 2D and in ESCed 3D
 - [x] re-benchmark simulation performance
 - [x] refactor
   - [x] turn physics code into a separate library

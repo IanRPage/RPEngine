@@ -49,6 +49,8 @@ add_executable(rp_tests
   test_renderable_store.cpp
   test_mesh_library.cpp
   test_sleeping.cpp
+  test_raycast.cpp
+  test_camera_ray.cpp
 )
 
 target_compile_features(rp_tests PRIVATE cxx_std_20)

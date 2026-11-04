@@ -1,6 +1,7 @@
 #include <core/World.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <broadphase/DynamicBVHBroadphase.hpp>
 #include <collision/Manifold.hpp>
 #include <collision/MassProperties.hpp>
@@ -33,6 +34,21 @@ const Transform* childLocal(const ShapeVariant& shape,
                             std::size_t i) noexcept {
   const auto* c = std::get_if<CompoundShape>(&shape);
   return c ? &c->children[i].localTransform : nullptr;
+}
+
+AABB paddedAABB(const AABB& aabb) noexcept {
+  Vec3f extent = aabb.max - aabb.min;
+  float scale = std::max({1.0f, extent.x, extent.y, extent.z});
+  Vec3f pad(1e-4f * scale);
+  return AABB(aabb.min - pad, aabb.max + pad);
+}
+
+bool normalizeRay(const Ray& ray, float maxDistance, Ray& out) noexcept {
+  if (!(maxDistance >= 0.0f)) { return false; }
+  float len = glm::length(ray.direction);
+  if (!(len > 0.0f) || !std::isfinite(len)) { return false; }
+  out = Ray{ray.origin, ray.direction / len};
+  return true;
 }
 
 std::unique_ptr<IBroadphase> normalizeBroadphase(
@@ -380,4 +396,67 @@ void World::step(float dt) noexcept {
   }
 
   updateSleep(activeManifolds, dt);
+}
+
+std::optional<WorldRayHit> World::raycastClosest(const Ray& ray,
+                                                 float maxDistance) const {
+  Ray unitRay;
+  if (!normalizeRay(ray, maxDistance, unitRay)) { return std::nullopt; }
+
+  std::optional<WorldRayHit> closest;
+  float bestDistance = maxDistance;
+  for (BodyHandle h : bodies_.liveHandles()) {
+    const ShapeVariant& shape = bodies_.shape(h);
+    Transform t = bodies_.transform(h);
+    if (!rayIntersectsAABB(unitRay, paddedAABB(worldAABB(shape, t)),
+                           bestDistance)) {
+      continue;
+    }
+    RayHit hit = raycastShape(shape, t, unitRay, bestDistance);
+    if (!hit.hit) { continue; }
+    if (closest && hit.distance == closest->distance &&
+        !(h < closest->body)) {
+      continue;
+    }
+    closest = WorldRayHit{h, hit.distance, hit.point, hit.normal};
+    bestDistance = hit.distance;
+  }
+  return closest;
+}
+
+std::vector<WorldRayHit> World::raycastAll(const Ray& ray,
+                                           float maxDistance) const {
+  std::vector<WorldRayHit> hits;
+  Ray unitRay;
+  if (!normalizeRay(ray, maxDistance, unitRay)) { return hits; }
+
+  for (BodyHandle h : bodies_.liveHandles()) {
+    const ShapeVariant& shape = bodies_.shape(h);
+    Transform t = bodies_.transform(h);
+    if (!rayIntersectsAABB(unitRay, paddedAABB(worldAABB(shape, t)),
+                           maxDistance)) {
+      continue;
+    }
+    RayHit hit = raycastShape(shape, t, unitRay, maxDistance);
+    if (hit.hit) {
+      hits.push_back(WorldRayHit{h, hit.distance, hit.point, hit.normal});
+    }
+  }
+
+  std::sort(hits.begin(), hits.end(),
+            [](const WorldRayHit& a, const WorldRayHit& b) {
+              if (a.distance != b.distance) { return a.distance < b.distance; }
+              return a.body < b.body;
+            });
+  return hits;
+}
+
+std::vector<BodyHandle> World::queryAABB(const AABB& aabb) const {
+  std::vector<BodyHandle> result;
+  for (BodyHandle h : bodies_.liveHandles()) {
+    AABB bodyAABB = worldAABB(bodies_.shape(h), bodies_.transform(h));
+    if (aabbOverlap(bodyAABB, aabb)) { result.push_back(h); }
+  }
+  std::sort(result.begin(), result.end());
+  return result;
 }

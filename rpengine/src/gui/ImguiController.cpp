@@ -83,6 +83,11 @@ void ImguiController::renderFrameStats(float frameTimeMs,
               frameTimeMs > 0.0f ? 1000.0f / frameTimeMs : 0.0f);
   ImGui::Text("Live bodies: %zu", liveBodyCount);
   ImGui::Text("Sleeping bodies: %zu", sleepingBodyCount);
+  if (selectedBody_) {
+    ImGui::Text("Selected body: %u", static_cast<unsigned>(*selectedBody_));
+  } else {
+    ImGui::Text("Selected body: None");
+  }
 }
 
 void ImguiController::renderCameraControls() {
@@ -95,11 +100,14 @@ void ImguiController::renderCameraControls() {
 
   ImGui::Separator();
   if (cameraMode_ == CameraMode::Orthographic2D) {
-    ImGui::TextWrapped("Left-drag the world view to pan.");
+    ImGui::TextWrapped(
+        "Left-drag the world view to pan; click a dynamic body to select it. "
+        "Backspace deletes the selected body.");
   } else {
     ImGui::TextWrapped(
         "Click the world view to capture the mouse: look around, W/A/S/D to "
-        "move, E/Q for up/down, all together. Esc releases the cursor.");
+        "move, Space/Ctrl for up/down, click to select under the +, Backspace "
+        "to delete selected. Esc releases the cursor.");
   }
 }
 
@@ -113,6 +121,10 @@ void ImguiController::renderSpawnControls() {
   if (ImGui::Button("Reset Scene")) { resetRequested_ = true; }
   ImGui::SameLine();
   if (ImGui::Button("Wake All")) { wakeAllRequested_ = true; }
+
+  ImGui::BeginDisabled(!selectedBody_.has_value());
+  if (ImGui::Button("Delete Selected")) { deleteSelectedRequested_ = true; }
+  ImGui::EndDisabled();
 }
 
 void ImguiController::renderScreenshotControls() {
@@ -181,6 +193,12 @@ bool ImguiController::consumeResetRequest() noexcept {
 bool ImguiController::consumeWakeAllRequest() noexcept {
   bool value = wakeAllRequested_;
   wakeAllRequested_ = false;
+  return value;
+}
+
+bool ImguiController::consumeDeleteSelectedRequest() noexcept {
+  bool value = deleteSelectedRequested_;
+  deleteSelectedRequested_ = false;
   return value;
 }
 
