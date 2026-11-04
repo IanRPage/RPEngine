@@ -23,6 +23,13 @@ class ManifoldCache {
 
   std::span<Manifold> activeManifolds() noexcept;
 
+  template <typename Pred>
+  void retainIf(Pred&& pred) noexcept {
+    for (std::size_t i = 0; i < manifolds_.size(); ++i) {
+      if (!visited_[i] && pred(manifolds_[i])) { visited_[i] = true; }
+    }
+  }
+
  private:
   struct Key {
     BodyHandle first;

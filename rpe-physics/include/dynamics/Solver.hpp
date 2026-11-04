@@ -13,6 +13,12 @@ struct SolverConfig {
   float slop = 0.005f;                     // allowed penetration, avoids jitter
   float maxCorrectionPerIteration = 0.2f;  // clamps single position-solve step
   float baumgartePositionFactor = 0.2f;
+  float restitutionVelocityThreshold = 0.5f;  // m/s
+
+  bool enableSleeping = true;
+  float linearSleepThreshold = 0.05f;   // m/s
+  float angularSleepThreshold = 0.05f;  // rad/s
+  float timeToSleep = 0.5f;             // s
 };
 
 class InvInertiaWorldCache {
@@ -30,6 +36,9 @@ class InvInertiaWorldCache {
 
 std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
                                           const BodyStore& bodies) noexcept;
+std::vector<float> prepareRestitutionBias(std::span<const Manifold> manifolds,
+                                          const BodyStore& bodies,
+                                          float velocityThreshold) noexcept;
 
 void warmStart(std::span<Manifold> manifolds, BodyStore& bodies,
                InvInertiaWorldCache& invInertiaCache) noexcept;

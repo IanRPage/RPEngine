@@ -210,6 +210,8 @@ void Renderer::handlePendingSpawnRequests() {
     }
     for (BodyHandle h : dynamicHandles) { store.removeBody(h); }
   }
+
+  if (imguiCtrl_.consumeWakeAllRequest()) { world.wakeAll(); }
 }
 
 void Renderer::drawShapeBodies(float alpha, const Mat4f& viewProjection) {
@@ -405,7 +407,8 @@ void Renderer::drawFrame() {
   drawShapeBodies(alpha, viewProjection);
   drawHullBodies(alpha, viewProjection);
 
-  imguiCtrl_.renderPanels(frameTimeMs, sim_.world().bodies().size());
+  imguiCtrl_.renderPanels(frameTimeMs, sim_.world().bodies().size(),
+                          sim_.world().sleepingBodyCount());
   imguiCtrl_.endFrame();
 
   handleScreenshotRequest();

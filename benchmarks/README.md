@@ -59,6 +59,7 @@ repetitions take ~10-15 min (`--rpe_large` much longer).
 | Case | Scene | Stresses |
 |---|---|---|
 | `BoxStack/h:5` | 5 unit boxes stacked on a ground box | solver (contact-heavy, few bodies) |
+| `DemoScene/n:1000` | 3D demo pit (`openBox` compound static container + 1000 spheres, boxes, capsules, and 3-child compound hammers) | compound-vs-compound, GJK/EPA, deep pile solver |
 | `MixedShapes/n:{1000,10000}` | random boxes / spheres / capsules (random orientations) on a jittered grid inside `addWorldBoundaries` walls | everything, incl. GJK/EPA |
 | `SpherePile/n:10000` | same container, spheres only | broadphase + solver without GJK/EPA box/capsule cost |
 | `--rpe_large`: `{MixedShapes,SpherePile}/n:100000` | as above | scaling |
@@ -72,3 +73,4 @@ leaves its scene (toppled, escaped, NaN) is reported as an error. Scenes live in
 
 - `Time`: 300 steady-state steps (divide by 300 for per-step cost)
 - `bodies`: total bodies, including static ground/walls
+- `sleeping`: bodies asleep at the end of the timed steps

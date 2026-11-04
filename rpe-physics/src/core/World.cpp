@@ -5,6 +5,8 @@
 #include <collision/Manifold.hpp>
 #include <collision/MassProperties.hpp>
 #include <dynamics/Integrator.hpp>
+#include <limits>
+#include <vector>
 
 namespace {
 float boundingRadiusOf(const ShapeVariant& shape) noexcept {
@@ -37,6 +39,11 @@ std::unique_ptr<IBroadphase> normalizeBroadphase(
     std::unique_ptr<IBroadphase> broadphase) noexcept {
   return broadphase ? std::move(broadphase)
                     : std::make_unique<DynamicBVHBroadphase>();
+}
+
+bool hasMovedSincePrev(const BodyStore& bodies, BodyHandle h) noexcept {
+  return bodies.position(h) != bodies.prevPosition(h) ||
+         bodies.orientation(h) != bodies.prevOrientation(h);
 }
 }  // namespace
 
@@ -114,6 +121,7 @@ void World::addWorldBoundaries(Vec3f worldMin, Vec3f worldMax, float thickness,
 
 void World::snapshotPrevState() noexcept {
   for (BodyHandle h : bodies_.liveHandles()) {
+    if (bodies_.invMass(h) <= 0.0f || bodies_.isSleeping(h)) { continue; }
     bodies_.prevPosition(h) = bodies_.position(h);
     bodies_.prevOrientation(h) = bodies_.orientation(h);
   }
@@ -176,10 +184,137 @@ void World::collideCompoundPair(BodyHandle a, const ShapeVariant& shapeA,
   }
 }
 
+bool World::isAwakeDynamic(BodyHandle h) const noexcept {
+  return bodies_.isLive(h) && bodies_.invMass(h) > 0.0f &&
+         !bodies_.isSleeping(h);
+}
+
+bool World::wakesContactPartner(BodyHandle h) const noexcept {
+  if (!bodies_.isLive(h)) { return true; }
+  return bodies_.invMass(h) > 0.0f ? !bodies_.isSleeping(h)
+                                   : hasMovedSincePrev(bodies_, h);
+}
+
+void World::resetUnionFind() noexcept {
+  uint32_t maxIndex = 0;
+  for (BodyHandle h : bodies_.liveHandles()) {
+    maxIndex = std::max(maxIndex, h.index + 1);
+  }
+  ufParent_.resize(maxIndex);
+  for (uint32_t i = 0; i < maxIndex; ++i) { ufParent_[i] = i; }
+}
+
+uint32_t World::findRoot(uint32_t i) noexcept {
+  while (ufParent_[i] != i) {
+    ufParent_[i] = ufParent_[ufParent_[i]];
+    i = ufParent_[i];
+  }
+  return i;
+}
+
+void World::unite(uint32_t a, uint32_t b) noexcept {
+  a = findRoot(a);
+  b = findRoot(b);
+  if (a != b) { ufParent_[std::max(a, b)] = std::min(a, b); }
+}
+
+void World::propagateWakeThroughContacts(Vec3f wakeDeltaVelocity) noexcept {
+  if (bodies_.sleepingCount() == 0) { return; }
+
+  std::span<Manifold> manifolds = manifoldCache_.activeManifolds();
+  bool anyMixed = false;
+  for (const Manifold& m : manifolds) {
+    if ((bodies_.isSleeping(m.bodyA) && wakesContactPartner(m.bodyB)) ||
+        (bodies_.isSleeping(m.bodyB) && wakesContactPartner(m.bodyA))) {
+      anyMixed = true;
+      break;
+    }
+  }
+  if (!anyMixed) { return; }
+
+  resetUnionFind();
+  for (const Manifold& m : manifolds) {
+    if (!bodies_.isLive(m.bodyA) || !bodies_.isLive(m.bodyB)) { continue; }
+    if (bodies_.invMass(m.bodyA) <= 0.0f || bodies_.invMass(m.bodyB) <= 0.0f) {
+      continue;
+    }
+    unite(m.bodyA.index, m.bodyB.index);
+  }
+
+  ufAwake_.assign(ufParent_.size(), 0);
+  for (const Manifold& m : manifolds) {
+    if (bodies_.isSleeping(m.bodyA) && wakesContactPartner(m.bodyB)) {
+      ufAwake_[findRoot(m.bodyA.index)] = 1;
+    }
+    if (bodies_.isSleeping(m.bodyB) && wakesContactPartner(m.bodyA)) {
+      ufAwake_[findRoot(m.bodyB.index)] = 1;
+    }
+  }
+  for (BodyHandle h : bodies_.liveHandles()) {
+    if (bodies_.isSleeping(h) && ufAwake_[findRoot(h.index)]) {
+      bodies_.wake(h);
+      bodies_.linearVelocity(h) += wakeDeltaVelocity;
+    }
+  }
+}
+
+void World::updateSleep(std::span<const Manifold> manifolds,
+                        float dt) noexcept {
+  if (!config_.enableSleeping) { return; }
+
+  const float linThresholdSq =
+      config_.linearSleepThreshold * config_.linearSleepThreshold;
+  const float angThresholdSq =
+      config_.angularSleepThreshold * config_.angularSleepThreshold;
+
+  resetUnionFind();
+  for (const Manifold& m : manifolds) {
+    if (!isAwakeDynamic(m.bodyA) || !isAwakeDynamic(m.bodyB)) { continue; }
+    unite(m.bodyA.index, m.bodyB.index);
+  }
+
+  constexpr float kInf = std::numeric_limits<float>::infinity();
+  ufMinTimer_.assign(ufParent_.size(), kInf);
+  for (BodyHandle h : bodies_.liveHandles()) {
+    if (!isAwakeDynamic(h)) { continue; }
+    float linSq =
+        glm::dot(bodies_.linearVelocity(h), bodies_.linearVelocity(h));
+    float angSq =
+        glm::dot(bodies_.angularVelocity(h), bodies_.angularVelocity(h));
+    float& timer = bodies_.sleepTimer(h);
+    if (linSq > linThresholdSq || angSq > angThresholdSq) {
+      timer = 0.0f;
+    } else {
+      timer += dt;
+    }
+    float& islandMin = ufMinTimer_[findRoot(h.index)];
+    islandMin = std::min(islandMin, timer);
+  }
+
+  for (BodyHandle h : bodies_.liveHandles()) {
+    if (isAwakeDynamic(h) &&
+        ufMinTimer_[findRoot(h.index)] >= config_.timeToSleep) {
+      bodies_.putToSleep(h);
+    }
+  }
+}
+
 void World::step(float dt) noexcept {
+  if (!config_.enableSleeping) {
+    if (bodies_.sleepingCount() > 0) { bodies_.wakeAll(); }
+  } else {
+    for (BodyHandle h : bodies_.liveHandles()) {
+      if (bodies_.isSleeping(h) && hasMovedSincePrev(bodies_, h)) {
+        bodies_.wake(h);
+      }
+    }
+    propagateWakeThroughContacts();
+  }
+
   integrateVelocity(bodies_, dt, gravity_);
 
   for (BodyHandle h : bodies_.liveHandles()) {
+    if (bodies_.isSleeping(h)) { continue; }
     Transform t = bodies_.transform(h);
     AABB aabb = worldAABB(bodies_.shape(h), t);
     Vec3f displacement = bodies_.linearVelocity(h) * dt;
@@ -189,7 +324,19 @@ void World::step(float dt) noexcept {
   auto pairs = broadphase_->computePairs(bodies_);
 
   manifoldCache_.beginFrame();
+  if (bodies_.sleepingCount() > 0) {
+    manifoldCache_.retainIf([this](const Manifold& m) {
+      return (bodies_.isSleeping(m.bodyA) || bodies_.isSleeping(m.bodyB)) &&
+             !wakesContactPartner(m.bodyA) && !wakesContactPartner(m.bodyB);
+    });
+  }
+
   for (const auto& [a, b] : pairs) {
+    if ((bodies_.isSleeping(a) || bodies_.isSleeping(b)) &&
+        !wakesContactPartner(a) && !wakesContactPartner(b)) {
+      continue;
+    }
+
     const ShapeVariant& shapeA = bodies_.shape(a);
     const ShapeVariant& shapeB = bodies_.shape(b);
     Transform ta = bodies_.transform(a);
@@ -203,20 +350,34 @@ void World::step(float dt) noexcept {
   }
   manifoldCache_.endFrame();
 
+  propagateWakeThroughContacts(gravity_ * dt);
+  for (BodyHandle h : bodies_.liveHandles()) {
+    if (bodies_.invMass(h) <= 0.0f && hasMovedSincePrev(bodies_, h)) {
+      bodies_.prevPosition(h) = bodies_.position(h);
+      bodies_.prevOrientation(h) = bodies_.orientation(h);
+    }
+  }
+
   std::span<Manifold> activeManifolds = manifoldCache_.activeManifolds();
 
-  std::vector<float> restitutionBias =
-      prepareRestitutionBias(activeManifolds, bodies_);
+  std::vector<float> restitutionBias = prepareRestitutionBias(
+      activeManifolds, bodies_, config_.restitutionVelocityThreshold);
 
-  InvInertiaWorldCache invInertiaCache(bodies_);
-  warmStart(activeManifolds, bodies_, invInertiaCache);
-  for (int i = 0; i < config_.velocityIterations; i++) {
-    solveVelocity(activeManifolds, bodies_, restitutionBias, invInertiaCache);
+  if (!restitutionBias.empty()) {
+    InvInertiaWorldCache invInertiaCache(bodies_);
+    warmStart(activeManifolds, bodies_, invInertiaCache);
+    for (int i = 0; i < config_.velocityIterations; i++) {
+      solveVelocity(activeManifolds, bodies_, restitutionBias, invInertiaCache);
+    }
   }
 
   integratePosition(bodies_, dt);
 
-  for (int i = 0; i < config_.positionIterations; i++) {
-    solvePosition(activeManifolds, bodies_, config_);
+  if (!restitutionBias.empty()) {
+    for (int i = 0; i < config_.positionIterations; i++) {
+      solvePosition(activeManifolds, bodies_, config_);
+    }
   }
+
+  updateSleep(activeManifolds, dt);
 }

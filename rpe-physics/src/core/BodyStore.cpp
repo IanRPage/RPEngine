@@ -54,6 +54,8 @@ BodyHandle BodyStore::addBody(const BodyDesc& desc) noexcept {
 void BodyStore::removeBody(BodyHandle handle) noexcept {
   if (!isLive(handle)) { return; }
 
+  if (slots_[handle.index].sleeping) { wake(handle); }
+
   Slot& slot = slots_[handle.index];
   slot.alive = false;
   slot.generation++;
@@ -167,3 +169,47 @@ Transform BodyStore::transform(BodyHandle handle) const noexcept {
   const Slot& slot = slots_[handle.index];
   return Transform{slot.position, slot.orientation};
 }
+
+bool BodyStore::isSleeping(BodyHandle handle) const noexcept {
+  return isLive(handle) && slots_[handle.index].sleeping;
+}
+
+float& BodyStore::sleepTimer(BodyHandle handle) noexcept {
+  return slots_[handle.index].sleepTimer;
+}
+
+float BodyStore::sleepTimer(BodyHandle handle) const noexcept {
+  return slots_[handle.index].sleepTimer;
+}
+
+void BodyStore::wakeSlot(Slot& slot) noexcept {
+  slot.sleepTimer = 0.0f;
+  if (!slot.sleeping) { return; }
+  slot.sleeping = false;
+  sleepingCount_--;
+}
+
+void BodyStore::putToSleep(BodyHandle handle) noexcept {
+  if (!isLive(handle)) { return; }
+  Slot& slot = slots_[handle.index];
+  if (slot.invMass <= 0.0f) { return; }
+  if (!slot.sleeping) { sleepingCount_++; }
+  slot.sleeping = true;
+  slot.linearVelocity = Vec3f(0.0f);
+  slot.angularVelocity = Vec3f(0.0f);
+  slot.prevPosition = slot.position;
+  slot.prevOrientation = slot.orientation;
+  slot.aabb = worldAABB(slot.shape, Transform{slot.position, slot.orientation});
+  slot.displacement = Vec3f(0.0f);
+}
+
+void BodyStore::wake(BodyHandle handle) noexcept {
+  if (!isLive(handle)) { return; }
+  wakeSlot(slots_[handle.index]);
+}
+
+void BodyStore::wakeAll() noexcept {
+  for (BodyHandle h : liveHandles_) { wakeSlot(slots_[h.index]); }
+}
+
+size_t BodyStore::sleepingCount() const noexcept { return sleepingCount_; }

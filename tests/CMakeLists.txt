@@ -48,6 +48,7 @@ add_executable(rp_tests
   test_fixed_timestep.cpp
   test_renderable_store.cpp
   test_mesh_library.cpp
+  test_sleeping.cpp
 )
 
 target_compile_features(rp_tests PRIVATE cxx_std_20)

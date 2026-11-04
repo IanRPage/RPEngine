@@ -34,6 +34,9 @@ class World {
 
   void snapshotPrevState() noexcept;
 
+  void wakeAll() noexcept { bodies_.wakeAll(); }
+  size_t sleepingBodyCount() const noexcept { return bodies_.sleepingCount(); }
+
   BodyStore& bodies() noexcept { return bodies_; }
   const BodyStore& bodies() const noexcept { return bodies_; }
 
@@ -81,6 +84,19 @@ class World {
   EpaFn epaFn_ = epaPenetration;
 
   std::vector<ChildProxy> childScratchB_;
+
+  bool isAwakeDynamic(BodyHandle h) const noexcept;
+  bool wakesContactPartner(BodyHandle h) const noexcept;
+  void propagateWakeThroughContacts(
+      Vec3f wakeDeltaVelocity = Vec3f(0.0f)) noexcept;
+  void updateSleep(std::span<const Manifold> manifolds, float dt) noexcept;
+
+  uint32_t findRoot(uint32_t i) noexcept;
+  void unite(uint32_t a, uint32_t b) noexcept;
+  void resetUnionFind() noexcept;
+  std::vector<uint32_t> ufParent_;
+  std::vector<float> ufMinTimer_;
+  std::vector<uint8_t> ufAwake_;
 
   static constexpr float kManifoldMatchFactor = 0.05f;
 };
